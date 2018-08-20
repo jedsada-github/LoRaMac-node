@@ -1,19 +1,31 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Driver for the MAG3110 Magnetometer
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
-#include "board.h"
+/*!
+ * \file      mag3110.c
+ *
+ * \brief     MAG3110 Magnetometer driver implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
+#include <stdbool.h>
+#include "utilities.h"
+#include "i2c.h"
 #include "mag3110.h"
+
+extern I2c_t I2c;
 
 static uint8_t I2cDeviceAddr = 0;
 static bool MAG3110Initialized = false;
@@ -25,15 +37,15 @@ uint8_t MAG3110Init( void )
     MAG3110SetDeviceAddr( MAG3110_I2C_ADDRESS );
 
     if( MAG3110Initialized == false )
-    {   
+    {
         MAG3110Initialized = true;
-        
+
         MAG3110Read( MAG3110_ID, &regVal );
-        if( regVal != 0xC4 )   // Fixed Device ID Number = 0xC4 
+        if( regVal != 0xC4 )   // Fixed Device ID Number = 0xC4
         {
             return FAIL;
         }
-    
+
         MAG3110Reset( );
     }
     return SUCCESS;

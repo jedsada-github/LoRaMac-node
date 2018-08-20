@@ -1,26 +1,59 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Tx Continuous Wave implementation
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
-#include <string.h>
+/*!
+ * \file      main.c
+ *
+ * \brief     Tx Continuous Wave implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
 #include "board.h"
+#include "gpio.h"
+#include "timer.h"
 #include "radio.h"
 
-#if defined( USE_BAND_868 )
+#if defined( REGION_AS923 )
+
+#define RF_FREQUENCY                                923000000 // Hz
+
+#elif defined( REGION_AU915 )
+
+#define RF_FREQUENCY                                915000000 // Hz
+
+#elif defined( REGION_CN779 )
+
+#define RF_FREQUENCY                                779000000 // Hz
+
+#elif defined( REGION_EU868 )
 
 #define RF_FREQUENCY                                868000000 // Hz
 
-#elif defined( USE_BAND_915 )
+#elif defined( REGION_KR920 )
+
+#define RF_FREQUENCY                                920000000 // Hz
+
+#elif defined( REGION_IN865 )
+
+#define RF_FREQUENCY                                865000000 // Hz
+
+#elif defined( REGION_US915 )
+
+#define RF_FREQUENCY                                915000000 // Hz
+
+#elif defined( REGION_US915_HYBRID )
 
 #define RF_FREQUENCY                                915000000 // Hz
 
@@ -31,19 +64,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 #endif
 
 #define TX_OUTPUT_POWER                             20        // 20 dBm
-
-#define LORA_BANDWIDTH                              0         // [0: 125 kHz,
-                                                              //  1: 250 kHz,
-                                                              //  2: 500 kHz,
-                                                              //  3: Reserved]
-#define LORA_SPREADING_FACTOR                       9         // [SF7..SF12]
-#define LORA_CODINGRATE                             1         // [1: 4/5,
-                                                              //  2: 4/6,
-                                                              //  3: 4/7,
-                                                              //  4: 4/8]
-#define LORA_PREAMBLE_LENGTH                        8         // Same for Tx and Rx
-#define LORA_FIX_LENGTH_PAYLOAD_ON                  false
-#define LORA_IQ_INVERSION_ON                        false
+#define TX_TIMEOUT                                  65535     // seconds (MAX value)
 
 static TimerEvent_t Led1Timer;
 volatile bool Led1TimerEvent = false;
@@ -53,6 +74,18 @@ volatile bool Led2TimerEvent = false;
 
 static TimerEvent_t Led3Timer;
 volatile bool Led3TimerEvent = false;
+
+/*!
+ * Radio events function pointer
+ */
+static RadioEvents_t RadioEvents;
+
+/*!
+ * LED GPIO pins objects
+ */
+extern Gpio_t Led1;
+extern Gpio_t Led2;
+extern Gpio_t Led3;
 
 /*!
  * \brief Function executed on Led 1 Timeout event
@@ -78,56 +111,42 @@ void OnLed3TimerEvent( void )
     Led3TimerEvent = true;
 }
 
+/*!
+ * \brief Function executed on Radio Tx Timeout event
+ */
+void OnRadioTxTimeout( void )
+{
+    // Restarts continuous wave transmission when timeout expires
+    Radio.SetTxContinuousWave( RF_FREQUENCY, TX_OUTPUT_POWER, TX_TIMEOUT );
+}
+
 /**
  * Main application entry point.
  */
 int main( void )
 {
-    // Target board initialisation
+    // Target board initialization
     BoardInitMcu( );
     BoardInitPeriph( );
 
-    // Radio initialization
-    Radio.Init( NULL );
-
-    Radio.SetChannel( RF_FREQUENCY );
-
-    Radio.SetTxConfig( MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
-                                   LORA_SPREADING_FACTOR, LORA_CODINGRATE,
-                                   LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                                   true, 0, 0, LORA_IQ_INVERSION_ON, 3000 );
-    
-    /**********************************************/
-    /*                  WARNING                   */
-    /* The below settings can damage the chipset  */
-    /* if wrongly used. DO NOT CHANGE THE VALUES! */
-    /*                                            */
-    /**********************************************/
-
-    Radio.Write( 0x4B, 0x7B );
-    Radio.Write( 0x3D, 0xAF );
-    Radio.Write( 0x1e, 0x08 );
-    Radio.Write( 0x4C, 0xC0 );
-    Radio.Write( 0x4D, 0x03 );
-    Radio.Write( 0x5A, 0x87 );
-    Radio.Write( 0x63, 0x60 );
-    Radio.Write( 0x01, 0x83 );
-
-    TimerInit( &Led1Timer, OnLed1TimerEvent ); 
+    TimerInit( &Led1Timer, OnLed1TimerEvent );
     TimerSetValue( &Led1Timer, 90 );
 
-    TimerInit( &Led2Timer, OnLed2TimerEvent ); 
+    TimerInit( &Led2Timer, OnLed2TimerEvent );
     TimerSetValue( &Led2Timer, 90 );
 
-    TimerInit( &Led3Timer, OnLed3TimerEvent ); 
+    TimerInit( &Led3Timer, OnLed3TimerEvent );
     TimerSetValue( &Led3Timer, 90 );
-               
+
     // Switch LED 1 ON
     GpioWrite( &Led1, 0 );
     TimerStart( &Led1Timer );
-    
-    // Sets the radio in Tx mode
-    Radio.Send( NULL, 0 );
+
+    // Radio initialization
+    RadioEvents.TxTimeout = OnRadioTxTimeout;
+    Radio.Init( &RadioEvents );
+
+    Radio.SetTxContinuousWave( RF_FREQUENCY, TX_OUTPUT_POWER, TX_TIMEOUT );
 
     // Blink LEDs just to show some activity
     while( 1 )
@@ -135,7 +154,7 @@ int main( void )
         if( Led1TimerEvent == true )
         {
             Led1TimerEvent = false;
-            
+
             // Switch LED 1 OFF
             GpioWrite( &Led1, 1 );
             // Switch LED 2 ON
@@ -146,23 +165,23 @@ int main( void )
         if( Led2TimerEvent == true )
         {
             Led2TimerEvent = false;
-            
+
             // Switch LED 2 OFF
             GpioWrite( &Led2, 1 );
             // Switch LED 3 ON
             GpioWrite( &Led3, 0 );
             TimerStart( &Led3Timer );
         }
-    
+
         if( Led3TimerEvent == true )
         {
             Led3TimerEvent = false;
-            
+
             // Switch LED 3 OFF
             GpioWrite( &Led3, 1 );
             // Switch LED 1 ON
             GpioWrite( &Led1, 0 );
             TimerStart( &Led1Timer );
-        }    
+        }
     }
 }

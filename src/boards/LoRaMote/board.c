@@ -1,23 +1,47 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Target board general functions implementation
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
-#include "board.h"
-
 /*!
- * Battery level ratio (battery dependent)
+ * \file      board.c
+ *
+ * \brief     Target board general functions implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
  */
-#define BATTERY_STEP_LEVEL                          0.23
+#include "stm32l1xx.h"
+#include "utilities.h"
+#include "delay.h"
+#include "gpio.h"
+#include "gpio-ioe.h"
+#include "adc.h"
+#include "spi.h"
+#include "i2c.h"
+#include "uart.h"
+#include "timer.h"
+#include "gps.h"
+#include "mpl3115.h"
+#include "mag3110.h"
+#include "mma8451.h"
+#include "sx9500.h"
+#include "board-config.h"
+#include "rtc-board.h"
+#include "sx1272-board.h"
+#if defined( USE_USB_CDC )
+#include "uart-usb-board.h"
+#endif
+#include "board.h"
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -27,39 +51,15 @@ Maintainer: Miguel Luis and Gregory Cristian
 #define         ID3                                 ( 0x1FF80064 )
 
 /*!
- * IO Extander pins objects
+ * LED GPIO pins objects
  */
-Gpio_t IrqMpl3115;
-Gpio_t IrqMag3110;
-Gpio_t GpsPowerEn;
-Gpio_t NcIoe3;
-Gpio_t NcIoe4;
-Gpio_t NcIoe5;
-Gpio_t NcIoe6;
-Gpio_t NcIoe7;
-Gpio_t NIrqSx9500;
-Gpio_t Irq1Mma8451;
-Gpio_t Irq2Mma8451;
-Gpio_t TxEnSx9500;
 Gpio_t Led1;
 Gpio_t Led2;
 Gpio_t Led3;
 
-#if defined( USE_DEBUG_PINS )
-Gpio_t DbgPin1;
-Gpio_t DbgPin2;
-Gpio_t DbgPin3;
-Gpio_t DbgPin4;
-Gpio_t DbgPin5;
-#endif
-
 /*
  * MCU objects
  */
-Gpio_t GpsPps;
-Gpio_t GpsRx;
-Gpio_t GpsTx;
-
 Adc_t Adc;
 I2c_t I2c;
 Uart_t Uart1;
@@ -110,21 +110,44 @@ static void OnCalibrateSystemWakeupTimeTimerEvent( void )
     SystemWakeupTimeCalibrated = true;
 }
 
+/*!
+ * Nested interrupt counter.
+ *
+ * \remark Interrupt should only be fully disabled once the value is 0
+ */
+static uint8_t IrqNestLevel = 0;
+
+void BoardDisableIrq( void )
+{
+    __disable_irq( );
+    IrqNestLevel++;
+}
+
+void BoardEnableIrq( void )
+{
+    IrqNestLevel--;
+    if( IrqNestLevel == 0 )
+    {
+        __enable_irq( );
+    }
+}
+
 void BoardInitPeriph( void )
 {
-    /* Init the GPIO extender pins */
-    GpioInit( &IrqMpl3115, IRQ_MPL3115, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &IrqMag3110, IRQ_MAG3110, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &GpsPowerEn, GPS_POWER_ON, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &NcIoe3, SPARE_IO_EXT_3, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &NcIoe4, SPARE_IO_EXT_4, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &NcIoe5, SPARE_IO_EXT_5, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &NcIoe6, SPARE_IO_EXT_6, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &NcIoe7, SPARE_IO_EXT_7, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &NIrqSx9500, N_IRQ_SX9500, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &Irq1Mma8451, IRQ_1_MMA8451, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &Irq2Mma8451, IRQ_2_MMA8451, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &TxEnSx9500, TX_EN_SX9500, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    Gpio_t ioPin;
+
+    // Init the GPIO pins
+    GpioInit( &ioPin, IRQ_MPL3115, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, IRQ_MAG3110, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, SPARE_IO_EXT_3, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, SPARE_IO_EXT_4, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, SPARE_IO_EXT_5, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, SPARE_IO_EXT_6, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, SPARE_IO_EXT_7, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, N_IRQ_SX9500, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, IRQ_1_MMA8451, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, IRQ_2_MMA8451, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &ioPin, TX_EN_SX9500, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
@@ -173,25 +196,17 @@ void BoardInitMcu( void )
 
         BoardUnusedIoInit( );
 
-        I2cInit( &I2c, I2C_SCL, I2C_SDA );
+        I2cInit( &I2c, I2C_1, I2C_SCL, I2C_SDA );
     }
     else
     {
         SystemClockReConfig( );
     }
 
-    AdcInit( &Adc, BAT_LEVEL );
+    AdcInit( &Adc, BAT_LEVEL_PIN );
 
-    SpiInit( &SX1272.Spi, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
+    SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX1272IoInit( );
-
-#if defined( USE_DEBUG_PINS )
-        GpioInit( &DbgPin1, CON_EXT_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-        GpioInit( &DbgPin2, CON_EXT_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-        GpioInit( &DbgPin3, CON_EXT_7, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-        GpioInit( &DbgPin4, CON_EXT_8, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-        GpioInit( &DbgPin5, CON_EXT_9, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-#endif
 
     if( McuInitialized == false )
     {
@@ -203,20 +218,23 @@ void BoardInitMcu( void )
     }
 }
 
+void BoardResetMcu( void )
+{
+    BoardDisableIrq( );
+
+    //Restart system
+    NVIC_SystemReset( );
+
+}
+
 void BoardDeInitMcu( void )
 {
     Gpio_t ioPin;
 
+    AdcDeInit( &Adc );
+
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
-
-#if ( defined( USE_DEBUG_PINS ) && !defined( LOW_POWER_MODE_ENABLE ) )
-    GpioInit( &DbgPin1, CON_EXT_1, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &DbgPin2, CON_EXT_3, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &DbgPin3, CON_EXT_7, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &DbgPin4, CON_EXT_8, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &DbgPin5, CON_EXT_9, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-#endif
 
     GpioInit( &ioPin, OSC_HSE_IN, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioInit( &ioPin, OSC_HSE_OUT, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
@@ -242,20 +260,82 @@ void BoardGetUniqueId( uint8_t *id )
     id[0] = ( ( *( uint32_t* )ID2 ) );
 }
 
+/*!
+ * Factory power supply
+ */
+#define FACTORY_POWER_SUPPLY                        3300 // mV
+
+/*!
+ * VREF calibration value
+ */
+#define VREFINT_CAL                                 ( *( uint16_t* )0x1FF80078 )
+
+/*!
+ * ADC maximum value
+ */
+#define ADC_MAX_VALUE                               4095
+
+/*!
+ * Battery thresholds
+ */
+#define BATTERY_MAX_LEVEL                           9000 // mV
+#define BATTERY_MIN_LEVEL                           4700 // mV
+#define BATTERY_SHUTDOWN_LEVEL                      4800 // mV
+
+static uint16_t BatteryVoltage = BATTERY_MAX_LEVEL;
+
+uint16_t BoardBatteryMeasureVolage( void )
+{
+    uint16_t vdd = 0;
+    uint16_t vref = VREFINT_CAL;
+    uint16_t vdiv = 0;
+    uint16_t batteryVoltage = 0;
+
+    vdiv = AdcReadChannel( &Adc, BAT_LEVEL_CHANNEL );
+    //vref = AdcReadChannel( &Adc, ADC_CHANNEL_VREFINT );
+
+    vdd = ( float )FACTORY_POWER_SUPPLY * ( float )VREFINT_CAL / ( float )vref;
+    batteryVoltage = vdd * ( ( float )vdiv / ( float )ADC_MAX_VALUE );
+
+    //                                vDiv
+    // Divider bridge  VBAT <-> 20k -<--|-->- 10k <-> GND => vBat = 3 * vDiv
+    batteryVoltage = 3 * batteryVoltage;
+    return batteryVoltage;
+}
+
+uint32_t BoardGetBatteryVoltage( void )
+{
+    return BatteryVoltage;
+}
+
 uint8_t BoardGetBatteryLevel( void )
 {
     uint8_t batteryLevel = 0;
-    uint16_t measuredLevel = 0;
 
-    measuredLevel = AdcReadChannel( &Adc );
+    BatteryVoltage = BoardBatteryMeasureVolage( );
 
-    if( measuredLevel >= 3900 )  // 9V
+    if( GetBoardPowerSource( ) == USB_POWER )
     {
-        batteryLevel = 254;
+        batteryLevel = 0;
     }
     else
     {
-        batteryLevel = ( measuredLevel - 1870 ) * BATTERY_STEP_LEVEL; // 1870 => 4.7V = limit of operation for the battery
+        if( BatteryVoltage >= BATTERY_MAX_LEVEL )
+        {
+            batteryLevel = 254;
+        }
+        else if( ( BatteryVoltage > BATTERY_MIN_LEVEL ) && ( BatteryVoltage < BATTERY_MAX_LEVEL ) )
+        {
+            batteryLevel = ( ( 253 * ( BatteryVoltage - BATTERY_MIN_LEVEL ) ) / ( BATTERY_MAX_LEVEL - BATTERY_MIN_LEVEL ) ) + 1;
+        }
+        else if( ( BatteryVoltage > BATTERY_SHUTDOWN_LEVEL ) && ( BatteryVoltage <= BATTERY_MIN_LEVEL ) )
+        {
+            batteryLevel = 1;
+        }
+        else //if( BatteryVoltage <= BATTERY_SHUTDOWN_LEVEL )
+        {
+            batteryLevel = 255;
+        }
     }
     return batteryLevel;
 }
@@ -263,15 +343,6 @@ uint8_t BoardGetBatteryLevel( void )
 static void BoardUnusedIoInit( void )
 {
     Gpio_t ioPin;
-
-    /* External Connector J5 */
-#if !defined( USE_DEBUG_PINS )
-    GpioInit( &ioPin, CON_EXT_1, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &ioPin, CON_EXT_3, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &ioPin, CON_EXT_7, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &ioPin, CON_EXT_8, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &ioPin, CON_EXT_9, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-#endif
 
     if( GetBoardPowerSource( ) == BATTERY_POWER )
     {
@@ -281,7 +352,7 @@ static void BoardUnusedIoInit( void )
 
     GpioInit( &ioPin, BOOT_1, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 
-    GpioInit( &ioPin, BAT_LEVEL, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    GpioInit( &ioPin, BAT_LEVEL_PIN, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 
     GpioInit( &ioPin, PIN_PB6, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     GpioInit( &ioPin, WKUP1, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
@@ -313,34 +384,44 @@ void SystemClockConfig( void )
 
     __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
 
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE;
     RCC_OscInitStruct.HSEState = RCC_HSE_ON;
     RCC_OscInitStruct.LSEState = RCC_LSE_ON;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
     RCC_OscInitStruct.PLL.PLLDIV = RCC_PLL_DIV3;
-    HAL_RCC_OscConfig( &RCC_OscInitStruct );
+    if( HAL_RCC_OscConfig( &RCC_OscInitStruct ) != HAL_OK )
+    {
+        assert_param( FAIL );
+    }
 
-    RCC_ClkInitStruct.ClockType = ( RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2 );
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
+                                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-    HAL_RCC_ClockConfig( &RCC_ClkInitStruct, FLASH_LATENCY_1 );
+    if( HAL_RCC_ClockConfig( &RCC_ClkInitStruct, FLASH_LATENCY_1 ) != HAL_OK )
+    {
+        assert_param( FAIL );
+    }
 
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
     PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-    HAL_RCCEx_PeriphCLKConfig( &PeriphClkInit );
+    if( HAL_RCCEx_PeriphCLKConfig( &PeriphClkInit ) != HAL_OK )
+    {
+        assert_param( FAIL );
+    }
 
     HAL_SYSTICK_Config( HAL_RCC_GetHCLKFreq( ) / 1000 );
 
     HAL_SYSTICK_CLKSourceConfig( SYSTICK_CLKSOURCE_HCLK );
 
-    /*    HAL_NVIC_GetPriorityGrouping*/
+    // HAL_NVIC_GetPriorityGrouping
     HAL_NVIC_SetPriorityGrouping( NVIC_PRIORITYGROUP_4 );
 
-    /* SysTick_IRQn interrupt configuration */
+    // SysTick_IRQn interrupt configuration
     HAL_NVIC_SetPriority( SysTick_IRQn, 0, 0 );
 }
 
@@ -410,6 +491,18 @@ uint8_t GetBoardPowerSource( void )
 #endif
 }
 
+#ifdef __GNUC__
+int __io_putchar( int c )
+#else /* __GNUC__ */
+int fputc( int c, FILE *stream )
+#endif
+{
+#if defined( USE_USB_CDC )
+    while( UartPutChar( &UartUsb, c ) != 0 );
+#endif
+    return c;
+}
+
 #ifdef USE_FULL_ASSERT
 /*
  * Function Name  : assert_failed
@@ -423,8 +516,9 @@ uint8_t GetBoardPowerSource( void )
 void assert_failed( uint8_t* file, uint32_t line )
 {
     /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: printf("Wrong parameters value: file %s on line %lu\r\n", file, line) */
 
+    printf( "Wrong parameters value: file %s on line %lu\r\n", ( const char* )file, line );
     /* Infinite loop */
     while( 1 )
     {

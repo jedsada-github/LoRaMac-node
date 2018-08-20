@@ -1,18 +1,29 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: LoRaMote board USB DFU bootloader
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
-#include "board.h"
+/*!
+ * \file      main.c
+ *
+ * \brief     LoRaMote board USB DFU bootloader
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
+#include "board-config.h"
+#include "i2c.h"
+#include "gpio.h"
+#include "sx9500.h"
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_dfu.h"
@@ -48,13 +59,13 @@ int main( void )
     uint8_t regValue = 0;
     uint8_t status = 0;
     uint16_t offset = 0;
-    
+
     /* STM32L1xx HAL library initialization:
          - Configure the Flash prefetch
-         - Systick timer is configured by default as source of time base, but user 
-           can eventually implement his proper time base source (a general purpose 
-           timer for example or other time source), keeping in mind that Time base 
-           duration should be kept 1ms since PPP_TIMEOUT_VALUEs are defined and 
+         - Systick timer is configured by default as source of time base, but user
+           can eventually implement his proper time base source (a general purpose
+           timer for example or other time source), keeping in mind that Time base
+           duration should be kept 1ms since PPP_TIMEOUT_VALUEs are defined and
            handled in milliseconds basis.
          - Set NVIC Group Priority to 4
          - Low Level Initialization
@@ -63,29 +74,29 @@ int main( void )
 
     SystemClockConfig( );
 
-    I2cInit( &I2c, I2C_SCL, I2C_SDA );
-    
+    I2cInit( &I2c, I2C_1, I2C_SCL, I2C_SDA );
+
     GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    
+
     // Init SAR
     SX9500Init( );
     DelayLoop( 100 );
     SX9500Write( SX9500_REG_IRQMSK, 0x10 );
     SX9500Write( SX9500_REG_IRQSRC, 0x10 );
-    
+
     do
     {
         SX9500Read( SX9500_REG_IRQSRC, &status );
     }while( ( status & 0x10 ) == 0x00 ); // While compensation for CS0 is pending
-    
+
     // Read 1st sensor offset
     SX9500Read( SX9500_REG_OFFSETMSB, ( uint8_t* )&regValue );
     offset = regValue << 8;
     SX9500Read( SX9500_REG_OFFSETLSB, ( uint8_t* )&regValue );
     offset |= regValue;
-    
+
     if( offset < 2000 )
     { /* Test if user code is programmed starting from address 0x08007000 */
         if( ( ( *( volatile uint32_t* )USBD_DFU_APP_DEFAULT_ADD ) & 0x2FFE0000 ) == 0x20000000 )
@@ -176,8 +187,9 @@ void USB_LP_IRQHandler( void )
 void assert_failed( uint8_t* file, uint32_t line )
 {
     /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: printf("Wrong parameters value: file %s on line %u\r\n", file, line) */
 
+    printf( "Wrong parameters value: file %s on line %u\r\n", ( const char* )file, line );
     /* Infinite loop */
     while( 1 )
     {

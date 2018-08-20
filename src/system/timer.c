@@ -1,23 +1,32 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Timer objects and scheduling management
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
+/*!
+ * \file      timer.c
+ *
+ * \brief     Timer objects and scheduling management implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
 #include "board.h"
 #include "rtc-board.h"
-
+#include "timer.h"
 
 /*!
- * This flag is used to make sure we have looped through the main several time to avoid race issues
+ * This flag is used to loop through the main several times in order to be sure
+ * that all pending events have been processed.
  */
 volatile uint8_t HasLoopedThroughMain = 0;
 
@@ -84,11 +93,11 @@ void TimerStart( TimerEvent_t *obj )
     uint32_t elapsedTime = 0;
     uint32_t remainingTime = 0;
 
-    __disable_irq( );
+    BoardDisableIrq( );
 
     if( ( obj == NULL ) || ( TimerExists( obj ) == true ) )
     {
-        __enable_irq( );
+        BoardEnableIrq( );
         return;
     }
 
@@ -124,7 +133,7 @@ void TimerStart( TimerEvent_t *obj )
              TimerInsertTimer( obj, remainingTime );
         }
     }
-    __enable_irq( );
+    BoardEnableIrq( );
 }
 
 static void TimerInsertTimer( TimerEvent_t *obj, uint32_t remainingTime )
@@ -201,8 +210,14 @@ void TimerIrqHandler( void )
 {
     uint32_t elapsedTime = 0;
 
+    // Early out when TimerListHead is null to prevent null pointer
+    if ( TimerListHead == NULL )
+    {
+        return;
+    }
+
     elapsedTime = TimerGetValue( );
-    
+
     if( elapsedTime >= TimerListHead->Timestamp )
     {
         TimerListHead->Timestamp = 0;
@@ -238,7 +253,7 @@ void TimerIrqHandler( void )
 
 void TimerStop( TimerEvent_t *obj )
 {
-    __disable_irq( );
+    BoardDisableIrq( );
 
     uint32_t elapsedTime = 0;
     uint32_t remainingTime = 0;
@@ -249,7 +264,7 @@ void TimerStop( TimerEvent_t *obj )
     // List is empty or the Obj to stop does not exist
     if( ( TimerListHead == NULL ) || ( obj == NULL ) )
     {
-        __enable_irq( );
+        BoardEnableIrq( );
         return;
     }
 
@@ -265,9 +280,9 @@ void TimerStop( TimerEvent_t *obj )
 
             remainingTime = obj->Timestamp - elapsedTime;
 
+            TimerListHead->IsRunning = false;
             if( TimerListHead->Next != NULL )
             {
-                TimerListHead->IsRunning = false;
                 TimerListHead = TimerListHead->Next;
                 TimerListHead->Timestamp += remainingTime;
                 TimerListHead->IsRunning = true;
@@ -320,7 +335,7 @@ void TimerStop( TimerEvent_t *obj )
             }
         }
     }
-    __enable_irq( );
+    BoardEnableIrq( );
 }
 
 static bool TimerExists( TimerEvent_t *obj )
@@ -374,7 +389,7 @@ TimerTime_t TimerGetFutureTime( TimerTime_t eventInFuture )
 static void TimerSetTimeout( TimerEvent_t *obj )
 {
     HasLoopedThroughMain = 0;
-    obj->Timestamp = RtcGetAdjustedTimeoutValue( obj->Timestamp ); 
+    obj->Timestamp = RtcGetAdjustedTimeoutValue( obj->Timestamp );
     RtcSetTimeout( obj->Timestamp );
 }
 
@@ -395,4 +410,9 @@ void TimerLowPowerHandler( void )
             }
         }
     }
+}
+
+void TimerProcess( void )
+{
+    RtcProcess( );
 }

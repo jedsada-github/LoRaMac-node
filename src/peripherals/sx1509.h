@@ -1,20 +1,29 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Driver for the SX1509 IO expander
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
+/*!
+ * \file      sx1509.h
+ *
+ * \brief     SX1509 IO expander driver implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
 #ifndef __SX1509_H__
 #define __SX1509_H__
 
+#include <stdint.h>
 
 #define SX1509_I2C_ADDRESS                          0x3E
 
@@ -132,6 +141,14 @@ Maintainer: Miguel Luis and Gregory Cristian
 #define RegHighInputA                               0x6A
 
 /*!
+ * \brief Mask to select correct data from the registers
+ */
+#define REG_SENSE_PIN_MASK_1                        0xFC
+#define REG_SENSE_PIN_MASK_2                        0xF3
+#define REG_SENSE_PIN_MASK_3                        0xCF
+#define REG_SENSE_PIN_MASK_4                        0x3F
+
+/*!
  * \brief Initializes the device
  */
 void SX1509Init( void );
@@ -195,4 +212,4 @@ void SX1509SetDeviceAddr( uint8_t addr );
  */
 uint8_t SX1509GetDeviceAddr( void );
 
-#endif  // __SX1509_H__
+#endif // __SX1509_H__

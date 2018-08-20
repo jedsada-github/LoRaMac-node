@@ -1,18 +1,31 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Generic low level driver for GPS receiver
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
-#include "board.h"
+/*!
+ * \file      gps-board.c
+ *
+ * \brief     Target board GPS driver implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
+#include "board-config.h"
+#include "gpio.h"
+#include "gps.h"
+#include "uart.h"
+#include "rtc-board.h"
+#include "gps-board.h"
 
 /*!
  * FIFO buffers size
@@ -33,9 +46,12 @@ uint8_t NmeaString[128];
  */
 uint8_t NmeaStringSize = 0;
 
+Gpio_t GpsPowerEn;
+Gpio_t GpsPps;
 
 PpsTrigger_t PpsTrigger;
 
+extern Uart_t Uart1;
 
 void GpsMcuOnPpsSignal( void )
 {
@@ -64,22 +80,20 @@ void GpsMcuInvertPpsTrigger( void )
     }
 }
 
-uint8_t GpsMcuGetPpsTrigger( void )
-{
-    return( PpsTrigger );
-}
-
 void GpsMcuInit( void )
 {
     NmeaStringSize = 0;
     PpsTrigger = PpsTriggerIsFalling;
 
+    GpioInit( &GpsPowerEn, GPS_POWER_ON, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+
+    GpioInit( &GpsPps, GPS_PPS, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    GpioSetInterrupt( &GpsPps, IRQ_FALLING_EDGE, IRQ_VERY_LOW_PRIORITY, &GpsMcuOnPpsSignal );
+
     FifoInit( &Uart1.FifoRx, RxBuffer, FIFO_RX_SIZE );
     Uart1.IrqNotify = GpsMcuIrqNotify;
 
     GpsMcuStart( );
-    GpioInit( &GpsPps, GPS_PPS, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioSetInterrupt( &GpsPps, IRQ_FALLING_EDGE, IRQ_VERY_LOW_PRIORITY, &GpsMcuOnPpsSignal );
 }
 
 void GpsMcuStart( void )
@@ -87,9 +101,14 @@ void GpsMcuStart( void )
     GpioWrite( &GpsPowerEn, 0 );    // power up the GPS
 }
 
-void GpsMCuStop( void )
+void GpsMcuStop( void )
 {
     GpioWrite( &GpsPowerEn, 1 );    // power down the GPS
+}
+
+void GpsMcuProcess( void )
+{
+
 }
 
 void GpsMcuIrqNotify( UartNotifyId_t id )
@@ -99,7 +118,7 @@ void GpsMcuIrqNotify( UartNotifyId_t id )
     {
         if( UartGetChar( &Uart1, &data ) == 0 )
         {
-            if( ( data == '$' ) || ( NmeaStringSize >= 128 ) )
+            if( ( data == '$' ) || ( NmeaStringSize >= 127 ) )
             {
                 NmeaStringSize = 0;
             }
@@ -108,7 +127,7 @@ void GpsMcuIrqNotify( UartNotifyId_t id )
 
             if( data == '\n' )
             {
-                NmeaString[NmeaStringSize] = '\0';
+                NmeaString[NmeaStringSize++] = '\0';
                 GpsParseGpsData( ( int8_t* )NmeaString, NmeaStringSize );
                 UartDeInit( &Uart1 );
                 BlockLowPowerDuringTask ( false );

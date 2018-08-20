@@ -31,7 +31,6 @@
 */
 
 /* Includes ------------------------------------------------------------------*/
-#include "board.h"
 #include "usbd_cdc_if.h"
 /* USER CODE BEGIN INCLUDE */
 /* USER CODE END INCLUDE */
@@ -63,7 +62,7 @@
 #define APP_RX_DATA_SIZE  64
 #define APP_TX_DATA_SIZE  64
 
-#define FIFO_RX_SIZE      512
+#define FIFO_RX_SIZE      1024
 
 /* USER CODE END PRIVATE_DEFINES */
 /**
