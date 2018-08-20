@@ -1,19 +1,31 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Timer objects and scheduling management
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
+/*!
+ * \file      timer.h
+ *
+ * \brief     Timer objects and scheduling management implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
 #ifndef __TIMER_H__
 #define __TIMER_H__
+
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 /*!
  * \brief Timer object description
@@ -89,22 +101,25 @@ TimerTime_t TimerGetCurrentTime( void );
 /*!
  * \brief Return the Time elapsed since a fix moment in Time
  *
- * \param [IN] savedTime    fix moment in Time
+ * \param [IN] past         fix moment in Time
  * \retval time             returns elapsed time
  */
-TimerTime_t TimerGetElapsedTime( TimerTime_t savedTime );
+TimerTime_t TimerGetElapsedTime( TimerTime_t past );
 
 /*!
- * \brief Return the Time elapsed since a fix moment in Time
+ * \brief Computes the temperature compensation for a period of time on a
+ *        specific temperature.
  *
- * \param [IN] eventInFuture    fix moment in the future
- * \retval time             returns difference between now and future event
+ * \param [IN] period Time period to compensate
+ * \param [IN] temperature Current temperature
+ *
+ * \retval Compensated time period
  */
-TimerTime_t TimerGetFutureTime( TimerTime_t eventInFuture );
+TimerTime_t TimerTempCompensation( TimerTime_t period, float temperature );
 
 /*!
- * \brief Manages the entry into ARM cortex deep-sleep mode
+ * \brief Processes pending timer events
  */
-void TimerLowPowerHandler( void );
+void TimerProcess( void );
 
-#endif  // __TIMER_H__
+#endif // __TIMER_H__
