@@ -104,7 +104,7 @@ static int8_t LimitTxPower( int8_t txPower, int8_t maxBandTxPower, int8_t datara
     return txPowerResult;
 }
 
-static bool VerifyTxFreq( uint32_t freq, uint8_t *band )
+static bool VerifyRfFreq( uint32_t freq, uint8_t *band )
 {
     // Check radio driver support
     if( Radio.CheckRfFrequency( freq ) == false )
@@ -409,12 +409,6 @@ void RegionEU868InitDefaults( InitDefaultsParams_t* params )
         {
             // Restore channels default mask
             NvmCtx.ChannelsMask[0] |= NvmCtx.ChannelsDefaultMask[0];
-            break;
-        }
-        case INIT_TYPE_APP_DEFAULTS:
-        {
-            // Update the channels mask defaults
-            RegionCommonChanMaskCopy( NvmCtx.ChannelsMask, NvmCtx.ChannelsDefaultMask, 1 );
             break;
         }
         default:
@@ -758,9 +752,10 @@ uint8_t RegionEU868LinkAdrReq( LinkAdrReqParams_t* linkAdrReq, int8_t* drOut, in
 uint8_t RegionEU868RxParamSetupReq( RxParamSetupReqParams_t* rxParamSetupReq )
 {
     uint8_t status = 0x07;
+    uint8_t band = 0;
 
     // Verify radio frequency
-    if( Radio.CheckRfFrequency( rxParamSetupReq->Frequency ) == false )
+    if( VerifyRfFreq( rxParamSetupReq->Frequency, &band ) == false )
     {
         status &= 0xFE; // Channel frequency KO
     }
@@ -844,7 +839,7 @@ uint8_t RegionEU868DlChannelReq( DlChannelReqParams_t* dlChannelReq )
     uint8_t band = 0;
 
     // Verify if the frequency is supported
-    if( VerifyTxFreq( dlChannelReq->Rx1Frequency, &band ) == false )
+    if( VerifyRfFreq( dlChannelReq->Rx1Frequency, &band ) == false )
     {
         status &= 0xFE;
     }
@@ -864,7 +859,7 @@ uint8_t RegionEU868DlChannelReq( DlChannelReqParams_t* dlChannelReq )
     return status;
 }
 
-int8_t RegionEU868AlternateDr( int8_t currentDr )
+int8_t RegionEU868AlternateDr( int8_t currentDr, AlternateDrType_t type )
 {
     return currentDr;
 }
@@ -988,7 +983,7 @@ LoRaMacStatus_t RegionEU868ChannelAdd( ChannelAddParams_t* channelAdd )
     // Check frequency
     if( freqInvalid == false )
     {
-        if( VerifyTxFreq( channelAdd->NewChannel->Frequency, &band ) == false )
+        if( VerifyRfFreq( channelAdd->NewChannel->Frequency, &band ) == false )
         {
             freqInvalid = true;
         }

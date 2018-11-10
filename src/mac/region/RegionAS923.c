@@ -104,7 +104,7 @@ static int8_t LimitTxPower( int8_t txPower, int8_t maxBandTxPower, int8_t datara
     return txPowerResult;
 }
 
-static bool VerifyTxFreq( uint32_t freq )
+static bool VerifyRfFreq( uint32_t freq )
 {
     // Check radio driver support
     if( Radio.CheckRfFrequency( freq ) == false )
@@ -418,12 +418,6 @@ void RegionAS923InitDefaults( InitDefaultsParams_t* params )
         {
             // Restore channels default mask
             NvmCtx.ChannelsMask[0] |= NvmCtx.ChannelsDefaultMask[0];
-            break;
-        }
-        case INIT_TYPE_APP_DEFAULTS:
-        {
-            // Update the channels mask defaults
-            RegionCommonChanMaskCopy( NvmCtx.ChannelsMask, NvmCtx.ChannelsDefaultMask, 1 );
             break;
         }
         default:
@@ -784,7 +778,7 @@ uint8_t RegionAS923RxParamSetupReq( RxParamSetupReqParams_t* rxParamSetupReq )
     uint8_t status = 0x07;
 
     // Verify radio frequency
-    if( Radio.CheckRfFrequency( rxParamSetupReq->Frequency ) == false )
+    if( VerifyRfFreq( rxParamSetupReq->Frequency ) == false )
     {
         status &= 0xFE; // Channel frequency KO
     }
@@ -868,7 +862,7 @@ uint8_t RegionAS923DlChannelReq( DlChannelReqParams_t* dlChannelReq )
     uint8_t status = 0x03;
 
     // Verify if the frequency is supported
-    if( VerifyTxFreq( dlChannelReq->Rx1Frequency ) == false )
+    if( VerifyRfFreq( dlChannelReq->Rx1Frequency ) == false )
     {
         status &= 0xFE;
     }
@@ -888,7 +882,7 @@ uint8_t RegionAS923DlChannelReq( DlChannelReqParams_t* dlChannelReq )
     return status;
 }
 
-int8_t RegionAS923AlternateDr( int8_t currentDr )
+int8_t RegionAS923AlternateDr( int8_t currentDr, AlternateDrType_t type )
 {
     // Only AS923_DWELL_LIMIT_DATARATE is supported
     return AS923_DWELL_LIMIT_DATARATE;
@@ -978,7 +972,6 @@ LoRaMacStatus_t RegionAS923NextChannel( NextChanParams_t* nextChanParams, uint8_
 
 LoRaMacStatus_t RegionAS923ChannelAdd( ChannelAddParams_t* channelAdd )
 {
-    uint8_t band = 0;
     bool drInvalid = false;
     bool freqInvalid = false;
     uint8_t id = channelAdd->ChannelId;
@@ -1025,7 +1018,7 @@ LoRaMacStatus_t RegionAS923ChannelAdd( ChannelAddParams_t* channelAdd )
     // Check frequency
     if( freqInvalid == false )
     {
-        if( VerifyTxFreq( channelAdd->NewChannel->Frequency ) == false )
+        if( VerifyRfFreq( channelAdd->NewChannel->Frequency ) == false )
         {
             freqInvalid = true;
         }
@@ -1046,7 +1039,7 @@ LoRaMacStatus_t RegionAS923ChannelAdd( ChannelAddParams_t* channelAdd )
     }
 
     memcpy1( ( uint8_t* ) &(NvmCtx.Channels[id]), ( uint8_t* ) channelAdd->NewChannel, sizeof( NvmCtx.Channels[id] ) );
-    NvmCtx.Channels[id].Band = band;
+    NvmCtx.Channels[id].Band = 0;
     NvmCtx.ChannelsMask[0] |= ( 1 << id );
     return LORAMAC_STATUS_OK;
 }

@@ -115,12 +115,12 @@ uint8_t Uart2RxBuffer[UART2_FIFO_RX_SIZE];
 /*!
  * Flag to indicate if the SystemWakeupTime is Calibrated
  */
-static bool SystemWakeupTimeCalibrated = false;
+static volatile bool SystemWakeupTimeCalibrated = false;
 
 /*!
  * Callback indicating the end of the system wake-up time calibration
  */
-static void OnCalibrateSystemWakeupTimeTimerEvent( void )
+static void OnCalibrateSystemWakeupTimeTimerEvent( void* context )
 {
     RtcSetMcuWakeUpTime( );
     SystemWakeupTimeCalibrated = true;

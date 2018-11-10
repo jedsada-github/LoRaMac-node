@@ -177,9 +177,11 @@ LoRaMacFCntHandlerStatus_t LoRaMacGetFCntDown( AddressIdentifier_t addrID, FType
         case MULTICAST_1_ADDR:
             *fCntID = MC_FCNT_DOWN_1;
             previousDown = FCntHandlerNvmCtx.FCntList.McFCntDown1;
+            break;
         case MULTICAST_2_ADDR:
             *fCntID = MC_FCNT_DOWN_2;
             previousDown = FCntHandlerNvmCtx.FCntList.McFCntDown3;
+            break;
         case MULTICAST_3_ADDR:
             *fCntID = MC_FCNT_DOWN_3;
             previousDown = FCntHandlerNvmCtx.FCntList.McFCntDown3;
@@ -209,7 +211,7 @@ LoRaMacFCntHandlerStatus_t LoRaMacGetFCntDown( AddressIdentifier_t addrID, FType
         }
         else
         {  // Negative difference, assume a roll-over of one uint16_t
-            *currentDown = previousDown + fCntDiff + ( 0x10000 + ( previousDown & 0xFFFF0000 ) );
+            *currentDown = ( previousDown & 0xFFFF0000 ) + 0x10000 + macMsg->FHDR.FCnt;
         }
     }
 

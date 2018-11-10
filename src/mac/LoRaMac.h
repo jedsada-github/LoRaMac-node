@@ -905,6 +905,10 @@ typedef struct sMcpsIndication
      * The downlink counter value for the received frame
      */
     uint32_t DownLinkCounter;
+    /*!
+     * The device address of the frame
+     */
+    uint32_t DevAddress;
 }McpsIndication_t;
 
 /*!
@@ -1571,6 +1575,10 @@ typedef enum eMib
      * The antenna gain is used to calculate the TX power of the node.
      * The formula is:
      * radioTxPower = ( int8_t )floor( maxEirp - antennaGain )
+     * 
+     * \remark The antenna gain value is referenced to the isotropic antenna.
+     *         The value is in dBi.
+     *         MIB_ANTENNA_GAIN[dBi] = measuredAntennaGain[dBd] + 2.15
      */
     MIB_ANTENNA_GAIN,
     /*!
@@ -1578,6 +1586,10 @@ typedef enum eMib
      * The antenna gain is used to calculate the TX power of the node.
      * The formula is:
      * radioTxPower = ( int8_t )floor( maxEirp - antennaGain )
+     * 
+     * \remark The antenna gain value is referenced to the isotropic antenna.
+     *         The value is in dBi.
+     *         MIB_DEFAULT_ANTENNA_GAIN[dBi] = measuredAntennaGain[dBd] + 2.15
      */
     MIB_DEFAULT_ANTENNA_GAIN,
     /*!
@@ -2109,10 +2121,6 @@ typedef enum eLoRaMacStatus
      */
     LORAMAC_STATUS_LENGTH_ERROR,
     /*!
-     * Service not started - the device is switched off
-     */
-    LORAMAC_STATUS_DEVICE_OFF,
-    /*!
      * Service not started - the specified region is not supported
      * or not activated with preprocessor definitions.
      */
@@ -2560,7 +2568,6 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t* mibSet );
  *          \ref LORAMAC_STATUS_PARAMETER_INVALID,
  *          \ref LORAMAC_STATUS_NO_NETWORK_JOINED,
  *          \ref LORAMAC_STATUS_LENGTH_ERROR,
- *          \ref LORAMAC_STATUS_DEVICE_OFF.
  */
 LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t* mlmeRequest );
 
@@ -2595,7 +2602,6 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t* mlmeRequest );
  *          \ref LORAMAC_STATUS_PARAMETER_INVALID,
  *          \ref LORAMAC_STATUS_NO_NETWORK_JOINED,
  *          \ref LORAMAC_STATUS_LENGTH_ERROR,
- *          \ref LORAMAC_STATUS_DEVICE_OFF.
  */
 LoRaMacStatus_t LoRaMacMcpsRequest( McpsReq_t* mcpsRequest );
 
