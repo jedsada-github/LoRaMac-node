@@ -1,24 +1,33 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Generic GPIO driver implementation
-
-Comment: Relies on the specific board GPIO implementation as well as on
-         IO expander driver implementation if one is available on the target
-         board.
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
+/*!
+ * \file      gpio.h
+ *
+ * \brief     GPIO driver implementation
+ *
+ * \remark: Relies on the specific board GPIO implementation as well as on
+ *          IO expander driver implementation if one is available on the target
+ *          board.
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
 #ifndef __GPIO_H__
 #define __GPIO_H__
 
+#include <stdint.h>
 #include "pinName-board.h"
 #include "pinName-ioe.h"
 
@@ -88,6 +97,11 @@ typedef enum
 }IrqPriorities;
 
 /*!
+ * GPIO IRQ handler function prototype
+ */
+typedef void( GpioIrqHandler )( void* context );
+
+/*!
  * Structure for the GPIO
  */
 typedef struct
@@ -97,17 +111,9 @@ typedef struct
     void *port;
     uint16_t portIndex;
     PinTypes pull;
+    void* Context;
+    GpioIrqHandler* IrqHandler;
 }Gpio_t;
-
-/*!
- * GPIO IRQ handler function prototype
- */
-typedef void( GpioIrqHandler )( void );
-
-/*!
- * GPIO Expander IRQ handler function prototype
- */
-typedef void( GpioIoeIrqHandler )( void );
 
 /*!
  * \brief Initializes the given GPIO object
@@ -121,6 +127,14 @@ typedef void( GpioIoeIrqHandler )( void );
  * \param [IN] value  Default output value at initialization
  */
 void GpioInit( Gpio_t *obj, PinNames pin, PinModes mode, PinConfigs config, PinTypes type, uint32_t value );
+
+/*!
+ * \brief Sets a user defined object pointer
+ *
+ * \param [IN] context User defined data object pointer to pass back
+ *                     on IRQ handler callback
+ */
+void GpioSetContext( Gpio_t *obj, void* context );
 
 /*!
  * \brief GPIO IRQ Initialization

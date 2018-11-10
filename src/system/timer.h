@@ -1,30 +1,44 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: Timer objects and scheduling management
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
+/*!
+ * \file      timer.h
+ *
+ * \brief     Timer objects and scheduling management implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
 #ifndef __TIMER_H__
 #define __TIMER_H__
+
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 /*!
  * \brief Timer object description
  */
 typedef struct TimerEvent_s
 {
-    uint32_t Timestamp;         //! Current timer value
-    uint32_t ReloadValue;       //! Timer delay value
-    bool IsRunning;             //! Is the timer currently running
-    void ( *Callback )( void ); //! Timer IRQ callback function
-    struct TimerEvent_s *Next;  //! Pointer to the next Timer object.
+    uint32_t Timestamp;                  //! Current timer value
+    uint32_t ReloadValue;                //! Timer delay value
+    bool IsStarted;                      //! Is the timer currently running
+    bool IsNext2Expire;                  //! Is the next timer to expire
+    void ( *Callback )( void* context ); //! Timer IRQ callback function
+    void *Context;                       //! User defined data object pointer to pass back
+    struct TimerEvent_s *Next;           //! Pointer to the next Timer object.
 }TimerEvent_t;
 
 /*!
@@ -43,7 +57,15 @@ typedef uint32_t TimerTime_t;
  * \param [IN] obj          Structure containing the timer object parameters
  * \param [IN] callback     Function callback called at the end of the timeout
  */
-void TimerInit( TimerEvent_t *obj, void ( *callback )( void ) );
+void TimerInit( TimerEvent_t *obj, void ( *callback )( void *context ) );
+
+/*!
+ * \brief Sets a user defined object pointer
+ *
+ * \param [IN] context User defined data object pointer to pass back
+ *                     on IRQ handler callback
+ */
+void TimerSetContext( TimerEvent_t *obj, void* context );
 
 /*!
  * Timer IRQ event handler
@@ -56,6 +78,16 @@ void TimerIrqHandler( void );
  * \param [IN] obj Structure containing the timer object parameters
  */
 void TimerStart( TimerEvent_t *obj );
+
+/*!
+ * \brief Checks if the provided timer is running
+ *
+ * \param [IN] obj Structure containing the timer object parameters
+ *
+ * \retval status  returns the timer activity status [true: Started,
+ *                                                    false: Stopped]
+ */
+bool TimerIsStarted( TimerEvent_t *obj );
 
 /*!
  * \brief Stops and removes the timer object from the list of timer events
@@ -89,23 +121,10 @@ TimerTime_t TimerGetCurrentTime( void );
 /*!
  * \brief Return the Time elapsed since a fix moment in Time
  *
- * \param [IN] savedTime    fix moment in Time
+ * \param [IN] past         fix moment in Time
  * \retval time             returns elapsed time
  */
-TimerTime_t TimerGetElapsedTime( TimerTime_t savedTime );
-
-/*!
- * \brief Return the Time elapsed since a fix moment in Time
- *
- * \param [IN] eventInFuture    fix moment in the future
- * \retval time             returns difference between now and future event
- */
-TimerTime_t TimerGetFutureTime( TimerTime_t eventInFuture );
-
-/*!
- * \brief Manages the entry into ARM cortex deep-sleep mode
- */
-void TimerLowPowerHandler( void );
+TimerTime_t TimerGetElapsedTime( TimerTime_t past );
 
 /*!
  * \brief Computes the temperature compensation for a period of time on a
@@ -118,4 +137,9 @@ void TimerLowPowerHandler( void );
  */
 TimerTime_t TimerTempCompensation( TimerTime_t period, float temperature );
 
-#endif  // __TIMER_H__
+/*!
+ * \brief Processes pending timer events
+ */
+void TimerProcess( void );
+
+#endif // __TIMER_H__

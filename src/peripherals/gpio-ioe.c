@@ -1,22 +1,31 @@
-/*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
-
-Description: IO expander implementation (based on the sx1509)
-
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
-#include "board.h"
+/*!
+ * \file      gpio-ioe.h
+ *
+ * \brief     IO expander driver implementation (based on the sx1509)
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______                              _
+ *               / _____)             _              | |
+ *              ( (____  _____ ____ _| |_ _____  ____| |__
+ *               \____ \| ___ |    (_   _) ___ |/ ___)  _ \
+ *               _____) ) ____| | | || |_| ____( (___| | | |
+ *              (______/|_____)_|_|_| \__)_____)\____)_| |_|
+ *              (C)2013-2017 Semtech
+ *
+ * \endcode
+ *
+ * \author    Miguel Luis ( Semtech )
+ *
+ * \author    Gregory Cristian ( Semtech )
+ */
+#include <stdlib.h>
+#include <stdbool.h>
 #include "gpio-ioe.h"
 #include "sx1509.h"
 
-static GpioIoeIrqHandler *GpioIoeIrq[16];
+static Gpio_t *GpioIrq[16];
 
 void GpioIoeInit( Gpio_t *obj, PinNames pin, PinModes mode,  PinConfigs config, PinTypes type, uint32_t value )
 {
@@ -92,16 +101,27 @@ void GpioIoeInit( Gpio_t *obj, PinNames pin, PinModes mode,  PinConfigs config, 
         regVal = regVal | obj->pinIndex;
     }
     SX1509Write( regAdd, regVal );
-
 }
 
-void GpioIoeSetInterrupt( Gpio_t *obj, IrqModes irqMode, IrqPriorities irqPriority, GpioIoeIrqHandler *irqHandler )
+void GpioIoeSetContext( Gpio_t *obj, void* context )
+{
+    obj->Context = context;
+}
+
+void GpioIoeSetInterrupt( Gpio_t *obj, IrqModes irqMode, IrqPriorities irqPriority, GpioIrqHandler *irqHandler )
 {
     uint8_t regAdd = 0;
     uint8_t regVal = 0;
     uint8_t i = 0;
     uint16_t tempVal = 0;
     uint8_t val = 0;
+
+    if( irqHandler == NULL )
+    {
+        return;
+    }
+
+    obj->IrqHandler = irqHandler;
 
     if( ( obj->pin % 16 ) > 0x07 )
     {
@@ -188,7 +208,90 @@ void GpioIoeSetInterrupt( Gpio_t *obj, IrqModes irqMode, IrqPriorities irqPriori
     }
     SX1509Write( regAdd, regVal );
 
-    GpioIoeIrq[obj->pin & 0x0F] = irqHandler;
+    GpioIrq[obj->pin & 0x0F] = obj;
+}
+
+void GpioIoeRemoveInterrupt( Gpio_t *obj )
+{
+    uint8_t regAdd = 0;
+    uint8_t regVal = 0;
+    uint8_t i = 0;
+    uint16_t tempVal = 0;
+
+    // Clear callback before changing pin mode
+    GpioIrq[obj->pin & 0x0F] = NULL;
+
+    if( ( obj->pin % 16 ) > 0x07 )
+    {
+        regAdd = RegInterruptMaskB;
+    }
+    else
+    {
+        regAdd = RegInterruptMaskA;
+    }
+
+    SX1509Read( regAdd, &regVal );
+
+    regVal = regVal | obj->pinIndex;
+    SX1509Write( regAdd, regVal );
+
+    tempVal = 0x0000;
+    i = 0;
+    while( tempVal != obj->pinIndex )
+    {
+        tempVal = 0x01 << i;
+        i++;
+    }
+
+    if( i < 4 )
+    {
+        regAdd = RegSenseLowA;
+    }
+    else if( i < 9 )
+    {
+        regAdd = RegSenseHighA;
+    }
+    else if( i < 13 )
+    {
+        regAdd = RegSenseLowB;
+    }
+    else
+    {
+        regAdd = RegSenseHighB;
+    }
+    SX1509Read( regAdd, &regVal );
+
+    switch( i )
+    {
+        case 1:
+        case 5:
+        case 9:
+        case 13:
+            regVal = ( regVal & REG_SENSE_PIN_MASK_1 );
+            break;
+
+        case 2:
+        case 6:
+        case 10:
+        case 14:
+            regVal = ( regVal & REG_SENSE_PIN_MASK_2 );
+            break;
+
+        case 3:
+        case 7:
+        case 11:
+        case 15:
+            regVal = ( regVal & REG_SENSE_PIN_MASK_3 );
+            break;
+
+        case 4:
+        case 8:
+        case 12:
+        case 16:
+            regVal = ( regVal & REG_SENSE_PIN_MASK_4 );
+            break;
+    }
+    SX1509Write( regAdd, regVal );
 }
 
 void GpioIoeWrite( Gpio_t *obj, uint32_t value )
@@ -217,6 +320,11 @@ void GpioIoeWrite( Gpio_t *obj, uint32_t value )
         regVal = regVal | obj->pinIndex;
     }
     SX1509Write( regAdd, regVal );
+}
+
+void GpioIoeToggle( Gpio_t *obj )
+{
+    GpioIoeWrite( obj, GpioIoeRead( obj ) ^ 1 );
 }
 
 uint32_t GpioIoeRead( Gpio_t *obj )
@@ -261,9 +369,9 @@ void GpioIoeInterruptHandler( void )
         {
             if( ( irq & mask ) != 0 )
             {
-                if( GpioIoeIrq[pinIndex] != NULL )
+                if( ( GpioIrq[pinIndex] != NULL ) && ( GpioIrq[pinIndex]->IrqHandler != NULL ) )
                 {
-                    GpioIoeIrq[pinIndex]( );
+                    GpioIrq[pinIndex]->IrqHandler( GpioIrq[pinIndex]->Context );
                 }
             }
         }
