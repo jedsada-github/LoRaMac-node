@@ -110,8 +110,10 @@ typedef enum
 
 extern Uart_t Uart1;
 
-uint16_t BufferSize = BUFFER_SIZE;
-uint8_t Buffer[BUFFER_SIZE];
+uint16_t UpBufferSize = BUFFER_SIZE;
+uint8_t UpBuffer[BUFFER_SIZE] = { 0 };
+uint16_t DnBufferSize = BUFFER_SIZE;
+uint8_t DnBuffer[BUFFER_SIZE] = { 0 };
 
 States_t State = LOWPOWER;
 
@@ -214,8 +216,9 @@ int main( void )
         {
         case RX:
             //TODO: forward payload to serial with statistic
-            UartPutBuffer(&Uart1, Buffer, BufferSize);   
-            State = LOWPOWER;
+            UartPutBuffer(&Uart1, UpBuffer, UpBufferSize); 
+            Radio.Rx( RX_TIMEOUT_VALUE );  
+            //State = LOWPOWER;
             break;
         case TX:
             // Indicates on a LED that we have sent a Downlink
@@ -224,35 +227,37 @@ int main( void )
             UartPutBuffer(&Uart1, (uint8_t *) "ACK\n", 4);
 
             Radio.Rx( RX_TIMEOUT_VALUE );
-            State = LOWPOWER;
+           //State = LOWPOWER;
             break;
         case RX_TIMEOUT:
         case RX_ERROR:
                 Radio.Rx( RX_TIMEOUT_VALUE );
-            State = LOWPOWER;
+           // State = LOWPOWER;
             break;
         case TX_TIMEOUT:
              // TODO: Downlink nack
              UartPutBuffer(&Uart1, (uint8_t *) "NACK\n", 5);
             Radio.Rx( RX_TIMEOUT_VALUE );
-            State = LOWPOWER;
+            // State = LOWPOWER;
             break;
         case LOWPOWER:
         default:
+            Radio.Rx( RX_TIMEOUT_VALUE );
             // Set low power
             break;
         }
         //TODO: Get JIT Queue downlink from serial
-        while (UartGetBuffer(&Uart1, Buffer + i, BufferSize, &nbReadByte) == 0) {
+        while (UartGetBuffer(&Uart1, DnBuffer + i, DnBufferSize, &nbReadByte) == 0) {
             i += nbReadByte;
         }
         if(nbReadByte > 0) {
             DelayMs( 1 );
-            Radio.Send(Buffer, nbReadByte);
+            Radio.Send(DnBuffer, nbReadByte);
+            memset(DnBuffer, 0, sizeof DnBuffer);
             i = nbReadByte = 0;
         }
 
-        BoardLowPowerHandler( );
+        // BoardLowPowerHandler( );
 
     }
 }
@@ -266,10 +271,10 @@ void OnTxDone( void )
 void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
     Radio.Sleep( );
-    BufferSize = size + 2;
-    memcpy( Buffer + 2, payload, BufferSize );
-    Buffer[0] = RssiValue = rssi;
-    Buffer[1] = SnrValue = snr;
+    UpBufferSize = size + 2;
+    memcpy( UpBuffer + 2, payload, UpBufferSize );
+    UpBuffer[0] = RssiValue = rssi;
+    UpBuffer[1] = SnrValue = snr;
     State = RX;
 }
 
