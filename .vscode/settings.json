@@ -17,14 +17,14 @@
         //     Linux   : /usr/bin/openocd
         //     OSX     : /usr/local/bin/openocd
         // Please uncomment the following line and fill it accordingly.
-        "OPENOCD_BIN":"D:/Downloads/openocd-0.10.0D/bin-x64/openocd.exe",
+        "OPENOCD_BIN":"C:/openocd/bin/openocd.exe",
 
         // Specifies the path to the CMAKE toolchain file.
         "CMAKE_TOOLCHAIN_FILE":"cmake/toolchain-arm-none-eabi.cmake",
 
         // Determines the application. You can choose between:
-        // LoRaMac (Default), ping-pong, rx-sensi, tx-cw and BootLoader.
-        "APPLICATION":"LoRaMac",
+        // LoRaMac (Default), ping-pong, pkt-fwd, rx-sensi, tx-cw and BootLoader.
+        "APPLICATION":"pkt-fwd",
 
         // Select LoRaMac sub project. You can choose between:
         // classA, classB or classC.
@@ -64,6 +64,5 @@
         "REGION_KR920":"OFF",
         "REGION_IN865":"OFF",
         "REGION_RU864":"OFF"
-    },
-    "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools"
     }
+}
