@@ -15,10 +15,11 @@
  *              (C)2015-2018 EmOne
  *
  * \endcode
- * 
+ *
  * \author    Anol Paisal ( EmOne )
- * 
+ *
  */
+#include <stdio.h>
 #include <string.h>
 #include "board.h"
 #include "gpio.h"
@@ -168,7 +169,7 @@ int main( void )
     BoardInitMcu( );
     BoardInitPeriph( );
 
-    UartPutBuffer(&Uart1, (uint8_t *) "Hello LoRa\n", 11);
+    UartPutBuffer(&Uart1, (uint8_t *) "Hello LoRa\r\n", 12);
     // Radio initialization
     RadioEvents.TxDone = OnTxDone;
     RadioEvents.RxDone = OnRxDone;
@@ -216,46 +217,44 @@ int main( void )
         {
         case RX:
             //TODO: forward payload to serial with statistic
-            UartPutBuffer(&Uart1, UpBuffer, UpBufferSize); 
-            Radio.Rx( RX_TIMEOUT_VALUE );  
-            //State = LOWPOWER;
+            UartPutBuffer(&Uart1, UpBuffer, UpBufferSize);
+            memset(UpBuffer, 0, UpBufferSize);
+
+            State = LOWPOWER;
             break;
         case TX:
             // Indicates on a LED that we have sent a Downlink
             GpioToggle( &Led3 );
             // TODO: Downlink ack
-            UartPutBuffer(&Uart1, (uint8_t *) "ACK\n", 4);
-
-            Radio.Rx( RX_TIMEOUT_VALUE );
-           //State = LOWPOWER;
+            UartPutBuffer(&Uart1, (uint8_t *) "ACK\r\n", 5);
+            State = LOWPOWER;
             break;
         case RX_TIMEOUT:
         case RX_ERROR:
-                Radio.Rx( RX_TIMEOUT_VALUE );
-           // State = LOWPOWER;
+            State = LOWPOWER;
             break;
         case TX_TIMEOUT:
              // TODO: Downlink nack
-             UartPutBuffer(&Uart1, (uint8_t *) "NACK\n", 5);
-            Radio.Rx( RX_TIMEOUT_VALUE );
-            // State = LOWPOWER;
+             UartPutBuffer(&Uart1, (uint8_t *) "NACK\r\n", 6);
+            State = LOWPOWER;
             break;
         case LOWPOWER:
         default:
-            Radio.Rx( RX_TIMEOUT_VALUE );
+            if(Radio.GetStatus() == RF_IDLE)
+                Radio.Rx( RX_TIMEOUT_VALUE );
             // Set low power
             break;
         }
         //TODO: Get JIT Queue downlink from serial
-        while (UartGetBuffer(&Uart1, DnBuffer + i, DnBufferSize, &nbReadByte) == 0) {
-            i += nbReadByte;
-        }
-        if(nbReadByte > 0) {
-            DelayMs( 1 );
-            Radio.Send(DnBuffer, nbReadByte);
-            memset(DnBuffer, 0, sizeof DnBuffer);
-            i = nbReadByte = 0;
-        }
+        // while (UartGetBuffer(&Uart1, DnBuffer + i, DnBufferSize, &nbReadByte) == 0) {
+        //     i += nbReadByte;
+        // }
+        // if(nbReadByte > 0) {
+        //     DelayMs( 1 );
+        //     Radio.Send(DnBuffer, nbReadByte);
+        //     memset(DnBuffer, 0, sizeof DnBuffer);
+        //     i = nbReadByte = 0;
+        // }
 
         // BoardLowPowerHandler( );
 
