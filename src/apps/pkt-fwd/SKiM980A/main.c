@@ -120,6 +120,7 @@ States_t State = LOWPOWER;
 
 int8_t RssiValue = 0;
 int8_t SnrValue = 0;
+uint32_t OnAirValue = 0;
 
 /*!
  * Radio events function pointer
@@ -221,26 +222,27 @@ int main( void )
         switch( State )
         {
         case RX:
-            //TODO: forward payload to serial with statistic
+            //TODO: forward payload to serial
             UartPutBuffer(&Uart1, UpBuffer, UpBufferSize);
             memset(UpBuffer, 0, UpBufferSize);
-
+            State = LOWPOWER;
+            break;   
+        case RX_TIMEOUT:
+        case RX_ERROR:
             State = LOWPOWER;
             break;
         case TX:
             // Indicates on a LED that we have sent a Downlink
             GpioToggle( &Led3 );
             // TODO: Downlink ack
-            UartPutBuffer(&Uart1, (uint8_t *) "ACK\r\n", 5);
-            State = LOWPOWER;
-            break;
-        case RX_TIMEOUT:
-        case RX_ERROR:
+            UartPutBuffer(&Uart1, DnBuffer, DnBufferSize);
+            memset(DnBuffer, 0, DnBufferSize);
             State = LOWPOWER;
             break;
         case TX_TIMEOUT:
-             // TODO: Downlink nack
-             UartPutBuffer(&Uart1, (uint8_t *) "NACK\r\n", 6);
+            // TODO: Downlink nack
+            UartPutBuffer(&Uart1, DnBuffer, DnBufferSize);
+            memset(DnBuffer, 0, DnBufferSize);
             State = LOWPOWER;
             break;
         case LOWPOWER:
@@ -259,6 +261,7 @@ int main( void )
             //TODO: Downlink packet validation
             if(PacketValidate(DnBuffer, &nbReadByte) == 0 ) {
                 DelayMs( 1 );
+                OnAirValue = Radio.TimeOnAir(MODEM_LORA, nbReadByte);
                 Radio.Send(DnBuffer, nbReadByte);
             }
             memset(DnBuffer, 0, sizeof DnBuffer);
@@ -272,29 +275,62 @@ int main( void )
 
 void OnTxDone( void )
 {
+    const char *ack = "ACK";
     Radio.Sleep( );
     State = TX;
+    DnBufferSize = sizeof ack + 8;
+    snprintf((char *) DnBuffer + 8, DnBufferSize,  ack);
+    DnBuffer[0] = 0x1; //Start of frame
+    DnBuffer[1] = State;
+    DnBuffer[4] = OnAirValue >> 24;
+    DnBuffer[5] = OnAirValue >> 16;
+    DnBuffer[6] = OnAirValue >> 8; 
+    DnBuffer[7] = OnAirValue; 
+    DnBuffer[DnBufferSize++] = '\r';
+    DnBuffer[DnBufferSize++] = '\n';
+    DnBuffer[2] = (uint8_t) (DnBufferSize >> 8) & 0xff;
+    DnBuffer[3] = (uint8_t) (DnBufferSize) & 0xff;
+    //TODO : CRC neccessary?
+}
+
+void OnTxTimeout( void )
+{
+    const char *nack = "NACK";
+    Radio.Sleep( );
+    State = TX_TIMEOUT;
+    DnBufferSize = sizeof nack + 8;
+    snprintf((char *) DnBuffer + 8, DnBufferSize,  nack);
+    DnBuffer[0] = 0x1; //Start of frame
+    DnBuffer[1] = State;
+    DnBuffer[4] = OnAirValue >> 24;
+    DnBuffer[5] = OnAirValue >> 16;
+    DnBuffer[6] = OnAirValue >> 8; 
+    DnBuffer[7] = OnAirValue; 
+    DnBuffer[DnBufferSize++] = '\r';
+    DnBuffer[DnBufferSize++] = '\n';
+    DnBuffer[2] = (uint8_t) (DnBufferSize >> 8) & 0xff;
+    DnBuffer[3] = (uint8_t) (DnBufferSize) & 0xff;
+    //TODO : CRC neccessary?
 }
 
 void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
     Radio.Sleep( );
-    UpBufferSize = size + 5;
-    memcpy( UpBuffer + 5, payload, UpBufferSize );
-    UpBuffer[0] = 0x1;
-    UpBuffer[3] = RssiValue = rssi;
-    UpBuffer[4] = SnrValue = snr;
+    State = RX;
+    UpBufferSize = size + 8;
+    memcpy( UpBuffer + 8, payload, UpBufferSize );
+    UpBuffer[0] = 0x1; //Start of frame
+    UpBuffer[1] = State;
+    UpBuffer[4] = RssiValue = rssi;
+    UpBuffer[5] = SnrValue = snr;
+    UpBuffer[6] = 0; //Reserved
+    UpBuffer[7] = 0; //Reserved
     UpBuffer[UpBufferSize++] = '\r';
     UpBuffer[UpBufferSize++] = '\n';
-    UpBuffer[1] = (uint8_t) (UpBufferSize >> 8) & 0xff;
-    UpBuffer[2] = (uint8_t) (UpBufferSize) & 0xff;
-    State = RX;
-}
-
-void OnTxTimeout( void )
-{
-    Radio.Sleep( );
-    State = TX_TIMEOUT;
+    UpBuffer[2] = (uint8_t) (UpBufferSize >> 8) & 0xff;
+    UpBuffer[3] = (uint8_t) (UpBufferSize) & 0xff;
+    //TODO : CRC neccessary?
+    
 }
 
 void OnRxTimeout( void )
