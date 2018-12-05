@@ -107,7 +107,7 @@ typedef enum
 }States_t;
 
 #define RX_TIMEOUT_VALUE                            1000
-#define BUFFER_SIZE                                 242 // Define the payload size here
+#define BUFFER_SIZE                                 255 // Define the payload size here
 
 extern Uart_t Uart1;
 
@@ -156,6 +156,11 @@ void OnRxTimeout( void );
  * \brief Function executed on Radio Rx Error event
  */
 void OnRxError( void );
+
+/*!
+ * \brief Function executed on Radio Rx Error event
+ */
+int PacketValidate(uint8_t * data, uint16_t* len);
 
 /**
  * Main application entry point.
@@ -245,16 +250,20 @@ int main( void )
             // Set low power
             break;
         }
+
         //TODO: Get JIT Queue downlink from serial
-        // while (UartGetBuffer(&Uart1, DnBuffer + i, DnBufferSize, &nbReadByte) == 0) {
-        //     i += nbReadByte;
-        // }
-        // if(nbReadByte > 0) {
-        //     DelayMs( 1 );
-        //     Radio.Send(DnBuffer, nbReadByte);
-        //     memset(DnBuffer, 0, sizeof DnBuffer);
-        //     i = nbReadByte = 0;
-        // }
+        while (UartGetBuffer(&Uart1, DnBuffer + i, DnBufferSize, &nbReadByte) == 0) {
+            i += nbReadByte;
+        }
+        if(nbReadByte > 0) {
+            //TODO: Downlink packet validation
+            if(PacketValidate(DnBuffer, &nbReadByte) == 0 ) {
+                DelayMs( 1 );
+                Radio.Send(DnBuffer, nbReadByte);
+            }
+            memset(DnBuffer, 0, sizeof DnBuffer);
+            i = nbReadByte = 0;
+        }
 
         // BoardLowPowerHandler( );
 
@@ -270,10 +279,15 @@ void OnTxDone( void )
 void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
     Radio.Sleep( );
-    UpBufferSize = size + 2;
-    memcpy( UpBuffer + 2, payload, UpBufferSize );
-    UpBuffer[0] = RssiValue = rssi;
-    UpBuffer[1] = SnrValue = snr;
+    UpBufferSize = size + 5;
+    memcpy( UpBuffer + 5, payload, UpBufferSize );
+    UpBuffer[0] = 0x1;
+    UpBuffer[3] = RssiValue = rssi;
+    UpBuffer[4] = SnrValue = snr;
+    UpBuffer[UpBufferSize++] = '\r';
+    UpBuffer[UpBufferSize++] = '\n';
+    UpBuffer[1] = (uint8_t) (UpBufferSize >> 8) & 0xff;
+    UpBuffer[2] = (uint8_t) (UpBufferSize) & 0xff;
     State = RX;
 }
 
@@ -293,4 +307,8 @@ void OnRxError( void )
 {
     Radio.Sleep( );
     State = RX_ERROR;
+}
+
+int PacketValidate(uint8_t * data, uint16_t* len) {
+    return 0;
 }

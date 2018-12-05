@@ -67,6 +67,7 @@
     },
     "files.associations": {
         "board.h": "c",
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "utilities.h": "c"
     }
 }
