@@ -604,7 +604,7 @@ static bool ValidatePayloadLength( uint8_t lenN, int8_t datarate, uint8_t fOptsL
  * \param [IN] snr          The SNR value  of the frame
  * \param [IN] rxSlot       The RX slot where the frame was received
  */
-static void ProcessMacCommands( uint8_t* payload, uint8_t macIndex, uint8_t commandsSize, uint8_t snr, LoRaMacRxSlot_t rxSlot );
+static void ProcessMacCommands( uint8_t* payload, uint8_t macIndex, uint8_t commandsSize, int8_t snr, LoRaMacRxSlot_t rxSlot );
 
 /*!
  * \brief LoRaMAC layer generic send frame
@@ -869,7 +869,7 @@ static uint8_t LoRaMacCheckForBeaconAcquisition( void );
 /*!
  * \brief This function handles join request
  */
-static void LoRaMacHanleJoinRequests( void );
+static void LoRaMacHandleJoinRequest( void );
 
 /*!
  * \brief This function handles mcps request
@@ -1449,7 +1449,7 @@ static void ProcessRadioRxDone( void )
 
             break;
         case FRAME_TYPE_PROPRIETARY:
-            memcpy1( MacCtx.RxPayload, &payload[pktHeaderLen], size );
+            memcpy1( MacCtx.RxPayload, &payload[pktHeaderLen], size - pktHeaderLen );
 
             MacCtx.McpsIndication.McpsIndication = MCPS_PROPRIETARY;
             MacCtx.McpsIndication.Status = LORAMAC_EVENT_INFO_STATUS_OK;
@@ -1746,7 +1746,7 @@ static void LoRaMacHandleMcpsRequest( void )
     }
 }
 
-static void LoRaMacHanleJoinRequests( void )
+static void LoRaMacHandleJoinRequest( void )
 {
     // Handle join request
     if( ( MacCtx.MacFlags.Bits.MlmeReq == 1 ) && ( LoRaMacConfirmQueueIsCmdActive( MLME_JOIN ) == true ) )
@@ -1763,7 +1763,7 @@ static void LoRaMacHanleJoinRequests( void )
 static uint8_t LoRaMacCheckForTxTimeout( void )
 {
     if( ( LoRaMacConfirmQueueGetStatusCmn( ) == LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT ) ||
-        ( LoRaMacConfirmQueueGetStatusCmn( ) == LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT ) )
+        ( MacCtx.McpsConfirm.Status == LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT ) )
     {
         // Stop transmit cycle due to tx timeout
         MacCtx.MacState &= ~LORAMAC_TX_RUNNING;
@@ -1822,7 +1822,7 @@ void LoRaMacProcess( void )
 
         if( noTx == 0x00 )
         {
-            LoRaMacHanleJoinRequests( );
+            LoRaMacHandleJoinRequest( );
             LoRaMacHandleMcpsRequest( );
         }
         LoRaMacHandleRequestEvents( );
@@ -2074,15 +2074,22 @@ static void SetMlmeScheduleUplinkIndication( void )
     MacCtx.MacFlags.Bits.MlmeInd = 1;
 }
 
-static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t commandsSize, uint8_t snr, LoRaMacRxSlot_t rxSlot )
+static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t commandsSize, int8_t snr, LoRaMacRxSlot_t rxSlot )
 {
     uint8_t status = 0;
     bool adrBlockFound = false;
+    bool adrInvalidBlockFound = false;
     uint8_t macCmdPayload[2] = { 0x00, 0x00 };
     MacCommand_t* macCmd;
 
     while( macIndex < commandsSize )
     {
+        if( payload[macIndex] != SRV_MAC_LINK_ADR_REQ )
+        {
+            // Reset the status if the command is not a SRV_MAC_LINK_ADR_REQ
+            adrInvalidBlockFound = false;
+        }
+
         // Decode Frame MAC commands
         switch( payload[macIndex++] )
         {
@@ -2142,13 +2149,24 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
                         MacCtx.NvmCtx->MacParams.ChannelsNbTrans = linkAdrNbRep;
                     }
 
-                    // Add the answers to the buffer
-                    for( uint8_t i = 0; i < ( linkAdrNbBytesParsed / 5 ); i++ )
-                    {
-                        LoRaMacCommandsAddCmd( MOTE_MAC_LINK_ADR_ANS, &status, 1 );
-                    }
+                    // Add one single answer to the buffer
+                    LoRaMacCommandsAddCmd( MOTE_MAC_LINK_ADR_ANS, &status, 1 );
+
                     // Update MAC index
                     macIndex += linkAdrNbBytesParsed - 1;
+                }
+                else if( adrInvalidBlockFound == false )
+                {
+                    adrInvalidBlockFound = true;
+                    // Set all status bits to zero, if there is more than one
+                    // atomic block of LinkAdrReq.
+                    status = 0;
+                    LoRaMacCommandsAddCmd( MOTE_MAC_LINK_ADR_ANS, &status, 1 );
+                    macIndex += 4;
+                }
+                else
+                {
+                    macIndex += 4;
                 }
                 break;
             }
@@ -2196,7 +2214,7 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
                     batteryLevel = MacCtx.MacCallbacks->GetBatteryLevel( );
                 }
                 macCmdPayload[0] = batteryLevel;
-                macCmdPayload[1] = snr & 0x3F;
+                macCmdPayload[1] = ( uint8_t )( snr & 0x3F );
                 LoRaMacCommandsAddCmd( MOTE_MAC_DEV_STATUS_ANS, macCmdPayload, 2 );
                 break;
             }

@@ -368,7 +368,7 @@ void SX126xCalibrateImage( uint32_t freq )
     else if( freq > 850000000 )
     {
         calFreq[0] = 0xD7;
-        calFreq[1] = 0xD8;
+        calFreq[1] = 0xDB;
     }
     else if( freq > 770000000 )
     {
@@ -702,7 +702,8 @@ void SX126xGetPacketStatus( PacketStatus_t *pktStatus )
 
         case PACKET_TYPE_LORA:
             pktStatus->Params.LoRa.RssiPkt = -status[0] >> 1;
-            ( status[1] < 128 ) ? ( pktStatus->Params.LoRa.SnrPkt = status[1] >> 2 ) : ( pktStatus->Params.LoRa.SnrPkt = ( ( status[1] - 256 ) >> 2 ) );
+            // Returns SNR value [dB] rounded to the nearest integer value
+            pktStatus->Params.LoRa.SnrPkt = ( ( ( int8_t )status[1] ) + 2 ) >> 2;
             pktStatus->Params.LoRa.SignalRssiPkt = -status[2] >> 1;
             pktStatus->Params.LoRa.FreqError = FrequencyError;
             break;
