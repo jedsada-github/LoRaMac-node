@@ -50,7 +50,7 @@
         // MBED Radio shield selection. (Applies only to Nucleo platforms)
         // The following shields are supported:
         // SX1272MB2DAS, SX1276MB1LAS, SX1276MB1MAS, SX1261MBXBAS(Default), SX1262MBXCAS, SX1262MBXDAS.
-        "MBED_RADIO_SHIELD":"SX1276MB1LAS",
+        "MBED_RADIO_SHIELD":"SX1272MB2DAS",
 
         // Region support activation, Select the ones you want to support.
         // By default only REGION_AS923 support is enabled.
@@ -68,6 +68,7 @@
     "files.associations": {
         "board.h": "c",
         "gpio.h": "c",
-        "utilities.h": "c"
+        "utilities.h": "c",
+        "timer.h": "c"
     }
 }
