@@ -181,39 +181,41 @@ int main(void)
         case RX:
             //TODO: forward payload to serial
             UartPutBuffer(&Uart1, UpBuffer, UpBufferSize);
-            memset(UpBuffer, 0, UpBufferSize);
-            State = LOWPOWER;
-            break;
+            memset(UpBuffer, 0, sizeof UpBuffer);
+            UpBufferSize = 0;
+            
         case RX_TIMEOUT:
         case RX_ERROR:
+            if(REQ_TX) { // TODO: Downlink nack response
+                
+                
+                // OnAirValue = Radio.TimeOnAir(MODEM_LORA, DnBufferSize);
+                // UartPutBuffer(&Uart1, (uint8_t *) "Sending\r\n", 9);
+                Radio.Send(DnBuffer+2, DnBufferSize-4);
+                memset(DnBuffer, 0, sizeof DnBuffer);
+                DnBufferSize = 0;
+                REQ_TX = false;
+                State = LOWPOWER;
+                break;
+            }
+            Radio.Rx(RX_TIMEOUT_VALUE);
             State = LOWPOWER;
             break;
         case TX:
             // Indicates on a LED that we have sent a Downlink
             // GpioToggle( &Led3 );
-            UartPutBuffer(&Uart1, (uint8_t *) "ACK\r\n", 5);
+            // UartPutBuffer(&Uart1, (uint8_t *) "ACK\r\n", 5);
+            Radio.Rx(RX_TIMEOUT_VALUE);
             State = LOWPOWER;
             break;
             // TODO: Downlink ack response
         case TX_TIMEOUT: // TODO: Downlink nack response
-            UartPutBuffer(&Uart1, (uint8_t *) "NACK\r\n", 6);
+            // UartPutBuffer(&Uart1, (uint8_t *) "NACK\r\n", 6);
+            Radio.Rx(RX_TIMEOUT_VALUE);
             State = LOWPOWER;
             break;
         
         case LOWPOWER:
-            DelayMs( 1 );
-            if(REQ_TX) { // TODO: Downlink nack response
-                State = LOWPOWER;
-                REQ_TX = false;
-                // OnAirValue = Radio.TimeOnAir(MODEM_LORA, DnBufferSize);
-                UartPutBuffer(&Uart1, (uint8_t *) "Sending\r\n", 9);
-                Radio.Send(DnBuffer, DnBufferSize);
-                memset(DnBuffer, 0, sizeof DnBuffer);
-                DnBufferSize = 0;
-                
-            } else 
-                Radio.Rx(RX_TIMEOUT_VALUE);
-            break;
         default:
             // Set low power
             break;
@@ -225,21 +227,21 @@ int main(void)
 
 void OnTxDone(void)
 {
-    Radio.Sleep();
+    // Radio.Sleep();
     
     State = TX;
 }
 
 void OnTxTimeout(void)
 {
-    Radio.Sleep();
+    // Radio.Sleep();
     
     State = TX_TIMEOUT;
 }
 
 void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
-    Radio.Sleep();
+    // Radio.Sleep();
 #if 0
     UpBufferSize = size + 8;
     memcpy( UpBuffer + 8, payload, UpBufferSize );
@@ -255,25 +257,25 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
     UpBuffer[3] = (uint8_t) (UpBufferSize) & 0xff;
     //TODO : CRC neccessary?
 #else
-    UpBufferSize = size;
-    memcpy(UpBuffer, payload, UpBufferSize);
-    RssiValue = rssi;
-    SnrValue = snr;
-    UpBuffer[++UpBufferSize] = '\r'; //Delimiter
-    UpBuffer[++UpBufferSize] = '\n'; //Delimiter
+    UpBufferSize = size + 2;
+    memcpy(UpBuffer + 2, payload, UpBufferSize);
+    UpBuffer[0] = RssiValue = rssi;
+    UpBuffer[1] = SnrValue = snr;
+    UpBuffer[UpBufferSize++] = '\r'; //Delimiter
+    UpBuffer[UpBufferSize++] = '\n'; //Delimiter
 #endif
     State = RX;
 }
 
 void OnRxTimeout(void)
 {
-    Radio.Sleep();
+    // Radio.Sleep();
     State = RX_TIMEOUT;
 }
 
 void OnRxError(void)
 {
-    Radio.Sleep();
+    // Radio.Sleep();
     State = RX_ERROR;
 }
 
@@ -344,9 +346,14 @@ void OnUartRx(UartNotifyId_t id)
             }
 #else
             DnBuffer[DnBufferSize++] = tmp;
-            if (tmp == '\n')
+            if (tmp == '\n' && DnBufferSize > 3)
             {
-                REQ_TX = true;
+                
+                if (DnBuffer[DnBufferSize - 2] == '\r') {
+                    REQ_TX = true;
+                }
+                
+                
             }
 
 #endif
