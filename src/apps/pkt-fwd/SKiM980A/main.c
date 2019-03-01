@@ -181,17 +181,15 @@ int main(void)
         case RX:
             //TODO: forward payload to serial
             UartPutBuffer(&Uart1, UpBuffer, UpBufferSize);
-            memset(UpBuffer, 0, sizeof UpBuffer);
-            UpBufferSize = 0;
-            
+            memset(UpBuffer, 0x0, sizeof UpBuffer);
+            UpBufferSize = 0x0;
+
         case RX_TIMEOUT:
         case RX_ERROR:
-            if(REQ_TX) { // TODO: Downlink nack response
-                
-                
+            if(REQ_TX) { // TODO: Downlink nack response    
                 // OnAirValue = Radio.TimeOnAir(MODEM_LORA, DnBufferSize);
                 // UartPutBuffer(&Uart1, (uint8_t *) "Sending\r\n", 9);
-                Radio.Send(DnBuffer+2, DnBufferSize-4);
+                Radio.Send(DnBuffer, DnBufferSize - 2);
                 memset(DnBuffer, 0, sizeof DnBuffer);
                 DnBufferSize = 0;
                 REQ_TX = false;
@@ -257,10 +255,14 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
     UpBuffer[3] = (uint8_t) (UpBufferSize) & 0xff;
     //TODO : CRC neccessary?
 #else
-    UpBufferSize = size + 2;
-    memcpy(UpBuffer + 2, payload, UpBufferSize);
-    UpBuffer[0] = RssiValue = rssi;
-    UpBuffer[1] = SnrValue = snr;
+    UpBufferSize = size + 5;
+    memcpy(UpBuffer + 5, payload, UpBufferSize);
+    UpBuffer[0] = 0x1;
+    UpBuffer[1] = RssiValue = rssi;
+    UpBuffer[2] = SnrValue = snr;
+    UpBuffer[3] = size >> 8;
+    UpBuffer[4] = size;
+
     UpBuffer[UpBufferSize++] = '\r'; //Delimiter
     UpBuffer[UpBufferSize++] = '\n'; //Delimiter
 #endif
@@ -322,7 +324,7 @@ void OnUartRx(UartNotifyId_t id)
     uint8_t tmp;
     if (id == UART_NOTIFY_RX)
     {
-        if (UartGetChar(&Uart1, &tmp) == 0)
+        if (!REQ_TX && UartGetChar(&Uart1, &tmp) == 0)
         {
 #if 0
             if (SOF == false) {
@@ -346,14 +348,11 @@ void OnUartRx(UartNotifyId_t id)
             }
 #else
             DnBuffer[DnBufferSize++] = tmp;
-            if (tmp == '\n' && DnBufferSize > 3)
+            if (strcmp((char *)DnBuffer, "\r\n") > 0) //if (tmp == '\n' && DnBufferSize > 3)
             {
-                
-                if (DnBuffer[DnBufferSize - 2] == '\r') {
+                // if (DnBuffer[DnBufferSize - 2] == '\r') {
                     REQ_TX = true;
-                }
-                
-                
+                // }
             }
 
 #endif

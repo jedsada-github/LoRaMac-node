@@ -17,13 +17,13 @@
         //     Linux   : /usr/bin/openocd
         //     OSX     : /usr/local/bin/openocd
         // Please uncomment the following line and fill it accordingly.
-        "OPENOCD_BIN":"C:/openocd/bin-x64/openocd.exe",
+        "OPENOCD_BIN":"C:/openocd/bin/openocd.exe",
 
         // Specifies the path to the CMAKE toolchain file.
         "CMAKE_TOOLCHAIN_FILE":"cmake/toolchain-arm-none-eabi.cmake",
 
         // Determines the application. You can choose between:
-        // LoRaMac (Default), ping-pong, pkt-fwd, rx-sensi, tx-cw and BootLoader.
+        // LoRaMac (Default), ping-pong, modbus-rtu, pkt-fwd, rx-sensi, tx-cw and BootLoader.
         "APPLICATION":"pkt-fwd",
 
         // Select LoRaMac sub project. You can choose between:
@@ -69,6 +69,8 @@
         "board.h": "c",
         "gpio.h": "c",
         "utilities.h": "c",
-        "timer.h": "c"
+        "timer.h": "c",
+        "modbusport.h": "c",
+        "modbus.h": "c"
     }
 }
