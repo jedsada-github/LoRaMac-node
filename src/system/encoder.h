@@ -1,0 +1,71 @@
+/*!
+ * \file      encoder-board.h
+ *
+ * \brief     Encoder driver implementation
+ *
+ * \copyright Revised BSD License, see section \ref LICENSE.
+ *
+ * \code
+ *                ______          _______
+ *               / _____)        /       \
+ *              ( (____   ____   |   _   | __  ___   _____
+ *               |____ | |     | |  (_)  | | |/_  | (  ___)
+ *              ( (____  | | | | |       | |  / | | (  ___)
+ *              (______) |_|_| | \_______/ |_|  | | (_____)
+ *              (C)2015-2019 EmOne
+ *
+ * \endcode
+ *
+ * \author    Anol Paisal ( EmOne )
+ *
+ */
+#ifndef __ENCODER_H__
+#define __ENCODER_H__
+
+#include "gpio.h"
+
+/*!
+ * ENCODER peripheral ID
+ */
+typedef enum
+{
+    TIM_2,
+} EncoderId_t;
+
+/*!
+ * TIM object type definition
+ */
+typedef struct Encoder_s
+{
+    EncoderId_t EncoderId;
+    Gpio_t Pulse;
+    Gpio_t Direction;
+    Gpio_t Tampering;
+    Gpio_t Alarm;
+} Encoder_t;
+
+/*!
+ * Hardware IO IRQ callback function definition
+ */
+/*!
+ * GPIO IRQ handler function prototype
+ */
+typedef void( EncoderIrqHandler )( void* context );
+
+/*!
+ * \brief Initializes the ENCODER object and MCU peripheral
+ *
+ * \remark 
+ *
+ * \param [IN] obj  ENCODER object
+ */
+void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames dir, PinNames tampering, PinNames alarm);
+
+/*!
+ * \brief De-initializes the ENCODER object and MCU peripheral
+ *
+ * \param [IN] obj ENCODER object
+ */
+void EncoderDeInit( Encoder_t *obj );
+
+#endif // __SPI_H__

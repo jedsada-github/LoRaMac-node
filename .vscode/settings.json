@@ -23,8 +23,8 @@
         "CMAKE_TOOLCHAIN_FILE":"cmake/toolchain-arm-none-eabi.cmake",
 
         // Determines the application. You can choose between:
-        // LoRaMac (Default), ping-pong, modbus-rtu, pkt-fwd, rx-sensi, tx-cw and BootLoader.
-        "APPLICATION":"pkt-fwd",
+        // LoRaMac (Default), ping-pong, dma-meter, modbus-rtu, pkt-fwd, rx-sensi, tx-cw and BootLoader.
+        "APPLICATION":"dma-meter",
 
         // Select LoRaMac sub project. You can choose between:
         // classA, classB or classC.
@@ -71,6 +71,18 @@
         "utilities.h": "c",
         "timer.h": "c",
         "modbusport.h": "c",
-        "modbus.h": "c"
+        "modbus.h": "c",
+        "commissioning.h": "c",
+        "lpm-board.h": "c",
+        "tim-board.h": "c",
+        "tim.h": "c",
+        "adc.h": "c",
+        "stm32l1xx.h": "c",
+        "stm32l151xba.h": "c",
+        "encoder.h": "c",
+        "encoder-board.h": "c",
+        "rtc-board.h": "c",
+        "systime.h": "c",
+        "board-config.h": "c"
     }
 }

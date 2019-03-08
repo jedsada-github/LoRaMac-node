@@ -33,7 +33,7 @@ set(MBED_RADIO_SHIELD SX1276MB1LAS CACHE STRING "Default MBED radio shield is SX
 set_property(CACHE MBED_RADIO_SHIELD PROPERTY STRINGS ${MBED_RADIO_SHIELD_LIST})
 
 # Allow switching of Applications
-set(APPLICATION_LIST LoRaMac ping-pong rx-sensi tx-cw BootLoader pkt-fwd modbus-rtu)
+set(APPLICATION_LIST LoRaMac ping-pong rx-sensi tx-cw BootLoader pkt-fwd modbus-rtu dma-meter)
 set(APPLICATION LoRaMac CACHE STRING "Default Application is LoRaMac")
 set_property(CACHE APPLICATION PROPERTY STRINGS ${APPLICATION_LIST})
 
@@ -222,5 +222,9 @@ elseif(APPLICATION STREQUAL pkt-fwd)
 elseif(APPLICATION STREQUAL modbus-rtu)
 
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/apps/modbus-rtu)
+
+elseif(APPLICATION STREQUAL dma-meter)
+
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/apps/dma-meter)
     
 endif()

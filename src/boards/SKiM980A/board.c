@@ -35,6 +35,9 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
+#if (USE_ENCODER == 1)
+#include "encoder-board.h"
+#endif
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -59,6 +62,7 @@ Gpio_t Led4;
 Adc_t Adc;
 I2c_t I2c;
 Uart_t Uart1;
+Encoder_t Encoder;
 
 /*!
  * Initializes the unused GPIO to a know status
@@ -126,7 +130,10 @@ void BoardCriticalSectionEnd( uint32_t *mask )
 
 void BoardInitPeriph( void )
 {
-
+    //Encoder initialized
+#if (USE_ENCODER == 1)
+    EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
+#endif
 }
 
 void BoardInitMcu( void )
@@ -149,7 +156,7 @@ void BoardInitMcu( void )
         FifoInit( &Uart1.FifoRx, Uart1RxBuffer, UART1_FIFO_RX_SIZE );
         // Configure your terminal for 8 Bits data (7 data bit + 1 parity bit), no parity and no flow ctrl
         UartInit( &Uart1, UART_1, UART_TX, UART_RX );
-        UartConfig( &Uart1, RX_TX, 9600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
+        UartConfig( &Uart1, RX_TX, 115200, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
 
         RtcInit( );
 
@@ -205,7 +212,9 @@ void BoardDeInitMcu( void )
 
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
-
+#if (USE_ENCODER == 1)
+    EncoderDeInit( &Encoder );
+#endif
     GpioInit( &ioPin, OSC_HSE_IN, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioInit( &ioPin, OSC_HSE_OUT, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
