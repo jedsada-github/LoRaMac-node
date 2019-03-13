@@ -14,8 +14,9 @@
 ##
 ## License:  Revised BSD License, see LICENSE.TXT file included in the project
 ## Authors:  Johannes Bruder (STACKFORCE), Miguel Luis (Semtech)
+## Maintainer:  Anol Paisal (EmOne)
 ##
-project(dma-meter)
+project(encoder)
 cmake_minimum_required(VERSION 3.6)
 
 #---------------------------------------------------------------------------------------

@@ -24,6 +24,7 @@
 
 #include "gpio.h"
 
+#define USE_ENCODER 1
 /*!
  * ENCODER peripheral ID
  */
@@ -43,6 +44,28 @@ typedef struct Encoder_s
     Gpio_t Tampering;
     Gpio_t Alarm;
 } Encoder_t;
+
+extern Encoder_t Encoder;
+
+typedef struct {
+	uint32_t fwd_cnt;
+	uint32_t rev_cnt;
+	int16_t rate;
+    uint8_t status; //[0:tampering, 1:alarm, 2:dir]
+	// uint8_t dir;
+	// uint8_t tampering;
+	// uint8_t alarm;
+	volatile uint16_t adc_lvl[3];
+	uint32_t adc_acc;
+	uint32_t adc_avg;
+	uint32_t adc_sample;
+	uint32_t last;
+	uint8_t batt;
+	int16_t temp;
+} flow_t;
+
+
+extern flow_t flow;
 
 /*!
  * Hardware IO IRQ callback function definition

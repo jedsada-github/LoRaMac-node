@@ -35,8 +35,8 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
-#if (USE_ENCODER == 1)
-#include "encoder-board.h"
+#if defined(USE_ENCODER)
+#include "encoder.h"
 #endif
 
 /*!
@@ -62,7 +62,6 @@ Gpio_t Led4;
 Adc_t Adc;
 I2c_t I2c;
 Uart_t Uart1;
-Encoder_t Encoder;
 
 /*!
  * Initializes the unused GPIO to a know status
@@ -131,7 +130,7 @@ void BoardCriticalSectionEnd( uint32_t *mask )
 void BoardInitPeriph( void )
 {
     //Encoder initialized
-#if (USE_ENCODER == 1)
+#if defined(USE_ENCODER)
     EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
 #endif
 }
@@ -212,7 +211,7 @@ void BoardDeInitMcu( void )
 
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
-#if (USE_ENCODER == 1)
+#if defined (USE_ENCODER)
     EncoderDeInit( &Encoder );
 #endif
     GpioInit( &ioPin, OSC_HSE_IN, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );

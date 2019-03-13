@@ -48,7 +48,6 @@
  *         On SKiM980A X5 is the 20 pin header close to the DIP SW and Buttons
  */
 #define USE_POTENTIOMETER                           1
-#define USE_ENCODER                             1
 #define USE_SPI                                     0
 
 
@@ -99,7 +98,7 @@
 #else
 #define LED_1                                       PA_3
 #endif
-#if (USE_ENCODER == 1)
+#if defined (USE_ENCODER)
 #define PULSE                                       PA_0
 #define DIR                                         PA_1
 #define TAMPERING                                   PA_8

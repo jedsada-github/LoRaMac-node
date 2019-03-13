@@ -68,6 +68,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSE_HAL_DRIVER -DSTM32L151xB
 # Add define if debbuger support is enabled
 target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<BOOL:${USE_DEBUGGER}>:USE_DEBUGGER>)
 
+# Add define if encoder support is enabled
+target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<BOOL:${USE_ENCODER}>:USE_ENCODER>)
+
 # Add define if radio debug pins support is enabled
 target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<BOOL:${USE_RADIO_DEBUG}>:USE_RADIO_DEBUG>)
 

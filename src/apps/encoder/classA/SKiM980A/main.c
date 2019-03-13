@@ -33,6 +33,12 @@
 #include "Commissioning.h"
 #include "NvmCtxMgmt.h"
 
+#ifndef USE_ENCODER
+#include "encoder.h"
+#define USE_ENCODER 1
+extern flow_t flow;
+#endif
+
 #ifndef ACTIVE_REGION
 
 #warning "No active region defined, LORAMAC_REGION_EU868 will be used as default."
@@ -44,7 +50,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            10000
+#define APP_TX_DUTYCYCLE                            30000
 
 /*!
  * Defines a random delay for application data transmission duty cycle. 1s,
@@ -365,16 +371,31 @@ static void PrepareTxFrame( uint8_t port )
 
             // Read the current potentiometer setting in percent
             potiPercentage = BoardGetPotiLevel( );
-
-            // Read the current voltage level
+#if defined(USE_ENCODER)
+            vdd = BoardGetBatteryLevel( );
+            AppDataSizeBackup = AppDataSize = 11;
+            AppDataBuffer[0] = (flow.fwd_cnt >> 16) & 0xff;
+            AppDataBuffer[1] = (flow.fwd_cnt >> 8) & 0xff;
+            AppDataBuffer[2] = (flow.fwd_cnt) & 0xff;
+            AppDataBuffer[3] = (flow.rev_cnt >> 16) & 0xff;
+            AppDataBuffer[4] = (flow.rev_cnt >> 8) & 0xff;
+            AppDataBuffer[5] = (flow.rev_cnt) & 0xff;
+            AppDataBuffer[6] = flow.rate;
+            AppDataBuffer[7] = flow.status;
+            AppDataBuffer[8] = potiPercentage;
+            AppDataBuffer[9] = vdd & 0xff;
+            AppDataBuffer[10] = AppLedStateOn;
+#else
+                        // Read the current voltage level
             BoardGetBatteryLevel( ); // Updates the value returned by BoardGetBatteryVoltage( ) function.
             vdd = BoardGetBatteryVoltage( );
 
-            AppDataSizeBackup = AppDataSize = 11;
+            AppDataSizeBackup = AppDataSize = 4;
             AppDataBuffer[0] = AppLedStateOn;
             AppDataBuffer[1] = potiPercentage;
             AppDataBuffer[2] = ( vdd >> 8 ) & 0xFF;
             AppDataBuffer[3] = vdd & 0xFF;
+#endif
         }
         break;
     case 224:
