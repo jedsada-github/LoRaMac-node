@@ -37,6 +37,7 @@
 #include "eeprom.h"
 #include "nvmm.h"
 
+#define USER_SETTING_CTX_MGMT_ENABLED       1
 /*!
  * Enables/Disables the context storage management storage at all. Must be enabled for LoRaWAN 1.1.x.
  * WARNING: Still under development and not tested yet.
@@ -52,7 +53,12 @@
 #if ( MAX_PERSISTENT_CTX_MGMT_ENABLED == 1 )
 #define NVM_CTX_STORAGE_MASK               0xFF
 #else
+#if ( USER_SETTING_CTX_MGMT_ENABLED == 1)
+#include "encoder.h"
+#define NVM_CTX_STORAGE_MASK               0x94
+#else
 #define NVM_CTX_STORAGE_MASK               0x8C
+#endif
 #endif
 
 #if ( CONTEXT_MANAGEMENT_ENABLED == 1 )
@@ -122,6 +128,10 @@ static NvmmDataBlock_t CommandsNvmCtxDataBlock;
 static NvmmDataBlock_t ConfirmQueueNvmCtxDataBlock;
 static NvmmDataBlock_t ClassBNvmCtxDataBlock;
 #endif
+#endif
+
+#if ( USER_SETTING_CTX_MGMT_ENABLED == 1)
+static NvmmDataBlock_t UserSettingNvmCtxDataBlock;
 #endif
 
 void NvmCtxMgmtEvent( LoRaMacNvmCtxModule_t module )
@@ -269,6 +279,12 @@ NvmCtxMgmtStatus_t NvmCtxMgmtStore( void )
     LoRaMacStart( );
 
     return NVMCTXMGMT_STATUS_SUCCESS;
+#elif defined ( USER_SETTING_CTX_MGMT_ENABLED )
+    if( NvmmWrite( &UserSettingNvmCtxDataBlock, &flow.fwd_cnt,  8) != NVMM_SUCCESS )
+    {
+        return NVMCTXMGMT_STATUS_FAIL;
+    }
+    return NVMCTXMGMT_STATUS_SUCCESS;
 #else
     return NVMCTXMGMT_STATUS_FAIL;
 #endif
@@ -401,6 +417,16 @@ NvmCtxMgmtStatus_t NvmCtxMgmtRestore( void )
     }
 
     return status;
+#elif defined ( USER_SETTING_CTX_MGMT_ENABLED )
+ if ( NvmmDeclare( &UserSettingNvmCtxDataBlock, 8 ) == NVMM_SUCCESS )
+    {
+        NvmmRead( &UserSettingNvmCtxDataBlock, &flow.fwd_cnt, 8 );
+    }
+    else
+    {
+        return NVMCTXMGMT_STATUS_FAIL;
+    }
+    return NVMCTXMGMT_STATUS_SUCCESS;
 #else
     return NVMCTXMGMT_STATUS_FAIL;
 #endif

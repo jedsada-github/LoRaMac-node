@@ -26,18 +26,13 @@
 /*! \file classA/SKiM980A/main.c */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "utilities.h"
 #include "board.h"
 #include "gpio.h"
 #include "LoRaMac.h"
 #include "Commissioning.h"
 #include "NvmCtxMgmt.h"
-
-#ifndef USE_ENCODER
-#include "encoder.h"
-#define USE_ENCODER 1
-extern flow_t flow;
-#endif
 
 #ifndef ACTIVE_REGION
 
@@ -50,7 +45,7 @@ extern flow_t flow;
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            30000
+#define APP_TX_DUTYCYCLE                            60000 * 15
 
 /*!
  * Defines a random delay for application data transmission duty cycle. 1s,
@@ -175,6 +170,7 @@ static bool NextTx = true;
  */
 static uint8_t IsMacProcessPending = 0;
 
+int rssi;
 /*!
  * Device states
  */
@@ -236,16 +232,9 @@ LoRaMacHandlerAppData_t AppData =
 /*!
  * LED GPIO pins objects
  */
-#if (USE_TAMPERING == 1)
-extern Gpio_t Tampering; //
-#endif
 extern Gpio_t Led2; // Rx
 extern Gpio_t Led3; // App
 extern Gpio_t Led4; // Tx
-
-#if (USE_SPI == 0)
-extern Gpio_t Alarm; //
-#endif
 
 /*!
  * MAC status strings
@@ -384,7 +373,7 @@ static void PrepareTxFrame( uint8_t port )
             AppDataBuffer[7] = flow.status;
             AppDataBuffer[8] = potiPercentage;
             AppDataBuffer[9] = vdd & 0xff;
-            AppDataBuffer[10] = AppLedStateOn;
+            AppDataBuffer[10] = rssi;
 #else
                         // Read the current voltage level
             BoardGetBatteryLevel( ); // Updates the value returned by BoardGetBatteryVoltage( ) function.
@@ -866,7 +855,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
 
     printf( "\r\n" );
     printf( "DATA RATE   : DR_%d\r\n", mcpsIndication->RxDatarate );
-    printf( "RX RSSI     : %d\r\n", mcpsIndication->Rssi );
+    printf( "RX RSSI     : %d\r\n", mcpsIndication->Rssi ); rssi = abs(mcpsIndication->Rssi);
     printf( "RX SNR      : %d\r\n", mcpsIndication->Snr );
 
     printf( "\r\n" );
@@ -1012,9 +1001,9 @@ int main( void )
                 if( NvmCtxMgmtRestore( ) == NVMCTXMGMT_STATUS_SUCCESS )
                 {
                     printf( "\r\n###### ===== CTXS RESTORED ==== ######\r\n\r\n" );
-                }
-                else
-                {
+                // }
+                // else
+                // {
                     mibReq.Type = MIB_APP_KEY;
                     mibReq.Param.AppKey = AppKey;
                     LoRaMacMibSetRequestConfirm( &mibReq );
@@ -1175,6 +1164,11 @@ int main( void )
                     PrepareTxFrame( AppPort );
 
                     NextTx = SendFrame( );
+
+                   if( NvmCtxMgmtStore( ) == NVMCTXMGMT_STATUS_SUCCESS )
+                    {
+                        printf( "\r\n###### ===== CTXS STORED ==== ######\r\n" );
+                    }
                 }
                 DeviceState = DEVICE_STATE_CYCLE;
                 break;
@@ -1200,10 +1194,10 @@ int main( void )
             }
             case DEVICE_STATE_SLEEP:
             {
-                if( NvmCtxMgmtStore( ) == NVMCTXMGMT_STATUS_SUCCESS )
-                {
-                    printf( "\r\n###### ===== CTXS STORED ==== ######\r\n" );
-                }
+                // if( NvmCtxMgmtStore( ) == NVMCTXMGMT_STATUS_SUCCESS )
+                // {
+                //     printf( "\r\n###### ===== CTXS STORED ==== ######\r\n" );
+                // }
 
                 CRITICAL_SECTION_BEGIN( );
                 if( IsMacProcessPending == 1 )

@@ -25,6 +25,7 @@
 
 #include <stdint.h>
 #include "utilities.h"
+#include "encoder.h"
 /*!
  * Possible power sources
  */

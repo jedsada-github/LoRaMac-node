@@ -35,9 +35,6 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
-#if defined(USE_ENCODER)
-#include "encoder.h"
-#endif
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )

@@ -52,9 +52,6 @@ typedef struct {
 	uint32_t rev_cnt;
 	int16_t rate;
     uint8_t status; //[0:tampering, 1:alarm, 2:dir]
-	// uint8_t dir;
-	// uint8_t tampering;
-	// uint8_t alarm;
 	volatile uint16_t adc_lvl[3];
 	uint32_t adc_acc;
 	uint32_t adc_avg;

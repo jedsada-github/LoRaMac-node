@@ -23,17 +23,21 @@
 #include "board.h"
 #include "gpio.h"
 #include "encoder-board.h"
+// #include "timer.h"
 
 EncoderIrqHandler *EncoderIrq[] = { OnTamperingIrq , OnAlarmIrq, NULL};
 
 Encoder_t Encoder;
 flow_t flow;
 static TIM_HandleTypeDef TimHandle;
-
+/*!
+ * Timer to handle the application data transmission duty cycle
+ */
+// static TimerEvent_t StorePacketTimer;
 
 void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames dir, PinNames tampering, PinNames alarm)
 {
-    // CRITICAL_SECTION_BEGIN( );
+    CRITICAL_SECTION_BEGIN( );
 
      obj->EncoderId = timId;
 
@@ -69,7 +73,7 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
         HAL_TIMEx_MasterConfigSynchronization(&TimHandle, &sMasterConfig);
 
-        HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
+        HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);
         HAL_NVIC_EnableIRQ(TIM2_IRQn);
 
         GpioInit( &obj->Tampering, tampering, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
@@ -82,9 +86,11 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         OnTamperingIrq(&obj);
         OnAlarmIrq(&obj);
 
+        // TimerInit( &StorePacketTimer, OnStorePacketTimerEvent );
+        // TimerSetValue( &StorePacketTimer, 60000 );
     }
 
-    // CRITICAL_SECTION_END( );
+    CRITICAL_SECTION_END( );
 }
 
 void EncoderDeInit( Encoder_t *obj )
@@ -126,7 +132,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	CRITICAL_SECTION_BEGIN();
 	if (htim->Instance == TIM2) {
 
-		if (GpioRead(&Encoder.Direction) == GPIO_PIN_RESET)
+		if (GpioRead(&Encoder.Direction) != GPIO_PIN_RESET)
 		{
             flow.status |= 0x4;
 		 	flow.fwd_cnt++;
@@ -156,4 +162,13 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 void TIM2_IRQHandler( void )
 {
     HAL_TIM_IRQHandler( &TimHandle );
+}
+
+/*!
+ * \brief Function executed on Led 4 Timeout event
+ */
+static void OnStorePacketTimerEvent( void* context )
+{
+    // TimerStop( &StorePacketTimer );
+    // NvmCtxMgmtStore();
 }
