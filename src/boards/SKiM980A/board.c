@@ -241,12 +241,15 @@ void BoardGetUniqueId( uint8_t *id )
 #define POTI_MAX_LEVEL 900
 #define POTI_MIN_LEVEL 10
 
-uint8_t BoardGetPotiLevel( void )
+uint8_t BoardGetPotiLevel( uint16_t *adc )
 {
     uint8_t potiLevel = 0;
     uint16_t vpoti = 0;
 
     // Read the current potentiometer setting
+#if defined(USE_ENCODER)
+    return *adc = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
+#else
     vpoti = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
 
     // check the limits
@@ -264,6 +267,7 @@ uint8_t BoardGetPotiLevel( void )
         potiLevel = ( ( vpoti - POTI_MIN_LEVEL ) * 100 ) / POTI_MAX_LEVEL;
     }
     return potiLevel;
+#endif
 }
 
 /*!
@@ -517,6 +521,7 @@ void LpmExitStopMode( void )
 
     // Initilizes the peripherals
     BoardInitMcu( );
+    
 
     CRITICAL_SECTION_END( );
 }

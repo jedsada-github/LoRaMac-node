@@ -68,7 +68,7 @@
  *
  * \remark Please note that when ADR is enabled the end-device should be static
  */
-#define LORAWAN_ADR_ON                              1
+#define LORAWAN_ADR_ON                              0
 
 #if defined( REGION_EU868 ) || defined( REGION_RU864 ) || defined( REGION_CN779 ) || defined( REGION_EU433 )
 
@@ -355,12 +355,13 @@ static void PrepareTxFrame( uint8_t port )
     {
     case 3:
         {
-            uint8_t potiPercentage = 0;
+            uint16_t potiPercentage = 0;
             uint16_t vdd = 0;
 
             // Read the current potentiometer setting in percent
-            potiPercentage = BoardGetPotiLevel( );
+           
 #if defined(USE_ENCODER)
+            BoardGetPotiLevel(&potiPercentage);
             vdd = BoardGetBatteryLevel( );
             AppDataSizeBackup = AppDataSize = 11;
             AppDataBuffer[0] = (flow.fwd_cnt >> 16) & 0xff;
@@ -369,13 +370,14 @@ static void PrepareTxFrame( uint8_t port )
             AppDataBuffer[3] = (flow.rev_cnt >> 16) & 0xff;
             AppDataBuffer[4] = (flow.rev_cnt >> 8) & 0xff;
             AppDataBuffer[5] = (flow.rev_cnt) & 0xff;
-            AppDataBuffer[6] = flow.rate;
-            AppDataBuffer[7] = flow.status;
-            AppDataBuffer[8] = potiPercentage;
+            AppDataBuffer[6] = flow.rate & 0xff;
+            AppDataBuffer[7] = ((flow.status << 4)  & 0xf0) | ((potiPercentage >> 8) & 0x0f);
+            AppDataBuffer[8] = potiPercentage & 0xff;
             AppDataBuffer[9] = vdd & 0xff;
             AppDataBuffer[10] = rssi;
 #else
-                        // Read the current voltage level
+            potiPercentage = BoardGetPotiLevel( );
+            // Read the current voltage level
             BoardGetBatteryLevel( ); // Updates the value returned by BoardGetBatteryVoltage( ) function.
             vdd = BoardGetBatteryVoltage( );
 

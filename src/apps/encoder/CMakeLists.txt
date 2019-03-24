@@ -95,6 +95,7 @@ generate_vscode_launch_openocd(${PROJECT_NAME}-${CLASS})
 # Print section sizes of target
 print_section_sizes(${PROJECT_NAME}-${CLASS})
 
-# Create output in hex and binary format
+# Create output in elf32, hex and binary format
+create_elf_output(${PROJECT_NAME}-${CLASS})
 create_bin_output(${PROJECT_NAME}-${CLASS})
 create_hex_output(${PROJECT_NAME}-${CLASS})

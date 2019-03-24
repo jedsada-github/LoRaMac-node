@@ -61,7 +61,7 @@ void BoardDeInitMcu( void );
  *
  * \retval value  Potentiometer level ( value in percent )
  */
-uint8_t BoardGetPotiLevel( void );
+uint8_t BoardGetPotiLevel( uint16_t* adc );
 
 /*!
  * \brief Measure the Battery voltage
