@@ -29,7 +29,7 @@
 #include "utilities.h"
 #include "uart-board.h"
 
-#define RF_FREQUENCY 923000000 // Hz
+#define RF_FREQUENCY 923200000 // Hz
 
 #define TX_OUTPUT_POWER 20 // dBm
 
@@ -37,7 +37,7 @@
                                  //  1: 250 kHz, 
                                  //  2: 500 kHz, 
                                  //  3: Reserved]
-#define LORA_SPREADING_FACTOR 12 // [SF7..SF12]
+#define LORA_SPREADING_FACTOR 10 // [SF7..SF12]
 #define LORA_CODINGRATE 1        // [1: 4/5, 
                                  //  2: 4/6, 
                                  //  3: 4/7, 
