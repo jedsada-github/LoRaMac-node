@@ -126,10 +126,7 @@ void BoardCriticalSectionEnd( uint32_t *mask )
 
 void BoardInitPeriph( void )
 {
-    //Encoder initialized
-#if defined(USE_ENCODER)
-    EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
-#endif
+    EncoderUpdateStatus();
 }
 
 void BoardInitMcu( void )
@@ -180,7 +177,11 @@ void BoardInitMcu( void )
 
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX1272IoInit( );
-
+    
+#if defined(USE_ENCODER)
+    //Encoder initialized
+    EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
+#endif
     if( McuInitialized == false )
     {
         McuInitialized = true;
@@ -188,6 +189,10 @@ void BoardInitMcu( void )
         {
             CalibrateSystemWakeupTime( );
         }
+#if defined(USE_ENCODER)
+    //Encoder initialized
+        EncoderUpdateStatus();
+#endif
     }
 }
 
@@ -521,7 +526,6 @@ void LpmExitStopMode( void )
 
     // Initilizes the peripherals
     BoardInitMcu( );
-    
 
     CRITICAL_SECTION_END( );
 }

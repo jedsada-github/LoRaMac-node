@@ -45,7 +45,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            60000 * 15
+#define APP_TX_DUTYCYCLE                            5000//60U * 1000U * 15U /* 15 min */
 
 /*!
  * Defines a random delay for application data transmission duty cycle. 1s,
@@ -121,7 +121,7 @@ static uint8_t AppDataSizeBackup = 11;
 /*!
  * User application data buffer size
  */
-#define LORAWAN_APP_DATA_MAX_SIZE                           242
+#define LORAWAN_APP_DATA_MAX_SIZE                           11
 
 /*!
  * User application data
@@ -154,9 +154,21 @@ static bool AppLedStateOn = false;
 static TimerEvent_t Led4Timer;
 
 /*!
+ * Timer to handle the state of LED3
+ */
+static TimerEvent_t Led3Timer;
+
+/*!
  * Timer to handle the state of LED2
  */
 static TimerEvent_t Led2Timer;
+
+/*!
+ * Timer to handle the passive device sleep
+ */
+static TimerEvent_t passive_sleep_timer = { 0 };
+static TimerTime_t passive_sleep_time = 1U * 60U * 1000U; /* 1 hour */
+static void OnPassiveSleepTimer(void* context);
 
 /*!
  * Indicates if a new packet can be sent
@@ -170,7 +182,8 @@ static bool NextTx = true;
  */
 static uint8_t IsMacProcessPending = 0;
 
-int rssi;
+static int rssi = 0;
+static bool isActiveMode = true;
 /*!
  * Device states
  */
@@ -182,7 +195,7 @@ static enum eDeviceState
     DEVICE_STATE_SEND,
     DEVICE_STATE_CYCLE,
     DEVICE_STATE_SLEEP
-}DeviceState;
+} DeviceState;
 
 /*!
  * LoRaWAN compliance tests support data
@@ -208,7 +221,7 @@ typedef enum
 {
     LORAMAC_HANDLER_UNCONFIRMED_MSG = 0,
     LORAMAC_HANDLER_CONFIRMED_MSG = !LORAMAC_HANDLER_UNCONFIRMED_MSG
-}LoRaMacHandlerMsgTypes_t;
+} LoRaMacHandlerMsgTypes_t;
 
 /*!
  * Application data structure
@@ -517,11 +530,28 @@ static void OnLed4TimerEvent( void* context )
 /*!
  * \brief Function executed on Led 2 Timeout event
  */
+static void OnLed3TimerEvent( void* context )
+{
+    TimerStop( &Led3Timer );
+    // Switch LED 2 OFF
+    GpioWrite( &Led3, 0 );
+}
+
+/*!
+ * \brief Function executed on Led 2 Timeout event
+ */
 static void OnLed2TimerEvent( void* context )
 {
     TimerStop( &Led2Timer );
     // Switch LED 2 OFF
     GpioWrite( &Led2, 0 );
+}
+
+static void OnPassiveSleepTimer(void* context) 
+{
+    TimerStop( &passive_sleep_timer );
+    isActiveMode = true;
+    return;
 }
 
 /*!
@@ -700,6 +730,14 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
             {
                 AppLedStateOn = mcpsIndication->Buffer[0] & 0x01;
                 GpioWrite( &Led3, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
+            }
+            break;
+        case 3:
+            // Downlink encoder configuration
+            if (mcpsIndication->BufferSize == 3) {
+                config.analog_alarm = (((uint16_t)mcpsIndication->Buffer[2] << 8) | (uint16_t) mcpsIndication->Buffer[1]);
+                config.digital_alarm = (mcpsIndication->Buffer[0] >> 7) & 0x01;
+                config.sampling = (mcpsIndication->Buffer[0] & 0x0f);
             }
             break;
         case 224:
@@ -966,7 +1004,7 @@ int main( void )
     LoRaMacCallback_t macCallbacks;
     MibRequestConfirm_t mibReq;
     LoRaMacStatus_t status;
-
+    
     BoardInitMcu( );
     BoardInitPeriph( );
 
@@ -980,6 +1018,8 @@ int main( void )
     macCallbacks.MacProcessNotify = OnMacProcessNotify;
 
     LoRaMacInitialization( &macPrimitives, &macCallbacks, ACTIVE_REGION );
+
+    // Encoder.OnSendOneshot = OnTxNextPacketTimerEvent;
 
     DeviceState = DEVICE_STATE_RESTORE;
 
@@ -1003,9 +1043,9 @@ int main( void )
                 if( NvmCtxMgmtRestore( ) == NVMCTXMGMT_STATUS_SUCCESS )
                 {
                     printf( "\r\n###### ===== CTXS RESTORED ==== ######\r\n\r\n" );
-                // }
-                // else
-                // {
+                }
+                else
+                {
                     mibReq.Type = MIB_APP_KEY;
                     mibReq.Param.AppKey = AppKey;
                     LoRaMacMibSetRequestConfirm( &mibReq );
@@ -1065,10 +1105,16 @@ int main( void )
 
             case DEVICE_STATE_START:
             {
+                TimerInit( &passive_sleep_timer, OnPassiveSleepTimer);
+                TimerSetValue( &passive_sleep_timer, passive_sleep_time );
+                
                 TimerInit( &TxNextPacketTimer, OnTxNextPacketTimerEvent );
 
                 TimerInit( &Led4Timer, OnLed4TimerEvent );
                 TimerSetValue( &Led4Timer, 25 );
+
+                TimerInit( &Led3Timer, OnLed3TimerEvent );
+                TimerSetValue( &Led3Timer, 25 );
 
                 TimerInit( &Led2Timer, OnLed2TimerEvent );
                 TimerSetValue( &Led2Timer, 25 );
@@ -1186,12 +1232,15 @@ int main( void )
                 else
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime = APP_TX_DUTYCYCLE + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
+                    TxDutyCycleTime =  config.sampling == 0 ? (APP_TX_DUTYCYCLE) : config.sampling * 60U * 1000U;
+                    TxDutyCycleTime += randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
                 }
 
                 // Schedule next packet transmission
-                TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime );
-                TimerStart( &TxNextPacketTimer );
+                if(isActiveMode) {
+                    TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime );
+                    TimerStart( &TxNextPacketTimer );
+                }
                 break;
             }
             case DEVICE_STATE_SLEEP:
@@ -1210,7 +1259,12 @@ int main( void )
                 else
                 {
                     // The MCU wakes up through events
+                    if(!isActiveMode) {
+                        TimerStop( &TxNextPacketTimer );
+                        TimerReset( &passive_sleep_timer );
+                    }
                     BoardLowPowerHandler( );
+                    
                 }
                 CRITICAL_SECTION_END( );
                 break;

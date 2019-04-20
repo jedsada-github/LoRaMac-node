@@ -50,15 +50,13 @@
  */
 #define MAX_PERSISTENT_CTX_MGMT_ENABLED    0
 
+#if ( USER_SETTING_CTX_MGMT_ENABLED == 1)
+#include "encoder.h"
+#endif
 #if ( MAX_PERSISTENT_CTX_MGMT_ENABLED == 1 )
 #define NVM_CTX_STORAGE_MASK               0xFF
 #else
-#if ( USER_SETTING_CTX_MGMT_ENABLED == 1)
-#include "encoder.h"
-#define NVM_CTX_STORAGE_MASK               0x94
-#else
 #define NVM_CTX_STORAGE_MASK               0x8C
-#endif
 #endif
 
 #if ( CONTEXT_MANAGEMENT_ENABLED == 1 )
@@ -131,7 +129,8 @@ static NvmmDataBlock_t ClassBNvmCtxDataBlock;
 #endif
 
 #if ( USER_SETTING_CTX_MGMT_ENABLED == 1)
-static NvmmDataBlock_t UserSettingNvmCtxDataBlock;
+static NvmmDataBlock_t UserDataNvmCtxDataBlock;
+static NvmmDataBlock_t UserConfigNvmCtxDataBlock;
 #endif
 
 void NvmCtxMgmtEvent( LoRaMacNvmCtxModule_t module )
@@ -279,19 +278,26 @@ NvmCtxMgmtStatus_t NvmCtxMgmtStore( void )
     LoRaMacStart( );
 
     return NVMCTXMGMT_STATUS_SUCCESS;
-#elif defined ( USER_SETTING_CTX_MGMT_ENABLED )
-    if( NvmmWrite( &UserSettingNvmCtxDataBlock, &flow.fwd_cnt,  8) != NVMM_SUCCESS )
+
+#else
+#if defined ( USER_SETTING_CTX_MGMT_ENABLED )
+    if( NvmmWrite( &UserDataNvmCtxDataBlock, &flow.fwd_cnt,  8) != NVMM_SUCCESS )
     {
         return NVMCTXMGMT_STATUS_FAIL;
     }
-    return NVMCTXMGMT_STATUS_SUCCESS;
-#else
+
+    if( NvmmWrite( &UserConfigNvmCtxDataBlock, &config,  sizeof(flow_config_t))!= NVMM_SUCCESS )
+    {
+        return NVMCTXMGMT_STATUS_FAIL;
+    }
+#endif
     return NVMCTXMGMT_STATUS_FAIL;
 #endif
 }
 
 NvmCtxMgmtStatus_t NvmCtxMgmtRestore( void )
 {
+    
 #if ( CONTEXT_MANAGEMENT_ENABLED == 1 )
     MibRequestConfirm_t mibReq;
     LoRaMacCtxs_t contexts = { 0 };
@@ -403,6 +409,7 @@ NvmCtxMgmtStatus_t NvmCtxMgmtRestore( void )
     }
 #endif
 
+
     // Enforce storing all contexts
     if( status == NVMCTXMGMT_STATUS_FAIL )
     {
@@ -417,17 +424,19 @@ NvmCtxMgmtStatus_t NvmCtxMgmtRestore( void )
     }
 
     return status;
-#elif defined ( USER_SETTING_CTX_MGMT_ENABLED )
- if ( NvmmDeclare( &UserSettingNvmCtxDataBlock, 8 ) == NVMM_SUCCESS )
-    {
-        NvmmRead( &UserSettingNvmCtxDataBlock, &flow.fwd_cnt, 8 );
-    }
-    else
-    {
-        return NVMCTXMGMT_STATUS_FAIL;
-    }
-    return NVMCTXMGMT_STATUS_SUCCESS;
+
 #else
+#if defined ( USER_SETTING_CTX_MGMT_ENABLED )
+    if ( NvmmDeclare( &UserDataNvmCtxDataBlock, 8 ) == NVMM_SUCCESS )
+    {
+        NvmmRead( &UserDataNvmCtxDataBlock, &flow.fwd_cnt, 8 );
+    }
+
+    if ( NvmmDeclare( &UserConfigNvmCtxDataBlock, sizeof (flow_config_t) ) == NVMM_SUCCESS )
+    {
+        NvmmRead( &UserConfigNvmCtxDataBlock, &config, sizeof (flow_config_t) );
+    }
+#endif
     return NVMCTXMGMT_STATUS_FAIL;
 #endif
 }

@@ -43,6 +43,7 @@ typedef struct Encoder_s
     Gpio_t Direction;
     Gpio_t Tampering;
     Gpio_t Alarm;
+	void ( *OnSendOneshot) (void* context);
 } Encoder_t;
 
 extern Encoder_t Encoder;
@@ -61,8 +62,15 @@ typedef struct {
 	int16_t temp;
 } flow_t;
 
+typedef struct 
+{
+	uint16_t analog_alarm;
+	uint8_t digital_alarm;
+	uint8_t sampling;
+} flow_config_t;
 
 extern flow_t flow;
+extern flow_config_t config;
 
 /*!
  * Hardware IO IRQ callback function definition
@@ -87,5 +95,8 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
  * \param [IN] obj ENCODER object
  */
 void EncoderDeInit( Encoder_t *obj );
+
+
+void EncoderUpdateStatus ( void ) ;
 
 #endif // __SPI_H__

@@ -29,6 +29,7 @@ EncoderIrqHandler *EncoderIrq[] = { OnTamperingIrq , OnAlarmIrq, NULL};
 
 Encoder_t Encoder;
 flow_t flow;
+flow_config_t config;
 static TIM_HandleTypeDef TimHandle;
 /*!
  * Timer to handle the application data transmission duty cycle
@@ -83,8 +84,7 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         GpioSetInterrupt( &obj->Alarm, IRQ_RISING_FALLING_EDGE, IRQ_VERY_HIGH_PRIORITY, EncoderIrq[1]);
         // GpioSetContext(&obj->Alarm, &obj);
        
-        OnTamperingIrq(&obj);
-        OnAlarmIrq(&obj);
+        
 
         // TimerInit( &StorePacketTimer, OnStorePacketTimerEvent );
         // TimerSetValue( &StorePacketTimer, 60000 );
@@ -112,6 +112,8 @@ void OnTamperingIrq( void* context )
 	}
     __NOP();
     CRITICAL_SECTION_END();
+    if (Encoder.OnSendOneshot != NULL)
+        Encoder.OnSendOneshot( NULL );
 }
 
 void OnAlarmIrq( void* context )
@@ -124,7 +126,9 @@ void OnAlarmIrq( void* context )
 		flow.status &= ~0x2;
 	}
     __NOP();
-    CRITICAL_SECTION_END();
+    CRITICAL_SECTION_END();    
+    if (Encoder.OnSendOneshot != NULL)
+        Encoder.OnSendOneshot( NULL );
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
@@ -137,22 +141,15 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             flow.status |= 0x4;
 		 	flow.fwd_cnt++;
 		// 	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-		// 	memset(buffer, 0x0, sizeof buffer); sprintf(buffer, "FWD:%ld", flow.fwd_cnt);
-		// 	BSP_LCD_ClearStringLine(1); BSP_LCD_DisplayStringAtLine(1, (uint8_t*) buffer);
 		} else {
             flow.status &= ~0x4;
 		 	flow.rev_cnt++;
 		// 	HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
-		// 	memset(buffer, 0x0, sizeof buffer); sprintf(buffer, "REV:%ld", flow.rev_cnt);
-		// 	BSP_LCD_ClearStringLine(2); BSP_LCD_DisplayStringAtLine(2, (uint8_t*) buffer);
 		}
-		// uint32_t current = HAL_GetTick();
-		// float rt = (1.0f / (float)(current - flow.last)) * 1000.0f;
-		// flow.rate = (int16_t) rt;
-		// memset(buffer, 0x0, sizeof buffer); sprintf(buffer, "RATE:%d.%d", flow.rate, (int16_t)((rt -flow.rate) * 100.f));
-		// BSP_LCD_ClearStringLine(3); BSP_LCD_DisplayStringAtLine(3, (uint8_t*) buffer);
-		// flow.cnt = htim->Instance->CNT;
-		// flow.last = HAL_GetTick();
+		uint32_t current = HAL_GetTick();
+		float rt = (1.0f / (float)(current - flow.last)) * 1000.0f;
+		flow.rate = (int16_t) rt;
+		flow.last = HAL_GetTick();
         __NOP();
 	}
 	
@@ -167,8 +164,13 @@ void TIM2_IRQHandler( void )
 /*!
  * \brief Function executed on Led 4 Timeout event
  */
-static void OnStorePacketTimerEvent( void* context )
+// static void OnStorePacketTimerEvent( void* context )
+// {
+//     // TimerStop( &StorePacketTimer );
+//     // NvmCtxMgmtStore();
+// }
+void EncoderUpdateStatus ( void ) 
 {
-    // TimerStop( &StorePacketTimer );
-    // NvmCtxMgmtStore();
+    OnTamperingIrq( NULL );
+    OnAlarmIrq( NULL );
 }

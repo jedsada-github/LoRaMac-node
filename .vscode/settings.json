@@ -17,7 +17,7 @@
         //     Linux   : /usr/bin/openocd
         //     OSX     : /usr/local/bin/openocd
         // Please uncomment the following line and fill it accordingly.
-        "OPENOCD_BIN":"C:/openocd/bin/openocd.exe",
+        "OPENOCD_BIN":"C:/openocd/bin-x64/openocd.exe",
 
         // Specifies the path to the CMAKE toolchain file.
         "CMAKE_TOOLCHAIN_FILE":"cmake/toolchain-arm-none-eabi.cmake",
@@ -68,6 +68,12 @@
     "files.associations": {
         "nvmctxmgmt.h": "c",
         "board.h": "c",
-        "utilities.h": "c"
+        "utilities.h": "c",
+        "timer.h": "c",
+        "gpio.h": "c",
+        "encoder-board.h": "c",
+        "spi-board.h": "c",
+        "spi.h": "c",
+        "encoder.h": "c"
     }
 }

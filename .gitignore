@@ -27,3 +27,4 @@ launch.json
 .cmaketools.json
 /.project
 /.cproject
+*.ipch
