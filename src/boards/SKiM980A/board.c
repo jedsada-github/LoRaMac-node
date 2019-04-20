@@ -178,7 +178,7 @@ void BoardInitMcu( void )
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX1272IoInit( );
     
-#if defined(USE_ENCODER)
+#if (USE_ENCODER == 1)
     //Encoder initialized
     EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
 #endif
@@ -213,7 +213,7 @@ void BoardDeInitMcu( void )
 
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
-#if defined (USE_ENCODER)
+#if (USE_ENCODER == 1)
     EncoderDeInit( &Encoder );
 #endif
     GpioInit( &ioPin, OSC_HSE_IN, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
@@ -246,15 +246,17 @@ void BoardGetUniqueId( uint8_t *id )
 #define POTI_MAX_LEVEL 900
 #define POTI_MIN_LEVEL 10
 
-uint8_t BoardGetPotiLevel( uint16_t *adc )
+#if (USE_ENCODER == 1)
+uint16_t BoardGetPotiLevel( void )
+#else
+uint8_t BoardGetPotiLevel( void )
+#endif
 {
     uint8_t potiLevel = 0;
     uint16_t vpoti = 0;
 
     // Read the current potentiometer setting
-#if defined(USE_ENCODER)
-    return *adc = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
-#else
+
     vpoti = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
 
     // check the limits
@@ -271,6 +273,9 @@ uint8_t BoardGetPotiLevel( uint16_t *adc )
         // if the value is in the area, calculate the percentage value
         potiLevel = ( ( vpoti - POTI_MIN_LEVEL ) * 100 ) / POTI_MAX_LEVEL;
     }
+#if (USE_ENCODER == 1)
+    return vpoti;
+#else
     return potiLevel;
 #endif
 }

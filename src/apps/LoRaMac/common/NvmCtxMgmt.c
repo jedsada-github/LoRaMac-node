@@ -115,7 +115,6 @@ LoRaMacCtxUpdateStatus_t CtxUpdateStatus = { .Value = 0 };
 static NvmmDataBlock_t FCntHandlerNvmCtxDataBlock;
 static NvmmDataBlock_t SecureElementNvmCtxDataBlock;
 static NvmmDataBlock_t CryptoNvmCtxDataBlock;
-static NvmmDataBlock_t UserSettingNvmCtxDataBlock;
 #if ( MAX_PERSISTENT_CTX_MGMT_ENABLED == 1 )
 static NvmmDataBlock_t MacNvmCtxDataBlock;
 static NvmmDataBlock_t RegionNvmCtxDataBlock;

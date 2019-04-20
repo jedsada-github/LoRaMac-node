@@ -33,6 +33,7 @@
 #include "LoRaMac.h"
 #include "Commissioning.h"
 #include "NvmCtxMgmt.h"
+#include "UserNvmCtxMgmt.h"
 
 #ifndef ACTIVE_REGION
 
@@ -45,7 +46,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            5000//60U * 1000U * 15U /* 15 min */
+#define APP_TX_DUTYCYCLE                            5000 * 6//60U * 1000U * 15U /* 15 min */
 
 /*!
  * Defines a random delay for application data transmission duty cycle. 1s,
@@ -68,7 +69,7 @@
  *
  * \remark Please note that when ADR is enabled the end-device should be static
  */
-#define LORAWAN_ADR_ON                              0
+#define LORAWAN_ADR_ON                              1
 
 #if defined( REGION_EU868 ) || defined( REGION_RU864 ) || defined( REGION_CN779 ) || defined( REGION_EU433 )
 
@@ -90,7 +91,11 @@
 
 static uint8_t DevEui[] = LORAWAN_DEVICE_EUI;
 static uint8_t JoinEui[] = LORAWAN_JOIN_EUI;
+#if( ABP_ACTIVATION_LRWAN_VERSION == ABP_ACTIVATION_LRWAN_VERSION_V10x )
+static uint8_t GenAppKey[] = LORAWAN_GEN_APP_KEY;
+#else
 static uint8_t AppKey[] = LORAWAN_APP_KEY;
+#endif
 static uint8_t NwkKey[] = LORAWAN_NWK_KEY;
 
 #if( OVER_THE_AIR_ACTIVATION == 0 )
@@ -121,7 +126,7 @@ static uint8_t AppDataSizeBackup = 11;
 /*!
  * User application data buffer size
  */
-#define LORAWAN_APP_DATA_MAX_SIZE                           11
+#define LORAWAN_APP_DATA_MAX_SIZE                           242
 
 /*!
  * User application data
@@ -245,9 +250,9 @@ LoRaMacHandlerAppData_t AppData =
 /*!
  * LED GPIO pins objects
  */
+extern Gpio_t Led4; // Tx
 extern Gpio_t Led2; // Rx
 extern Gpio_t Led3; // App
-extern Gpio_t Led4; // Tx
 
 /*!
  * MAC status strings
@@ -276,6 +281,7 @@ const char* MacStatusStrings[] =
     "MAC command error",             // LORAMAC_STATUS_MAC_COMMAD_ERROR
     "ClassB error",                  // LORAMAC_STATUS_CLASS_B_ERROR
     "Confirm queue error",           // LORAMAC_STATUS_CONFIRM_QUEUE_ERROR
+    "Multicast group undefined",     // LORAMAC_STATUS_MC_GROUP_UNDEFINED
     "Unknown error",                 // LORAMAC_STATUS_ERROR
 };
 
@@ -373,8 +379,8 @@ static void PrepareTxFrame( uint8_t port )
 
             // Read the current potentiometer setting in percent
            
-#if defined(USE_ENCODER)
-            BoardGetPotiLevel(&potiPercentage);
+#if defined( USE_ENCODER )
+            potiPercentage = BoardGetPotiLevel( );
             vdd = BoardGetBatteryLevel( );
             AppDataSizeBackup = AppDataSize = 11;
             AppDataBuffer[0] = (flow.fwd_cnt >> 16) & 0xff;
@@ -466,7 +472,6 @@ static bool SendFrame( void )
             mcpsReq.Req.Confirmed.fPort = AppPort;
             mcpsReq.Req.Confirmed.fBuffer = AppDataBuffer;
             mcpsReq.Req.Confirmed.fBufferSize = AppDataSize;
-            mcpsReq.Req.Confirmed.NbTrials = 8;
             mcpsReq.Req.Confirmed.Datarate = LORAWAN_DEFAULT_DATARATE;
         }
     }
@@ -638,16 +643,17 @@ static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
     mibGet.Type  = MIB_CHANNELS_MASK;
     if( LoRaMacMibGetRequestConfirm( &mibGet ) == LORAMAC_STATUS_OK )
     {
+        uint8_t i = 0;
         printf("CHANNEL MASK: ");
 #if defined( REGION_AS923 ) || defined( REGION_CN779 ) || \
     defined( REGION_EU868 ) || defined( REGION_IN865 ) || \
     defined( REGION_KR920 ) || defined( REGION_RU864 )
 
-        for( uint8_t i = 0; i < 1; i++)
+        for(i = 0; i < 1; i++)
 
 #elif defined( REGION_AU915 ) || defined( REGION_US915 )
 
-        for( uint8_t i = 0; i < 5; i++)
+        for(i = 0; i < 5; i++)
 #else
 
 #error "Please define a region in the compiler options."
@@ -879,7 +885,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
     GpioWrite( &Led2, 1 );
     TimerStart( &Led2Timer );
 
-    const char *slotStrings[] = { "1", "2", "C", "Ping-Slot", "Multicast Ping-Slot" };
+    const char *slotStrings[] = { "1", "2", "C", "C Multicast", "B Ping-Slot", "B Multicast Ping-Slot" };
 
     printf( "\r\n###### ===== DOWNLINK FRAME %lu ==== ######\r\n", mcpsIndication->DownLinkCounter );
 
@@ -1004,7 +1010,7 @@ int main( void )
     LoRaMacCallback_t macCallbacks;
     MibRequestConfirm_t mibReq;
     LoRaMacStatus_t status;
-    
+
     BoardInitMcu( );
     BoardInitPeriph( );
 
@@ -1019,11 +1025,17 @@ int main( void )
 
     LoRaMacInitialization( &macPrimitives, &macCallbacks, ACTIVE_REGION );
 
+    
     // Encoder.OnSendOneshot = OnTxNextPacketTimerEvent;
 
     DeviceState = DEVICE_STATE_RESTORE;
 
     printf( "###### ===== ClassA demo application v1.0.RC1 ==== ######\r\n\r\n" );
+
+    if( UserNvmCtxMgmtRestore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+    {
+        printf( "\r\n###### ===== User setting CTXS RESTORED ==== ######\r\n\r\n" );
+    }
 
     while( 1 )
     {
@@ -1039,6 +1051,7 @@ int main( void )
         {
             case DEVICE_STATE_RESTORE:
             {
+
                 // Try to restore from NVM and query the mac if possible.
                 if( NvmCtxMgmtRestore( ) == NVMCTXMGMT_STATUS_SUCCESS )
                 {
@@ -1046,9 +1059,22 @@ int main( void )
                 }
                 else
                 {
+#if( OVER_THE_AIR_ACTIVATION == 0 )
+                    // Tell the MAC layer which network server version are we connecting too.
+                    mibReq.Type = MIB_ABP_LORAWAN_VERSION;
+                    mibReq.Param.AbpLrWanVersion.Value = ABP_ACTIVATION_LRWAN_VERSION;
+                    LoRaMacMibSetRequestConfirm( &mibReq );
+#endif
+
+#if( ABP_ACTIVATION_LRWAN_VERSION == ABP_ACTIVATION_LRWAN_VERSION_V10x )
+                    mibReq.Type = MIB_GEN_APP_KEY;
+                    mibReq.Param.GenAppKey = GenAppKey;
+                    LoRaMacMibSetRequestConfirm( &mibReq );
+#else
                     mibReq.Type = MIB_APP_KEY;
                     mibReq.Param.AppKey = AppKey;
                     LoRaMacMibSetRequestConfirm( &mibReq );
+#endif
 
                     mibReq.Type = MIB_NWK_KEY;
                     mibReq.Param.NwkKey = NwkKey;
@@ -1190,11 +1216,6 @@ int main( void )
                 }
                 printf( "\n\r\n" );
 
-                // Tell the MAC layer which network server version are we connecting too.
-                mibReq.Type = MIB_ABP_LORAWAN_VERSION;
-                mibReq.Param.AbpLrWanVersion.Value = ABP_ACTIVATION_LRWAN_VERSION;
-                LoRaMacMibSetRequestConfirm( &mibReq );
-
                 mibReq.Type = MIB_NETWORK_ACTIVATION;
                 mibReq.Param.NetworkActivation = ACTIVATION_TYPE_ABP;
                 LoRaMacMibSetRequestConfirm( &mibReq );
@@ -1212,11 +1233,10 @@ int main( void )
                     PrepareTxFrame( AppPort );
 
                     NextTx = SendFrame( );
-
-                   if( NvmCtxMgmtStore( ) == NVMCTXMGMT_STATUS_SUCCESS )
-                    {
-                        printf( "\r\n###### ===== CTXS STORED ==== ######\r\n" );
-                    }
+                }
+                if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+                {
+                    printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
                 }
                 DeviceState = DEVICE_STATE_CYCLE;
                 break;
@@ -1245,10 +1265,10 @@ int main( void )
             }
             case DEVICE_STATE_SLEEP:
             {
-                // if( NvmCtxMgmtStore( ) == NVMCTXMGMT_STATUS_SUCCESS )
-                // {
-                //     printf( "\r\n###### ===== CTXS STORED ==== ######\r\n" );
-                // }
+                if( NvmCtxMgmtStore( ) == NVMCTXMGMT_STATUS_SUCCESS )
+                {
+                    printf( "\r\n###### ===== CTXS STORED ==== ######\r\n" );
+                }
 
                 CRITICAL_SECTION_BEGIN( );
                 if( IsMacProcessPending == 1 )

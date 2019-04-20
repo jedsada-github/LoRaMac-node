@@ -23,8 +23,9 @@
 #define __ENCODER_H__
 
 #include "gpio.h"
-
-#define USE_ENCODER 1
+#ifndef USE_ENCODER
+#define USE_ENCODER 0
+#endif
 /*!
  * ENCODER peripheral ID
  */
