@@ -98,7 +98,7 @@
 #else
 #define LED_1                                       PA_3
 #endif
-#if defined (USE_ENCODER)
+#if ( 1 )
 #define PULSE                                       PA_0
 #define DIR                                         PA_1
 #define TAMPERING                                   PA_8

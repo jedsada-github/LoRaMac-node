@@ -105,15 +105,17 @@ void OnTamperingIrq( void* context )
     if (GpioRead(&Encoder.Tampering) == GPIO_PIN_RESET) {
 		flow.status |= 0x1;
 		HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
-
+        printf( "\r\n###### ===== Tampering attached ==== ######\r\n\r\n" );
 	} else {
 		flow.status &= ~0x1;
 		HAL_TIM_Encoder_Stop_IT(&TimHandle, TIM_CHANNEL_1);
+        printf( "\r\n###### ===== Tampering released ==== ######\r\n\r\n" );
 	}
     __NOP();
     CRITICAL_SECTION_END();
     if (Encoder.OnSendOneshot != NULL)
         Encoder.OnSendOneshot( NULL );
+
 }
 
 void OnAlarmIrq( void* context )
@@ -122,8 +124,10 @@ void OnAlarmIrq( void* context )
     // Encoder_t *obj = (Encoder_t *) context;
     if (GpioRead(&Encoder.Alarm) == GPIO_PIN_RESET) {
 		flow.status |= 0x2;
+        printf( "\r\n###### ===== Alarm ==== ######\r\n\r\n" );
 	} else {
 		flow.status &= ~0x2;
+        printf( "\r\n###### ===== Silent ==== ######\r\n\r\n" );
 	}
     __NOP();
     CRITICAL_SECTION_END();    
