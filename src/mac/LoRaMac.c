@@ -1505,15 +1505,8 @@ static void LoRaMacHandleRequestEvents( void )
     }
 }
 
-static void LoRaMacHandleIndicationEvents( void )
+static void LoRaMacHandleScheduleUplinkEvent( void )
 {
-    // Handle MLME indication
-    if( MacCtx.MacFlags.Bits.MlmeInd == 1 )
-    {
-        MacCtx.MacFlags.Bits.MlmeInd = 0;
-        MacCtx.MacPrimitives->MacMlmeIndication( &MacCtx.MlmeIndication );
-    }
-
     // Handle events
     if( MacCtx.MacState == LORAMAC_IDLE )
     {
@@ -1523,8 +1516,27 @@ static void LoRaMacHandleIndicationEvents( void )
         if( isStickyMacCommandPending == true )
         {// Setup MLME indication
             SetMlmeScheduleUplinkIndication( );
-            MacCtx.MacPrimitives->MacMlmeIndication( &MacCtx.MlmeIndication );
         }
+    }
+}
+
+static void LoRaMacHandleIndicationEvents( void )
+{
+    // Handle MLME indication
+    if( MacCtx.MacFlags.Bits.MlmeInd == 1 )
+    {
+        MacCtx.MacFlags.Bits.MlmeInd = 0;
+        MacCtx.MacPrimitives->MacMlmeIndication( &MacCtx.MlmeIndication );
+    }
+
+    if( MacCtx.MacFlags.Bits.MlmeSchedUplinkInd == 1 )
+    {
+        MlmeIndication_t schduleUplinkIndication;
+        schduleUplinkIndication.MlmeIndication = MLME_SCHEDULE_UPLINK;
+        schduleUplinkIndication.Status = LORAMAC_EVENT_INFO_STATUS_OK;
+
+        MacCtx.MacPrimitives->MacMlmeIndication( &schduleUplinkIndication );
+        MacCtx.MacFlags.Bits.MlmeSchedUplinkInd = 0;
     }
 
     // Handle MCPS indication
@@ -1669,6 +1681,7 @@ void LoRaMacProcess( void )
             LoRaMacHandleMcpsRequest( );
         }
         LoRaMacHandleRequestEvents( );
+        LoRaMacHandleScheduleUplinkEvent( );
         LoRaMacEnableRequests( LORAMAC_REQUEST_HANDLING_ON );
     }
     LoRaMacHandleIndicationEvents( );
@@ -1882,8 +1895,7 @@ static bool ValidatePayloadLength( uint8_t lenN, int8_t datarate, uint8_t fOptsL
 
 static void SetMlmeScheduleUplinkIndication( void )
 {
-    MacCtx.MlmeIndication.MlmeIndication = MLME_SCHEDULE_UPLINK;
-    MacCtx.MacFlags.Bits.MlmeInd = 1;
+    MacCtx.MacFlags.Bits.MlmeSchedUplinkInd = 1;
 }
 
 static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t commandsSize, int8_t snr, LoRaMacRxSlot_t rxSlot )
@@ -2965,7 +2977,7 @@ static bool StopRetransmission( void )
 
 static void AckTimeoutRetriesProcess( void )
 {
-    if( ( MacCtx.AckTimeoutRetriesCounter < MacCtx.AckTimeoutRetries ) && ( MacCtx.AckTimeoutRetriesCounter <= MAX_ACK_RETRIES ) )
+    if( MacCtx.AckTimeoutRetriesCounter < MacCtx.AckTimeoutRetries )
     {
         MacCtx.AckTimeoutRetriesCounter++;
         if( ( MacCtx.AckTimeoutRetriesCounter % 2 ) == 1 )
@@ -4566,7 +4578,7 @@ LoRaMacStatus_t LoRaMacMcpsRequest( McpsReq_t* mcpsRequest )
         case MCPS_CONFIRMED:
         {
             readyToSend = true;
-            MacCtx.AckTimeoutRetries = mcpsRequest->Req.Confirmed.NbTrials;
+            MacCtx.AckTimeoutRetries = MIN( mcpsRequest->Req.Confirmed.NbTrials, MAX_ACK_RETRIES );
 
             macHdr.Bits.MType = FRAME_TYPE_DATA_CONFIRMED_UP;
             fPort = mcpsRequest->Req.Confirmed.fPort;
