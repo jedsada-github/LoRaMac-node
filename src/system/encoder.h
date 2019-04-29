@@ -24,7 +24,7 @@
 
 #include "gpio.h"
 #ifndef USE_ENCODER
-#define USE_ENCODER 0
+#define USE_ENCODER 1
 #endif
 /*!
  * ENCODER peripheral ID
@@ -45,6 +45,8 @@ typedef struct Encoder_s
     Gpio_t Tampering;
     Gpio_t Alarm;
 	void ( *OnSendOneshot) (void* context);
+	void ( *OnForward ) (  void );
+	void ( *OnBackward ) (  void );
 } Encoder_t;
 
 extern Encoder_t Encoder;

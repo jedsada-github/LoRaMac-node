@@ -83,7 +83,7 @@
  * The minimum datarate which is used when the
  * dwell time is limited.
  */
-#define AS923_DWELL_LIMIT_DATARATE                  DR_0
+#define AS923_DWELL_LIMIT_DATARATE                  DR_2
 
 /*!
  * Minimal Rx1 receive datarate offset

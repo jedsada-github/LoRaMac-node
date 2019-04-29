@@ -144,11 +144,17 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		{
             flow.status |= 0x4;
 		 	flow.fwd_cnt++;
-		// 	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+            if (Encoder.OnForward != NULL)
+            {
+                Encoder.OnForward();
+            }
 		} else {
             flow.status &= ~0x4;
 		 	flow.rev_cnt++;
-		// 	HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
+             if (Encoder.OnBackward != NULL)
+            {
+                Encoder.OnBackward();
+            }
 		}
 		uint32_t current = HAL_GetTick();
 		float rt = (1.0f / (float)(current - flow.last)) * 1000.0f;

@@ -126,7 +126,10 @@ void BoardCriticalSectionEnd( uint32_t *mask )
 
 void BoardInitPeriph( void )
 {
-    EncoderUpdateStatus();
+#if defined(USE_ENCODER)
+    //Encoder initialized
+        EncoderUpdateStatus();
+#endif
 }
 
 void BoardInitMcu( void )
@@ -191,10 +194,7 @@ void BoardInitMcu( void )
         {
             CalibrateSystemWakeupTime( );
         }
-#if defined(USE_ENCODER)
-    //Encoder initialized
-        EncoderUpdateStatus();
-#endif
+
     }
 }
 
@@ -214,9 +214,9 @@ void BoardDeInitMcu( void )
 
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
-#if (USE_ENCODER == 1)
-    EncoderDeInit( &Encoder );
-#endif
+// #if (USE_ENCODER == 1)
+//     EncoderDeInit( &Encoder );
+// #endif
     GpioInit( &ioPin, OSC_HSE_IN, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioInit( &ioPin, OSC_HSE_OUT, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 

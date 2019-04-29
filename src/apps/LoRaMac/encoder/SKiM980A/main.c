@@ -46,7 +46,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            60U * 1000U * 15U /* 15 min */
+#define APP_TX_DUTYCYCLE                            1000 * 60//60U * 1000U * 15U /* 15 min */
 
 /*!
  * Defines a random delay for application data transmission duty cycle. 1s,
@@ -62,7 +62,7 @@
 /*!
  * LoRaWAN confirmed messages
  */
-#define LORAWAN_CONFIRMED_MSG_ON                    true
+#define LORAWAN_CONFIRMED_MSG_ON                    false
 
 /*!
  * LoRaWAN Adaptive Data Rate
@@ -543,6 +543,23 @@ static void OnLed3TimerEvent( void* context )
 }
 
 /*!
+ * \brief Function executed on Led 4 Toggle event
+ */
+static void OnLed4Toggle( void )
+{
+    // Switch LED 4 Toggle
+    GpioToggle( &Led4 );
+}
+
+/*!
+ * \brief Function executed on Led 3 Toggle event
+ */
+static void OnLed3Toggle( void )
+{
+     // Switch LED 3 Toggle
+    GpioToggle( &Led3 );
+}
+/*!
  * \brief Function executed on Led 2 Timeout event
  */
 static void OnLed2TimerEvent( void* context )
@@ -744,6 +761,11 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                 config.analog_alarm = (((uint16_t)mcpsIndication->Buffer[2] << 8) | (uint16_t) mcpsIndication->Buffer[1]);
                 config.digital_alarm = (mcpsIndication->Buffer[0] >> 7) & 0x01;
                 config.sampling = (mcpsIndication->Buffer[0] & 0x0f);
+
+                if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+                {
+                    printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
+                }
             }
             break;
         case 224:
@@ -1010,9 +1032,14 @@ int main( void )
     LoRaMacCallback_t macCallbacks;
     MibRequestConfirm_t mibReq;
     LoRaMacStatus_t status;
-
+    
     BoardInitMcu( );
     BoardInitPeriph( );
+
+    if( UserNvmCtxMgmtRestore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+    {
+        printf( "\r\n###### ===== User setting CTXS RESTORED ==== ######\r\n\r\n" );
+    }
 
     macPrimitives.MacMcpsConfirm = McpsConfirm;
     macPrimitives.MacMcpsIndication = McpsIndication;
@@ -1025,17 +1052,15 @@ int main( void )
 
     LoRaMacInitialization( &macPrimitives, &macCallbacks, ACTIVE_REGION );
 
-    
-    // Encoder.OnSendOneshot = OnTxNextPacketTimerEvent;
+    Encoder.OnSendOneshot = OnTxNextPacketTimerEvent;
+    Encoder.OnForward = OnLed3Toggle;
+    Encoder.OnBackward = OnLed4Toggle;
 
     DeviceState = DEVICE_STATE_RESTORE;
 
     printf( "###### ===== ClassA demo application v1.0.RC1 ==== ######\r\n\r\n" );
 
-    if( UserNvmCtxMgmtRestore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-    {
-        printf( "\r\n###### ===== User setting CTXS RESTORED ==== ######\r\n\r\n" );
-    }
+    
 
     while( 1 )
     {
@@ -1228,16 +1253,18 @@ int main( void )
             }
             case DEVICE_STATE_SEND:
             {
+                if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+                {
+                    printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
+                }
+
                 if( NextTx == true )
                 {
                     PrepareTxFrame( AppPort );
 
                     NextTx = SendFrame( );
                 }
-                if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-                {
-                    printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
-                }
+               
                 DeviceState = DEVICE_STATE_CYCLE;
                 break;
             }

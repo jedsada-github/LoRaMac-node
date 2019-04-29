@@ -23,24 +23,27 @@
 
 #if ( USER_SETTING_CTX_MGMT_ENABLED == 1)
 #include "encoder.h"
-#define NVM_CTX_STORAGE_MASK               0xFF
+#define EEPROM_ENCODER_FWD_REV_ADDR       0x100
+#define EEPROM_ENCODER_CONF_ADDR          0x110
 
-static NvmmDataBlock_t UserDataNvmCtxDataBlock;
-static NvmmDataBlock_t UserConfigNvmCtxDataBlock;
+// #define NVM_CTX_STORAGE_MASK               0xFF
+
+// static NvmmDataBlock_t UserDataNvmCtxDataBlock;
+// static NvmmDataBlock_t UserConfigNvmCtxDataBlock;
 #endif
 
 UserNvmCtxMgmtStatus_t UserNvmCtxMgmtStore( void )
 {
 #if defined ( USER_SETTING_CTX_MGMT_ENABLED )
-    if( NvmmWrite( &UserDataNvmCtxDataBlock, &flow.fwd_cnt,  8) != NVMM_SUCCESS )
-    {
-        return USER_NVMCTXMGMT_STATUS_FAIL;
-    }
 
-    if( NvmmWrite( &UserConfigNvmCtxDataBlock, &config,  sizeof(flow_config_t))!= NVMM_SUCCESS )
-    {
-        return USER_NVMCTXMGMT_STATUS_FAIL;
-    }
+    CRITICAL_SECTION_BEGIN( );
+    
+    EepromWriteBuffer( EEPROM_ENCODER_FWD_REV_ADDR, (uint8_t *) &flow.fwd_cnt, 8 );
+    
+    EepromWriteBuffer( EEPROM_ENCODER_CONF_ADDR, (uint8_t *) &config,  sizeof(flow_config_t) );
+    
+    CRITICAL_SECTION_END( );
+    
     return USER_NVMCTXMGMT_STATUS_SUCCESS;
 #else
     return NVMCTXMGMT_STATUS_FAIL;
@@ -50,15 +53,15 @@ UserNvmCtxMgmtStatus_t UserNvmCtxMgmtStore( void )
 UserNvmCtxMgmtStatus_t UserNvmCtxMgmtRestore( void )
 {
 #if defined ( USER_SETTING_CTX_MGMT_ENABLED )
-    if ( NvmmDeclare( &UserDataNvmCtxDataBlock, 8 ) == NVMM_SUCCESS )
-    {
-        NvmmRead( &UserDataNvmCtxDataBlock, &flow.fwd_cnt, 8 );
-    }
 
-    if ( NvmmDeclare( &UserConfigNvmCtxDataBlock, sizeof (flow_config_t) ) == NVMM_SUCCESS )
-    {
-        NvmmRead( &UserConfigNvmCtxDataBlock, &config, sizeof (flow_config_t) );
-    }
+    CRITICAL_SECTION_BEGIN( );
+
+    EepromReadBuffer( EEPROM_ENCODER_FWD_REV_ADDR, (uint8_t *) &flow.fwd_cnt, 8 );
+
+    EepromReadBuffer( EEPROM_ENCODER_CONF_ADDR, (uint8_t *) &config, sizeof (flow_config_t) );
+
+    CRITICAL_SECTION_END( );
+
     return USER_NVMCTXMGMT_STATUS_SUCCESS;
 #else
     return USER_NVMCTXMGMT_STATUS_FAIL;
