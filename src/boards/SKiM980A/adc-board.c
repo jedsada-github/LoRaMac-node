@@ -40,10 +40,24 @@ void AdcMcuInit( Adc_t *obj, PinNames adcInput )
     }
 }
 
+void AdcMcuDeInit( Adc_t *obj )
+{
+    AdcHandle.Instance = ( ADC_TypeDef* )ADC1_BASE;
+
+    __HAL_RCC_ADC1_CLK_DISABLE( );
+
+    HAL_ADC_DeInit( &AdcHandle );
+}
+
 void AdcMcuConfig( void )
 {
     // Configure ADC
+#if defined (USE_ENCODER)
+    AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV2;
+    AdcHandle.Init.Resolution            = ADC_RESOLUTION_10B;
+#else
     AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;
+#endif
     AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
     AdcHandle.Init.ContinuousConvMode    = DISABLE;
     AdcHandle.Init.DiscontinuousConvMode = DISABLE;

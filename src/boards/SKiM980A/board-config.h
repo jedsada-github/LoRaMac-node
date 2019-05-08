@@ -49,6 +49,7 @@
  */
 #define USE_POTENTIOMETER                           1
 #define USE_SPI                                     0
+#define USE_ENCODER                                 1
 
 
 /*!
@@ -98,7 +99,7 @@
 #else
 #define LED_1                                       PA_3
 #endif
-#if ( 1 )
+#if ( USE_ENCODER )
 #define PULSE                                       PA_0
 #define DIR                                         PA_1
 #define TAMPERING                                   PA_8

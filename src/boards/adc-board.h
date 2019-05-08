@@ -34,6 +34,13 @@
 void AdcMcuInit( Adc_t *obj, PinNames adcInput );
 
 /*!
+ * \brief DeInitializes the ADC object and MCU peripheral
+ *
+ * \param [IN] obj      ADC object
+ */
+void AdcMcuDeInit( Adc_t *obj );
+
+/*!
  * \brief Initializes the ADC internal parameters
  */
 void AdcMcuConfig( void );

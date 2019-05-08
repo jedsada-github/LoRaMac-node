@@ -63,11 +63,11 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
         sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
         sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-        sConfig.IC1Filter = 0;
+        sConfig.IC1Filter = 15;
         sConfig.IC2Polarity = TIM_ICPOLARITY_FALLING;
         sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
         sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-        sConfig.IC2Filter = 0;
+        sConfig.IC2Filter = 15;
         HAL_TIM_Encoder_Init(&TimHandle, &sConfig);
 
         sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
@@ -83,8 +83,6 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         GpioInit( &obj->Alarm, alarm, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
         GpioSetInterrupt( &obj->Alarm, IRQ_RISING_FALLING_EDGE, IRQ_VERY_HIGH_PRIORITY, EncoderIrq[1]);
         // GpioSetContext(&obj->Alarm, &obj);
-       
-        
 
         // TimerInit( &StorePacketTimer, OnStorePacketTimerEvent );
         // TimerSetValue( &StorePacketTimer, 60000 );
@@ -131,7 +129,7 @@ void OnAlarmIrq( void* context )
 	}
     __NOP();
     CRITICAL_SECTION_END();    
-    if (Encoder.OnSendOneshot != NULL)
+    if (Encoder.OnSendOneshot != NULL && config.digital_alarm > 0)
         Encoder.OnSendOneshot( NULL );
 }
 

@@ -142,9 +142,6 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 #endif
-        GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
         SystemClockConfig( );
 
@@ -160,10 +157,16 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioWrite( &Led1, 0 );
 #endif
-        GpioWrite( &Led2, 0 );
-        GpioWrite( &Led3, 0 );
-        GpioWrite( &Led4, 0 );
-
+#if (USE_ENCODER == 1)
+    //Encoder initialized
+    EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
+    GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioWrite( &Led2, 0 );
+    GpioWrite( &Led3, 0 );
+    GpioWrite( &Led4, 0 );
+#endif
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
         {
@@ -181,10 +184,6 @@ void BoardInitMcu( void )
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX1272IoInit( );
     
-#if (USE_ENCODER == 1)
-    //Encoder initialized
-    EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
-#endif
     if( McuInitialized == false )
     {
         McuInitialized = true;
@@ -214,14 +213,20 @@ void BoardDeInitMcu( void )
 
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
-// #if (USE_ENCODER == 1)
-//     EncoderDeInit( &Encoder );
-// #endif
+
+#if (USE_ENCODER == 1)
+    // // EncoderDeInit( &Encoder );
+    // GpioInit( &ioPin, LED_2, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    // GpioInit( &ioPin, LED_3, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    // GpioInit( &ioPin, LED_4, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+#endif
+
     GpioInit( &ioPin, OSC_HSE_IN, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioInit( &ioPin, OSC_HSE_OUT, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
     GpioInit( &ioPin, OSC_LSE_IN, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 1 );
     GpioInit( &ioPin, OSC_LSE_OUT, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 1 );
+
 }
 
 uint32_t BoardGetRandomSeed( void )
@@ -284,18 +289,21 @@ uint8_t BoardGetPotiLevel( void )
 /*!
  * Factory power supply
  */
-#define FACTORY_POWER_SUPPLY                        3300 // mV
+#define FACTORY_POWER_SUPPLY                        3600 // mV
 
 /*!
  * VREF calibration value
  */
-#define VREFINT_CAL                                 ( *( uint16_t* )0x1FF800F8U )
+#define VREFINT_CAL                                 ( *( uint16_t* )0x1FF80078U )
 
 /*!
  * ADC maximum value
  */
+#if !defined (USE_ENCODER)
 #define ADC_MAX_VALUE                               4095
-
+#else
+#define ADC_MAX_VALUE                               1023
+#endif
 /*!
  * VREF bandgap value
  */
@@ -304,9 +312,9 @@ uint8_t BoardGetPotiLevel( void )
 /*!
  * Battery thresholds
  */
-#define BATTERY_MAX_LEVEL                           3000 // mV
-#define BATTERY_MIN_LEVEL                           2400 // mV
-#define BATTERY_SHUTDOWN_LEVEL                      2300 // mV
+#define BATTERY_MAX_LEVEL                           3600 // mV
+#define BATTERY_MIN_LEVEL                           2800 // mV
+#define BATTERY_SHUTDOWN_LEVEL                      2500 // mV
 
 static uint16_t BatteryVoltage = BATTERY_MAX_LEVEL;
 
@@ -515,6 +523,8 @@ void LpmEnterStopMode( void)
 
     // Enable the fast wake up from Ultra low power mode
     HAL_PWREx_EnableFastWakeUp( );
+
+    HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
 
     CRITICAL_SECTION_END( );
 

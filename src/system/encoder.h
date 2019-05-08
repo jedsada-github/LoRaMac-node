@@ -67,9 +67,9 @@ typedef struct {
 
 typedef struct 
 {
-	uint16_t analog_alarm;
-	uint8_t digital_alarm;
 	uint8_t sampling;
+	uint8_t digital_alarm;
+	uint16_t analog_alarm;
 } flow_config_t;
 
 extern flow_t flow;

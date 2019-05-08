@@ -69,7 +69,7 @@
  *
  * \remark Please note that when ADR is enabled the end-device should be static
  */
-#define LORAWAN_ADR_ON                              1
+#define LORAWAN_ADR_ON                              0
 
 #if defined( REGION_EU868 ) || defined( REGION_RU864 ) || defined( REGION_CN779 ) || defined( REGION_EU433 )
 
@@ -154,17 +154,17 @@ static TimerEvent_t TxNextPacketTimer;
 static bool AppLedStateOn = false;
 
 /*!
- * Timer to handle the state of LED4
+ * Timer to handle the state of LED4 RED
  */
 static TimerEvent_t Led4Timer;
 
 /*!
- * Timer to handle the state of LED3
+ * Timer to handle the state of LED3 GREEN
  */
 static TimerEvent_t Led3Timer;
 
 /*!
- * Timer to handle the state of LED2
+ * Timer to handle the state of LED2 BLUE
  */
 static TimerEvent_t Led2Timer;
 
@@ -543,12 +543,24 @@ static void OnLed3TimerEvent( void* context )
 }
 
 /*!
+ * \brief Function executed on Led 2 Timeout event
+ */
+static void OnLed2TimerEvent( void* context )
+{
+    TimerStop( &Led2Timer );
+    // Switch LED 2 OFF
+    GpioWrite( &Led2, 0 );
+}
+
+/*!
  * \brief Function executed on Led 4 Toggle event
  */
 static void OnLed4Toggle( void )
 {
     // Switch LED 4 Toggle
     GpioToggle( &Led4 );
+    // GpioWrite( &Led4, 1 );
+    // TimerStart( &Led4Timer );
 }
 
 /*!
@@ -558,15 +570,19 @@ static void OnLed3Toggle( void )
 {
      // Switch LED 3 Toggle
     GpioToggle( &Led3 );
+    // GpioWrite( &Led3, 1 );
+    // TimerStart( &Led3Timer );
 }
+
 /*!
- * \brief Function executed on Led 2 Timeout event
+ * \brief Function executed on Led 2 Toggle event
  */
-static void OnLed2TimerEvent( void* context )
+static void OnLed2Toggle( void )
 {
-    TimerStop( &Led2Timer );
-    // Switch LED 2 OFF
-    GpioWrite( &Led2, 0 );
+     // Switch LED 3 Toggle
+    GpioToggle( &Led2 );
+    // GpioWrite( &Led2, 1 );
+    // TimerStart( &Led2Timer );
 }
 
 static void OnPassiveSleepTimer(void* context) 
@@ -763,8 +779,14 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                 config.sampling = (mcpsIndication->Buffer[0] & 0x0f);
 
                 if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-                {
+                {          
                     printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
+                    printf( "Fwd cnt : %08lX\r\n", flow.fwd_cnt );
+                    printf( "Rev cnt : %08lX\r\n", flow.rev_cnt );
+                    printf( "Sampling : %02X\r\n", config.sampling );
+                    printf( "Digital alarm enable : %02X\r\n", config.digital_alarm );
+                    printf( "Analog alarm lvl. : %04X\r\n\r\n", config.analog_alarm );
+                    
                 }
             }
             break;
@@ -1039,6 +1061,12 @@ int main( void )
     if( UserNvmCtxMgmtRestore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
     {
         printf( "\r\n###### ===== User setting CTXS RESTORED ==== ######\r\n\r\n" );
+
+        printf( "Fwd cnt : %08lX\r\n", flow.fwd_cnt );
+        printf( "Rev cnt : %08lX\r\n", flow.rev_cnt );
+        printf( "Sampling : %02X\r\n", config.sampling );
+        printf( "Digital alarm enable : %02X\r\n", config.digital_alarm );
+        printf( "Analog alarm lvl. : %04X\r\n\r\n", config.analog_alarm );
     }
 
     macPrimitives.MacMcpsConfirm = McpsConfirm;
@@ -1054,7 +1082,7 @@ int main( void )
 
     Encoder.OnSendOneshot = OnTxNextPacketTimerEvent;
     Encoder.OnForward = OnLed3Toggle;
-    Encoder.OnBackward = OnLed4Toggle;
+    Encoder.OnBackward = OnLed3Toggle;
 
     DeviceState = DEVICE_STATE_RESTORE;
 
@@ -1274,12 +1302,12 @@ int main( void )
                 if( ComplianceTest.Running == true )
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime = 5000; // 5000 ms
+                    TxDutyCycleTime = 10000; // 5000 ms
                 }
                 else
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime =  config.sampling == 0 ? (APP_TX_DUTYCYCLE) : config.sampling * 60U * 1000U;
+                    TxDutyCycleTime =  config.sampling == 0 ? (APP_TX_DUTYCYCLE) : config.sampling * APP_TX_DUTYCYCLE;
                     TxDutyCycleTime += randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
                 }
 

@@ -42,6 +42,7 @@ void AdcInit( Adc_t *obj, PinNames adcInput )
 void AdcDeInit( Adc_t *obj )
 {
     AdcInitialized = false;
+    AdcMcuDeInit( obj );
 }
 
 uint16_t AdcReadChannel( Adc_t *obj, uint32_t channel )
