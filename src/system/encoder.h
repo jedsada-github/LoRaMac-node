@@ -44,9 +44,8 @@ typedef struct Encoder_s
     Gpio_t Direction;
     Gpio_t Tampering;
     Gpio_t Alarm;
-	void ( *OnSendOneshot) (void* context);
-	void ( *OnForward ) (  void );
-	void ( *OnBackward ) (  void );
+	void ( *OnSendOneshot) ( void );
+	void ( *OnPulseDetect ) (  void );
 } Encoder_t;
 
 extern Encoder_t Encoder;

@@ -62,7 +62,7 @@
 /*!
  * LoRaWAN confirmed messages
  */
-#define LORAWAN_CONFIRMED_MSG_ON                    false
+#define LORAWAN_CONFIRMED_MSG_ON                    true
 
 /*!
  * LoRaWAN Adaptive Data Rate
@@ -131,7 +131,7 @@ static uint8_t AppDataSizeBackup = 11;
 /*!
  * User application data
  */
-static uint8_t AppDataBuffer[LORAWAN_APP_DATA_MAX_SIZE];
+static uint8_t AppDataBuffer[LORAWAN_APP_DATA_MAX_SIZE] = { 0 };
 
 /*!
  * Indicates if the node is sending confirmed or unconfirmed messages
@@ -569,9 +569,9 @@ static void OnLed4Toggle( void )
 static void OnLed3Toggle( void )
 {
      // Switch LED 3 Toggle
-    GpioToggle( &Led3 );
-    // GpioWrite( &Led3, 1 );
-    // TimerStart( &Led3Timer );
+    // GpioToggle( &Led3 );
+    GpioWrite( &Led3, 1 );
+    TimerStart( &Led3Timer );
 }
 
 /*!
@@ -590,6 +590,14 @@ static void OnPassiveSleepTimer(void* context)
     TimerStop( &passive_sleep_timer );
     isActiveMode = true;
     return;
+}
+
+/*!
+ * \brief Function executed on TxOneshotPacket  event
+ */
+static void OnTxOneShotPacketEvent( )
+{
+    OnTxNextPacketTimerEvent(NULL);
 }
 
 /*!
@@ -1043,6 +1051,7 @@ static void MlmeIndication( MlmeIndication_t *mlmeIndication )
 void OnMacProcessNotify( void )
 {
     IsMacProcessPending = 1;
+    Encoder.OnSendOneshot = NULL;
 }
 
 /**
@@ -1080,15 +1089,12 @@ int main( void )
 
     LoRaMacInitialization( &macPrimitives, &macCallbacks, ACTIVE_REGION );
 
-    Encoder.OnSendOneshot = OnTxNextPacketTimerEvent;
-    Encoder.OnForward = OnLed3Toggle;
-    Encoder.OnBackward = OnLed3Toggle;
+    // Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
+    Encoder.OnPulseDetect = OnLed3Toggle;
 
     DeviceState = DEVICE_STATE_RESTORE;
 
     printf( "###### ===== ClassA demo application v1.0.RC1 ==== ######\r\n\r\n" );
-
-    
 
     while( 1 )
     {
@@ -1193,7 +1199,7 @@ int main( void )
                 TimerSetValue( &Led4Timer, 25 );
 
                 TimerInit( &Led3Timer, OnLed3TimerEvent );
-                TimerSetValue( &Led3Timer, 25 );
+                TimerSetValue( &Led3Timer, 1 );
 
                 TimerInit( &Led2Timer, OnLed2TimerEvent );
                 TimerSetValue( &Led2Timer, 25 );
@@ -1302,7 +1308,7 @@ int main( void )
                 if( ComplianceTest.Running == true )
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime = 10000; // 5000 ms
+                    TxDutyCycleTime = 5000; // 5000 ms
                 }
                 else
                 {
@@ -1330,6 +1336,7 @@ int main( void )
                 {
                     // Clear flag and prevent MCU to go into low power modes.
                     IsMacProcessPending = 0;
+                    Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
                 }
                 else
                 {

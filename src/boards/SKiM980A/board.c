@@ -81,6 +81,11 @@ static void CalibrateSystemWakeupTime( void );
 static void SystemClockReConfig( void );
 
 /*!
+ * System Clock Re-Configuration when STOP mode with RTC
+ */
+static void SystemClockMCU_STOP_wRTC( void ) ;
+
+/*!
  * Timer used at first boot to calibrate the SystemWakeupTime
  */
 static TimerEvent_t CalibrateSystemWakeupTimeTimer;
@@ -465,29 +470,86 @@ void SystemClockReConfig( void )
     __HAL_RCC_PWR_CLK_ENABLE( );
     __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
 
+    /* Wait Until the Voltage Regulator is ready */
+    while (__HAL_PWR_GET_FLAG(PWR_FLAG_VOS) != RESET);
+
     // Enable HSE
     __HAL_RCC_HSE_CONFIG( RCC_HSE_ON );
 
     // Wait till HSE is ready
-    while( __HAL_RCC_GET_FLAG( RCC_FLAG_HSERDY ) == RESET )
-    {
-    }
+    while( __HAL_RCC_GET_FLAG( RCC_FLAG_HSERDY ) == RESET );
 
+//    __HAL_FLASH_ACC64_ENABLE();
+//    __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
+//    __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_1);
+//     __HAL_FLASH_SLEEP_POWERDOWN_DISABLE();
+ 
     // Enable PLL
+    __HAL_RCC_PLL_CONFIG(RCC_PLLSOURCE_HSE, RCC_PLL_MUL6, RCC_PLL_DIV3);
     __HAL_RCC_PLL_ENABLE( );
 
     // Wait till PLL is ready
-    while( __HAL_RCC_GET_FLAG( RCC_FLAG_PLLRDY ) == RESET )
-    {
-    }
+    while( __HAL_RCC_GET_FLAG( RCC_FLAG_PLLRDY ) == RESET );
 
     // Select PLL as system clock source
     __HAL_RCC_SYSCLK_CONFIG ( RCC_SYSCLKSOURCE_PLLCLK );
 
     // Wait till PLL is used as system clock source
-    while( __HAL_RCC_GET_SYSCLK_SOURCE( ) != RCC_SYSCLKSOURCE_STATUS_PLLCLK )
-    {
-    }
+    while( __HAL_RCC_GET_SYSCLK_SOURCE( ) != RCC_SYSCLKSOURCE_STATUS_PLLCLK );
+
+    __HAL_RCC_MSI_DISABLE();
+}
+
+void SystemClockMCU_STOP_wRTC( void ) 
+{ 
+    /* RCC system reset */
+     HAL_RCC_DeInit();
+
+//   /* Flash no latency*/
+   __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_0);
+  
+//   /* Disable Prefetch Buffer */
+   __HAL_FLASH_PREFETCH_BUFFER_DISABLE();
+
+//   /* Disable 64-bit access */
+   __HAL_FLASH_ACC64_DISABLE();
+         
+//   /* Disable FLASH during SLeep  */
+   __HAL_FLASH_SLEEP_POWERDOWN_ENABLE();
+ 
+  /* Enable the PWR APB1 Clock */
+//   RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
+    __HAL_RCC_PWR_CLK_ENABLE();
+
+  /* Select the Voltage Range 3 (1.2V) */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+
+  /* Wait Until the Voltage Regulator is ready */
+  while (__HAL_PWR_GET_FLAG(PWR_FLAG_VOS) != RESET);
+
+  /* Configure the MSI frequency */
+  __HAL_RCC_MSI_RANGE_CONFIG(RCC_MSIRANGE_0);
+  
+  /* Select MSI as system clock source */
+  __HAL_RCC_SYSCLK_CONFIG(RCC_SYSCLKSOURCE_MSI);
+
+  /* Wait until MSI is used as system clock source */
+  while (__HAL_RCC_GET_SYSCLK_SOURCE() != RCC_SYSCLKSOURCE_STATUS_MSI);
+
+  MODIFY_REG(RCC->CFGR, RCC_CFGR_HPRE, RCC_SYSCLK_DIV2);
+
+  __HAL_RCC_HSI_DISABLE();
+
+  /* Disable HSE clock */
+  __HAL_RCC_HSE_CONFIG( RCC_HSE_OFF );
+
+//   /* Disable LSE clock */
+//   if (! With_RTC)
+//     RCC_LSEConfig(RCC_LSE_OFF);
+//    __HAL_RCC_LSE_CONFIG(RCC_LSE_ON);
+
+  /* Disable LSI clock */
+  __HAL_RCC_LSI_DISABLE();  
 }
 
 void SysTick_Handler( void )
@@ -508,6 +570,7 @@ uint8_t GetBoardPowerSource( void )
   */
 void LpmEnterStopMode( void)
 {
+
     CRITICAL_SECTION_BEGIN( );
 
     BoardDeInitMcu( );
@@ -525,6 +588,8 @@ void LpmEnterStopMode( void)
     HAL_PWREx_EnableFastWakeUp( );
 
     HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+
+    // SystemClockMCU_STOP_wRTC();
 
     CRITICAL_SECTION_END( );
 
