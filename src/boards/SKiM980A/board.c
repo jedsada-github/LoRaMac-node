@@ -587,7 +587,7 @@ void LpmEnterStopMode( void)
     // Enable the fast wake up from Ultra low power mode
     HAL_PWREx_EnableFastWakeUp( );
 
-    HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+    // HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
 
     // SystemClockMCU_STOP_wRTC();
 
@@ -633,6 +633,48 @@ void BoardLowPowerHandler( void )
 
     __enable_irq( );
 }
+
+/**
+  * @brief This function configures the source of the time base.
+  * @brief  don't enable systick
+  * @param TickPriority: Tick interrupt priority.
+  * @retval HAL status
+  */
+
+// HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
+// {
+//    /* Return function status */
+//   return HAL_OK;
+// }
+
+/**
+  * @brief This function provides delay (in ms)
+  * @param Delay: specifies the delay time length, in milliseconds.
+  * @retval None
+  */
+void HAL_Delay(__IO uint32_t Delay)
+{
+  RtcDelayMs( Delay ); /* based on RTC */
+}
+
+/**
+  * @brief  Initializes the MSP.
+  * @retval None
+  */
+void HAL_MspInit(void)
+{
+   __HAL_RCC_PWR_CLK_ENABLE();
+  
+  /* Disable the Power Voltage Detector */
+  HAL_PWR_DisablePVD( ); 
+
+  /* Set MCU in ULP (Ultra Low Power) */
+  HAL_PWREx_EnableUltraLowPower( );
+
+  /*Disable fast wakeUp*/  
+  HAL_PWREx_EnableFastWakeUp( );  
+}
+
 
 #if !defined ( __CC_ARM )
 

@@ -569,9 +569,9 @@ static void OnLed4Toggle( void )
 static void OnLed3Toggle( void )
 {
      // Switch LED 3 Toggle
-    // GpioToggle( &Led3 );
-    GpioWrite( &Led3, 1 );
-    TimerStart( &Led3Timer );
+    GpioToggle( &Led3 );
+    // GpioWrite( &Led3, 1 );
+    // TimerStart( &Led3Timer );
 }
 
 /*!
@@ -794,10 +794,15 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                     printf( "Sampling : %02X\r\n", config.sampling );
                     printf( "Digital alarm enable : %02X\r\n", config.digital_alarm );
                     printf( "Analog alarm lvl. : %04X\r\n\r\n", config.analog_alarm );
-                    
                 }
+                OnTxNextPacketTimerEvent(NULL);
             }
             break;
+        case 99: //Reboot
+            {
+                BoardResetMcu();
+            }
+        break;
         case 224:
             if( ComplianceTest.Running == false )
             {
@@ -1313,7 +1318,7 @@ int main( void )
                 else
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime =  config.sampling == 0 ? (APP_TX_DUTYCYCLE) : config.sampling * APP_TX_DUTYCYCLE;
+                    TxDutyCycleTime =  (config.sampling == 0) ? (uint32_t)(APP_TX_DUTYCYCLE) : ((uint32_t)config.sampling * APP_TX_DUTYCYCLE);
                     TxDutyCycleTime += randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
                 }
 

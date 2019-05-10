@@ -31,6 +31,8 @@ Encoder_t Encoder;
 flow_t flow;
 flow_config_t config;
 static TIM_HandleTypeDef TimHandle;
+extern Gpio_t Led3;
+
 /*!
  * Timer to handle the application data transmission duty cycle
  */
@@ -47,7 +49,7 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         __HAL_RCC_TIM2_CLK_ENABLE();
 
         TimHandle.Instance = ( TIM_TypeDef* )TIM2_BASE;
-
+        
         GpioInit( &obj->Pulse, pulse, PIN_ALTERNATE_FCT, PIN_PUSH_PULL, PIN_PULL_UP, GPIO_AF1_TIM2 );
         GpioInit( &obj->Direction, dir, PIN_ALTERNATE_FCT, PIN_PUSH_PULL, PIN_PULL_UP, GPIO_AF1_TIM2 );
 
@@ -74,7 +76,7 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
         HAL_TIMEx_MasterConfigSynchronization(&TimHandle, &sMasterConfig);
 
-        HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);
+        HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
         HAL_NVIC_EnableIRQ(TIM2_IRQn);
 
         GpioInit( &obj->Tampering, tampering, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
@@ -152,11 +154,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             flow.status &= ~0x4;
 		 	flow.rev_cnt++;
 		}
-        uint32_t capture = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-		uint32_t current = HAL_GetTick();
-		float rt = (1.0f / (float)(current - flow.last)) * 1000.0f;
-		flow.rate = (int16_t) rt;
-		flow.last = HAL_GetTick();
+        uint32_t current = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+        float delta = (float) abs(current - flow.last);
+		flow.rate = (int16_t) ((1.0f / delta) * 1000.0f);
+		flow.last = current;
         __NOP();
 	}
 	
