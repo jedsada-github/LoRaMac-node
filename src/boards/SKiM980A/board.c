@@ -59,7 +59,7 @@ Gpio_t Led4;
 Adc_t Adc;
 I2c_t I2c;
 Uart_t Uart1;
-
+Wdt_t Wdt;
 /*!
  * Initializes the unused GPIO to a know status
  */
@@ -200,6 +200,8 @@ void BoardInitMcu( void )
         }
 
     }
+    //Watchdog initialize
+    WdtInit( &Wdt, WDT_IWDG);
 }
 
 void BoardResetMcu( void )
@@ -390,10 +392,14 @@ static void BoardUnusedIoInit( void )
     HAL_DBGMCU_EnableDBGSleepMode( );
     HAL_DBGMCU_EnableDBGStopMode( );
     HAL_DBGMCU_EnableDBGStandbyMode( );
+    __HAL_DBGMCU_FREEZE_WWDG();
+    __HAL_DBGMCU_FREEZE_IWDG();   
 #else
     HAL_DBGMCU_DisableDBGSleepMode( );
     HAL_DBGMCU_DisableDBGStopMode( );
     HAL_DBGMCU_DisableDBGStandbyMode( );
+     __HAL_DBGMCU_UNFREEZE_WWDG();
+    __HAL_DBGMCU_UNFREEZE_IWDG();  
 
     GpioInit( &ioPin, JTAG_TMS, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     GpioInit( &ioPin, JTAG_TCK, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
@@ -413,9 +419,10 @@ void SystemClockConfig( void )
 
     __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
 
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_LSI;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
     RCC_OscInitStruct.LSEState       = RCC_LSE_ON;
+    RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL6;
@@ -675,6 +682,17 @@ void HAL_MspInit(void)
   HAL_PWREx_EnableFastWakeUp( );  
 }
 
+/**
+  * @brief WWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+void MX_WWDG_Init(void)
+{
+
+  
+
+}
 
 #if !defined ( __CC_ARM )
 

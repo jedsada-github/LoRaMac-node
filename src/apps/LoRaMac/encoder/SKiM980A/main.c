@@ -782,7 +782,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
         case 3:
             // Downlink encoder configuration
             if (mcpsIndication->BufferSize == 3) {
-                config.analog_alarm = (((uint16_t)mcpsIndication->Buffer[2] << 8) | (uint16_t) mcpsIndication->Buffer[1]);
+                 config.analog_alarm = (((uint16_t)mcpsIndication->Buffer[2] << 8) | (uint16_t) mcpsIndication->Buffer[1]);
                 config.digital_alarm = (mcpsIndication->Buffer[0] >> 7) & 0x01;
                 config.sampling = (mcpsIndication->Buffer[0] & 0x0f);
 
@@ -795,7 +795,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                     printf( "Digital alarm enable : %02X\r\n", config.digital_alarm );
                     printf( "Analog alarm lvl. : %04X\r\n\r\n", config.analog_alarm );
                 }
-                OnTxNextPacketTimerEvent(NULL);
+                // OnTxNextPacketTimerEvent(NULL);
             }
             break;
         case 99: //Reboot

@@ -25,7 +25,9 @@
 
 #include <stdint.h>
 #include "utilities.h"
-#include "encoder.h"
+#include "encoder-board.h"
+#include "wdt-board.h"
+
 /*!
  * Possible power sources
  */
