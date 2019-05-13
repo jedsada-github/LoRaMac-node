@@ -176,6 +176,12 @@ static TimerTime_t passive_sleep_time = 1U * 60U * 1000U; /* 1 hour */
 static void OnPassiveSleepTimer(void* context);
 
 /*!
+ * Timer to handle the iwdg
+ */
+static TimerEvent_t WdtTimer;
+static void OnWdtTimerEvent( void* context );
+extern Wdt_t Wdt;
+/*!
  * Indicates if a new packet can be sent
  */
 static bool NextTx = true;
@@ -569,9 +575,9 @@ static void OnLed4Toggle( void )
 static void OnLed3Toggle( void )
 {
      // Switch LED 3 Toggle
-    GpioToggle( &Led3 );
-    // GpioWrite( &Led3, 1 );
-    // TimerStart( &Led3Timer );
+    // GpioToggle( &Led3 );
+    GpioWrite( &Led3, 1 );
+    TimerStart( &Led3Timer );
 }
 
 /*!
@@ -598,6 +604,13 @@ static void OnPassiveSleepTimer(void* context)
 static void OnTxOneShotPacketEvent( )
 {
     OnTxNextPacketTimerEvent(NULL);
+}
+
+static void OnWdtTimerEvent( void* context )
+{
+    TimerStop(&WdtTimer);
+    WdtRefresh(&Wdt);
+    TimerStart(&WdtTimer);
 }
 
 /*!
@@ -1208,6 +1221,10 @@ int main( void )
 
                 TimerInit( &Led2Timer, OnLed2TimerEvent );
                 TimerSetValue( &Led2Timer, 25 );
+
+                TimerInit( &WdtTimer, OnWdtTimerEvent );
+                TimerSetValue( &WdtTimer, 1000 );
+                TimerStart(&WdtTimer);
 
                 mibReq.Type = MIB_PUBLIC_NETWORK;
                 mibReq.Param.EnablePublicNetwork = LORAWAN_PUBLIC_NETWORK;

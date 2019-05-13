@@ -23,7 +23,12 @@
 #include "board.h"
 #include "gpio.h"
 #include "encoder-board.h"
+#include "math.h"
 // #include "timer.h"
+
+#define TAMPER_FLAG    0x1
+#define ALARM_FLAG     0x2
+#define DIR_FLAG       0x4
 
 EncoderIrqHandler *EncoderIrq[] = { OnTamperingIrq , OnAlarmIrq, NULL};
 
@@ -104,20 +109,22 @@ void OnTamperingIrq( void* context )
     CRITICAL_SECTION_BEGIN();
     // Encoder_t *obj = (Encoder_t *) context;
     if (GpioRead(&Encoder.Tampering) == GPIO_PIN_RESET) {
-		flow.status |= 0x1;
-        printf( "\r\n###### ===== Tampering attached ==== ######\r\n\r\n" );
-		// HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
+        if (!(flow.status && TAMPER_FLAG)) {
+        	flow.status |= TAMPER_FLAG;
+            printf( "\r\n###### ===== Tampering attached ==== ######\r\n\r\n" );
+		    // HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
+        }
 	} else {
-		flow.status &= ~0x1;
-		printf( "\r\n###### ===== Tampering released ==== ######\r\n\r\n" );
-        // HAL_TIM_Encoder_Stop_IT(&TimHandle, TIM_CHANNEL_1);
-	}
-    __NOP();
-      CRITICAL_SECTION_END();
+        if ((flow.status && TAMPER_FLAG))
+        {
+            flow.status &= ~TAMPER_FLAG;
+		    printf( "\r\n###### ===== Tampering released ==== ######\r\n\r\n" );
+            // HAL_TIM_Encoder_Stop_IT(&TimHandle, TIM_CHANNEL_1);
+        }		
+    }	
+    CRITICAL_SECTION_END();
     if (Encoder.OnSendOneshot != NULL)
-        Encoder.OnSendOneshot(  );
-
-  
+        Encoder.OnSendOneshot(  );  
 }
 
 void OnAlarmIrq( void* context )
@@ -125,14 +132,19 @@ void OnAlarmIrq( void* context )
     CRITICAL_SECTION_BEGIN();
     // Encoder_t *obj = (Encoder_t *) context;
     if (GpioRead(&Encoder.Alarm) == GPIO_PIN_RESET) {
-		flow.status |= 0x2;
-        printf( "\r\n###### ===== Alarm ==== ######\r\n\r\n" );
+        if (!(flow.status && ALARM_FLAG))
+        {
+            flow.status |= ALARM_FLAG;
+            printf( "\r\n###### ===== Alarm ==== ######\r\n\r\n" );
+        }
 	} else {
-		flow.status &= ~0x2;
-        printf( "\r\n###### ===== Silent ==== ######\r\n\r\n" );
+        if ((flow.status && ALARM_FLAG)) 
+        {
+            flow.status &= ~ALARM_FLAG;
+            printf( "\r\n###### ===== Silent ==== ######\r\n\r\n" );
+        }
 	}
-    __NOP();
-       CRITICAL_SECTION_END();  
+    CRITICAL_SECTION_END();  
     if (Encoder.OnSendOneshot != NULL && config.digital_alarm > 0)
         Encoder.OnSendOneshot(  );
    
@@ -142,22 +154,23 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	CRITICAL_SECTION_BEGIN();
 	if (htim->Instance == TIM2) {
+        uint32_t current = 0;
         if (Encoder.OnPulseDetect != NULL)
         {
             Encoder.OnPulseDetect();
         }
 		if (GpioRead(&Encoder.Direction) != GPIO_PIN_RESET)
 		{
-            flow.status |= 0x4;
+            flow.status |= DIR_FLAG;
 		 	flow.fwd_cnt++;
 		} else {
-            flow.status &= ~0x4;
+            flow.status &= ~DIR_FLAG;
 		 	flow.rev_cnt++;
 		}
-        uint32_t current = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+        current = HAL_GetTick(); //HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
         float delta = (float) abs(current - flow.last);
 		flow.rate = (int16_t) ((1.0f / delta) * 1000.0f);
-		flow.last = current;
+		flow.last = HAL_GetTick();
         __NOP();
 	}
 	

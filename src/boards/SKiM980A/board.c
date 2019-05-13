@@ -419,10 +419,12 @@ void SystemClockConfig( void )
 
     __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
 
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_LSI;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE ;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
+    // RCC_OscInitStruct.HSIState       = RCC_HSI_ON;
+    // RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.LSEState       = RCC_LSE_ON;
-    RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
+    // RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL6;
@@ -486,6 +488,8 @@ void SystemClockReConfig( void )
     // Wait till HSE is ready
     while( __HAL_RCC_GET_FLAG( RCC_FLAG_HSERDY ) == RESET );
 
+    // __HAL_RCC_HSI_ENABLE();
+    // __HAL_RCC_LSI_ENABLE();
 //    __HAL_FLASH_ACC64_ENABLE();
 //    __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
 //    __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_1);

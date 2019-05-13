@@ -15,13 +15,9 @@
 #include "stm32l1xx.h"
 #include "utilities.h"
 #include "board.h"
-#include "timer.h"
 
 static WWDG_HandleTypeDef WWdtHandle;
 static IWDG_HandleTypeDef IWdtHandle;
-
-static TimerEvent_t WdtTimer;
-static void OnWdtTimerEvent( void* context );
 
 void WdtInit( Wdt_t *obj, WdtId_t wdtId)
 {
@@ -42,16 +38,12 @@ void WdtInit( Wdt_t *obj, WdtId_t wdtId)
 
         }
         HAL_NVIC_SetPriority( WWDG_IRQn, 0, 0 );
-        HAL_NVIC_EnableIRQ( WWDG_IRQn );
-        
-        TimerInit( &WdtTimer, OnWdtTimerEvent );
-        TimerSetValue( &WdtTimer, 25 );
-        TimerStart(&WdtTimer);
+        HAL_NVIC_EnableIRQ( WWDG_IRQn ); 
     } 
     else if( wdtId == WDT_IWDG)
     {
         IWdtHandle.Instance = IWDG;
-        IWdtHandle.Init.Prescaler = IWDG_PRESCALER_4;
+        IWdtHandle.Init.Prescaler = IWDG_PRESCALER_256;
         IWdtHandle.Init.Reload = 4095;
         if(HAL_IWDG_Init(&IWdtHandle) != HAL_OK)
         {
@@ -94,11 +86,4 @@ void WWDG_IRQHandler(void)
 void HAL_WWDG_EarlyWakeupCallback(WWDG_HandleTypeDef *hwwdg)
 {
 
-}
-
-static void OnWdtTimerEvent( void* context )
-{
-    TimerStop(&WdtTimer);
-    HAL_IWDG_Refresh(&IWdtHandle);
-    TimerStart(&WdtTimer);
 }
