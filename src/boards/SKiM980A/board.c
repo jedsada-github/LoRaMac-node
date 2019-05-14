@@ -270,7 +270,8 @@ uint8_t BoardGetPotiLevel( void )
 
     // Read the current potentiometer setting
 
-    vpoti = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
+    if (config.analog_alarm > 0)
+        vpoti = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
 
     // check the limits
     if( vpoti >= POTI_MAX_LEVEL )
@@ -296,7 +297,7 @@ uint8_t BoardGetPotiLevel( void )
 /*!
  * Factory power supply
  */
-#define FACTORY_POWER_SUPPLY                        3600 // mV
+#define FACTORY_POWER_SUPPLY                        3300 // mV
 
 /*!
  * VREF calibration value
@@ -319,9 +320,9 @@ uint8_t BoardGetPotiLevel( void )
 /*!
  * Battery thresholds
  */
-#define BATTERY_MAX_LEVEL                           3600 // mV
-#define BATTERY_MIN_LEVEL                           2800 // mV
-#define BATTERY_SHUTDOWN_LEVEL                      2500 // mV
+#define BATTERY_MAX_LEVEL                           3000 // mV
+#define BATTERY_MIN_LEVEL                           2400 // mV
+#define BATTERY_SHUTDOWN_LEVEL                      2300 // mV
 
 static uint16_t BatteryVoltage = BATTERY_MAX_LEVEL;
 
