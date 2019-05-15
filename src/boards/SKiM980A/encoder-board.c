@@ -154,7 +154,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	CRITICAL_SECTION_BEGIN();
 	if (htim->Instance == TIM2) {
-        uint32_t current = 0;
+        // uint32_t current = 0;
         if (Encoder.OnPulseDetect != NULL)
         {
             Encoder.OnPulseDetect();
@@ -167,10 +167,11 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             flow.status &= ~DIR_FLAG;
 		 	flow.rev_cnt++;
 		}
-        current = HAL_GetTick(); //HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-        float delta = (float) abs(current - flow.last);
-		flow.rate = (int16_t) ((1.0f / delta) * 1000.0f);
-		flow.last = HAL_GetTick();
+        flow.rate++;
+        // current = HAL_GetTick(); //HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+        // float delta = (float) abs(current - flow.last);
+		// flow.rate = (uint32_t) ((1.0f / delta) * 1000.0f);
+		// flow.last = HAL_GetTick();
         __NOP();
 	}
 	

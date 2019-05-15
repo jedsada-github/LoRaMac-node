@@ -395,11 +395,12 @@ static void PrepareTxFrame( uint8_t port )
             AppDataBuffer[3] = (flow.rev_cnt >> 16) & 0xff;
             AppDataBuffer[4] = (flow.rev_cnt >> 8) & 0xff;
             AppDataBuffer[5] = (flow.rev_cnt) & 0xff;
-            AppDataBuffer[6] = flow.rate & 0xff;
+            AppDataBuffer[6] = (flow.rate == 0) ? (flow.rate & 0xff) : ((int)(((float) flow.rate / (float) config.sampling) / 100.0f) & 0xff);
             AppDataBuffer[7] = ((flow.status << 4)  & 0xf0) | ((potiPercentage >> 8) & 0x0f);
             AppDataBuffer[8] = potiPercentage & 0xff;
             AppDataBuffer[9] = vdd & 0xff;
             AppDataBuffer[10] = rssi;
+            flow.rate = 0;
 #else
             potiPercentage = BoardGetPotiLevel( );
             // Read the current voltage level

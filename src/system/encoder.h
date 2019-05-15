@@ -53,7 +53,7 @@ extern Encoder_t Encoder;
 typedef struct {
 	uint32_t fwd_cnt;
 	uint32_t rev_cnt;
-	int16_t rate;
+	uint32_t rate;
     uint8_t status; //[0:tampering, 1:alarm, 2:dir]
 	volatile uint16_t adc_lvl[3];
 	uint32_t adc_acc;
