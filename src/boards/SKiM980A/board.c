@@ -162,16 +162,10 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioWrite( &Led1, 0 );
 #endif
-#if (USE_ENCODER == 1)
-    //Encoder initialized
-    EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
-    GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-    GpioWrite( &Led2, 0 );
-    GpioWrite( &Led3, 0 );
-    GpioWrite( &Led4, 0 );
-#endif
+        GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
         {
@@ -189,6 +183,14 @@ void BoardInitMcu( void )
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX1272IoInit( );
     
+#if (USE_ENCODER == 1)
+    //Encoder initialized
+    EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
+    GpioWrite( &Led2, 0 );
+    GpioWrite( &Led3, 0 );
+    GpioWrite( &Led4, 0 );
+#endif
+
     if( McuInitialized == false )
     {
         McuInitialized = true;
@@ -509,7 +511,7 @@ void SystemClockReConfig( void )
     // Wait till PLL is used as system clock source
     while( __HAL_RCC_GET_SYSCLK_SOURCE( ) != RCC_SYSCLKSOURCE_STATUS_PLLCLK );
 
-    __HAL_RCC_MSI_DISABLE();
+    // __HAL_RCC_MSI_DISABLE();
 }
 
 void SystemClockMCU_STOP_wRTC( void ) 
