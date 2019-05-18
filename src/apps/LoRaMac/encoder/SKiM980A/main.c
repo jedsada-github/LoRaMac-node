@@ -57,7 +57,7 @@
 /*!
  * Default datarate
  */
-#define LORAWAN_DEFAULT_DATARATE                    DR_0
+#define LORAWAN_DEFAULT_DATARATE                    DR_5
 
 /*!
  * LoRaWAN confirmed messages
@@ -69,7 +69,7 @@
  *
  * \remark Please note that when ADR is enabled the end-device should be static
  */
-#define LORAWAN_ADR_ON                              0
+#define LORAWAN_ADR_ON                              1
 
 #if defined( REGION_EU868 ) || defined( REGION_RU864 ) || defined( REGION_CN779 ) || defined( REGION_EU433 )
 
@@ -154,12 +154,12 @@ static TimerEvent_t TxNextPacketTimer;
 static bool AppLedStateOn = false;
 
 /*!
- * Timer to handle the state of LED4 RED
+ * Timer to handle the state of LED4 GREEN
  */
 static TimerEvent_t Led4Timer;
 
 /*!
- * Timer to handle the state of LED3 GREEN
+ * Timer to handle the state of LED3 RED
  */
 static TimerEvent_t Led3Timer;
 
@@ -194,7 +194,6 @@ static bool NextTx = true;
 static uint8_t IsMacProcessPending = 0;
 
 static int rssi = 0;
-static bool isActiveMode = true;
 /*!
  * Device states
  */
@@ -258,7 +257,7 @@ LoRaMacHandlerAppData_t AppData =
  */
 extern Gpio_t Led4; // Tx
 extern Gpio_t Led2; // Rx
-extern Gpio_t Led3; // App
+extern Gpio_t Led3; // App red
 
 /*!
  * MAC status strings
@@ -400,6 +399,7 @@ static void PrepareTxFrame( uint8_t port )
             AppDataBuffer[8] = potiPercentage & 0xff;
             AppDataBuffer[9] = vdd & 0xff;
             AppDataBuffer[10] = rssi;
+
             flow.rate = 0;
 #else
             potiPercentage = BoardGetPotiLevel( );
@@ -510,6 +510,7 @@ static void OnTxNextPacketTimerEvent( void* context )
     LoRaMacStatus_t status;
 
     TimerStop( &TxNextPacketTimer );
+    TimerStop( &passive_sleep_timer );
 
     mibReq.Type = MIB_NETWORK_ACTIVATION;
     status = LoRaMacMibGetRequestConfirm( &mibReq );
@@ -560,18 +561,18 @@ static void OnLed2TimerEvent( void* context )
 }
 
 /*!
- * \brief Function executed on Led 4 Toggle event
+ * \brief Function executed on Led 4 Green Toggle event
  */
 static void OnLed4Toggle( void )
 {
     // Switch LED 4 Toggle
-    GpioToggle( &Led4 );
-    // GpioWrite( &Led4, 1 );
-    // TimerStart( &Led4Timer );
+    // GpioToggle( &Led4 );
+    GpioWrite( &Led4, 1 );
+    TimerStart( &Led4Timer );
 }
 
 /*!
- * \brief Function executed on Led 3 Toggle event
+ * \brief Function executed on Led 3 Red Toggle event
  */
 static void OnLed3Toggle( void )
 {
@@ -582,20 +583,20 @@ static void OnLed3Toggle( void )
 }
 
 /*!
- * \brief Function executed on Led 2 Toggle event
+ * \brief Function executed on Led 2 Blue Toggle event
  */
 static void OnLed2Toggle( void )
 {
      // Switch LED 3 Toggle
-    GpioToggle( &Led2 );
-    // GpioWrite( &Led2, 1 );
-    // TimerStart( &Led2Timer );
+    // GpioToggle( &Led2 );
+    GpioWrite( &Led2, 1 );
+    TimerStart( &Led2Timer );
 }
 
 static void OnPassiveSleepTimer(void* context) 
 {
     TimerStop( &passive_sleep_timer );
-    isActiveMode = true;
+    Encoder.isActiveMode = 1;
     return;
 }
 
@@ -1110,6 +1111,7 @@ int main( void )
 
     // Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
     Encoder.OnPulseDetect = OnLed3Toggle;
+    Encoder.isActiveMode = 1;
 
     DeviceState = DEVICE_STATE_RESTORE;
 
@@ -1340,10 +1342,24 @@ int main( void )
                     TxDutyCycleTime += randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
                 }
 
+                if ((last_flow.fwd_cnt == flow.fwd_cnt) && (last_flow.rev_cnt == flow.rev_cnt))
+                {
+                    Encoder.isActiveMode = 0;
+                } else {
+                    last_flow = flow;
+                }
+                
                 // Schedule next packet transmission
-                if(isActiveMode) {
+                if(Encoder.isActiveMode) {
+                    TimerStop( &passive_sleep_timer );
                     TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime );
                     TimerStart( &TxNextPacketTimer );
+                    printf( "\r\n###### ===== Active mode ==== ######\r\n\r\n" );
+                } else {
+                    TimerStop( &TxNextPacketTimer );
+                    TimerSetValue( &passive_sleep_timer, passive_sleep_time );
+                    TimerStart( &passive_sleep_timer );
+                    printf( "\r\n###### ===== Passive mode ==== ######\r\n\r\n" );
                 }
                 break;
             }
@@ -1364,12 +1380,7 @@ int main( void )
                 else
                 {
                     // The MCU wakes up through events
-                    if(!isActiveMode) {
-                        TimerStop( &TxNextPacketTimer );
-                        TimerReset( &passive_sleep_timer );
-                    }
                     BoardLowPowerHandler( );
-                    
                 }
                 CRITICAL_SECTION_END( );
                 break;

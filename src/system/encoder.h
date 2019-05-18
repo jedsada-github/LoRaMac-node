@@ -46,6 +46,7 @@ typedef struct Encoder_s
     Gpio_t Alarm;
 	void ( *OnSendOneshot) ( void );
 	void ( *OnPulseDetect ) (  void );
+	uint8_t isActiveMode;
 } Encoder_t;
 
 extern Encoder_t Encoder;
@@ -72,6 +73,7 @@ typedef struct
 } flow_config_t;
 
 extern flow_t flow;
+extern flow_t last_flow;
 extern flow_config_t config;
 
 /*!

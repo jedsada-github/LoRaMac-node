@@ -34,6 +34,7 @@ EncoderIrqHandler *EncoderIrq[] = { OnTamperingIrq , OnAlarmIrq, NULL};
 
 Encoder_t Encoder;
 flow_t flow;
+flow_t last_flow;
 flow_config_t config;
 static TIM_HandleTypeDef TimHandle;
 extern Gpio_t Led3;
@@ -67,14 +68,14 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         TimHandle.Init.Period = 0xffff;
         TimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
         sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-        sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+        sConfig.IC1Polarity = TIM_INPUTCHANNELPOLARITY_FALLING;
         sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
         sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
         sConfig.IC1Filter = 0;
-        sConfig.IC2Polarity = TIM_ICPOLARITY_FALLING;
-        sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-        sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-        sConfig.IC2Filter = 0;
+        // sConfig.IC2Polarity = TIM_ICPOLARITY_FALLING;
+        // sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+        // sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+        // sConfig.IC2Filter = 0;
         HAL_TIM_Encoder_Init(&TimHandle, &sConfig);
 
         sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
@@ -124,7 +125,9 @@ void OnTamperingIrq( void* context )
     }	
     CRITICAL_SECTION_END();
     if (Encoder.OnSendOneshot != NULL)
+    {
         Encoder.OnSendOneshot(  );  
+    }
 }
 
 void OnAlarmIrq( void* context )
@@ -145,9 +148,10 @@ void OnAlarmIrq( void* context )
         }
 	}
     CRITICAL_SECTION_END();  
-    if (Encoder.OnSendOneshot != NULL && config.digital_alarm > 0)
+    if (Encoder.OnSendOneshot != NULL && config.digital_alarm > 0) 
+    {
         Encoder.OnSendOneshot(  );
-   
+    }
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
@@ -155,10 +159,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	CRITICAL_SECTION_BEGIN();
 	if (htim->Instance == TIM2) {
         // uint32_t current = 0;
-        if (Encoder.OnPulseDetect != NULL)
-        {
-            Encoder.OnPulseDetect();
-        }
 		if (GpioRead(&Encoder.Direction) != GPIO_PIN_RESET)
 		{
             flow.status |= DIR_FLAG;
@@ -172,10 +172,25 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         // float delta = (float) abs(current - flow.last);
 		// flow.rate = (uint32_t) ((1.0f / delta) * 1000.0f);
 		// flow.last = HAL_GetTick();
-        __NOP();
+        // __NOP();
 	}
-	
+    
+
 	CRITICAL_SECTION_END();
+
+    if (Encoder.OnPulseDetect != NULL)
+    {
+        Encoder.OnPulseDetect();
+    }
+
+    if(Encoder.isActiveMode == 0) {
+        Encoder.isActiveMode = 1;
+        if (Encoder.OnSendOneshot != NULL)
+        {
+            Encoder.OnSendOneshot(  );  
+        }
+    }
+
 }
 
 void TIM2_IRQHandler( void )
