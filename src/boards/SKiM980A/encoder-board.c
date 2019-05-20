@@ -92,6 +92,9 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         GpioSetInterrupt( &obj->Alarm, IRQ_FALLING_EDGE, IRQ_VERY_HIGH_PRIORITY, EncoderIrq[1]);
         // GpioSetContext(&obj->Alarm, &obj);
 
+        Encoder.FlowData = &flow;
+        Encoder.LastFlowData = &last_flow;
+        Encoder.ConfigData = &config;
         // TimerInit( &StorePacketTimer, OnStorePacketTimerEvent );
         // TimerSetValue( &StorePacketTimer, 60000 );
         HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
@@ -163,9 +166,11 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		{
             flow.status |= DIR_FLAG;
 		 	flow.fwd_cnt++;
+             printf( "\r\nForward cnt : %ld\r\n\r\n",  flow.fwd_cnt);
 		} else {
             flow.status &= ~DIR_FLAG;
 		 	flow.rev_cnt++;
+            printf( "\r\nBackward cnt : %ld\r\n\r\n",  flow.rev_cnt);
 		}
         flow.rate++;
         // current = HAL_GetTick(); //HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
@@ -183,8 +188,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         Encoder.OnPulseDetect();
     }
 
-    if(Encoder.isActiveMode == 0) {
-        Encoder.isActiveMode = 1;
+    if(Encoder.ConfigData->isActiveMode == 0) {
+        Encoder.ConfigData->isActiveMode = 1;
         if (Encoder.OnSendOneshot != NULL)
         {
             Encoder.OnSendOneshot(  );  

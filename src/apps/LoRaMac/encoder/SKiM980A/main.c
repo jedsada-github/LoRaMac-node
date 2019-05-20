@@ -596,7 +596,7 @@ static void OnLed2Toggle( void )
 static void OnPassiveSleepTimer(void* context) 
 {
     TimerStop( &passive_sleep_timer );
-    Encoder.isActiveMode = 1;
+    Encoder.ConfigData->isActiveMode = 1;
     return;
 }
 
@@ -1074,6 +1074,21 @@ void OnMacProcessNotify( void )
     Encoder.OnSendOneshot = NULL;
 }
 
+void RestoreUserSetting( void )
+{
+    if( UserNvmCtxMgmtRestore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+    {
+        printf( "\r\n###### ===== User setting CTXS RESTORED ==== ######\r\n\r\n" );
+
+        printf( "Fwd cnt : %08lX\r\n", flow.fwd_cnt );
+        printf( "Rev cnt : %08lX\r\n", flow.rev_cnt );
+        printf( "Sampling : %02X\r\n", config.sampling );
+        printf( "Digital alarm enable : %02X\r\n", config.digital_alarm );
+        printf( "Analog alarm lvl. : %04X\r\n", config.analog_alarm );
+        printf( "Active mode : %01X\r\n\r\n", config.isActiveMode );
+    }
+
+}
 /**
  * Main application entry point.
  */
@@ -1087,16 +1102,7 @@ int main( void )
     BoardInitMcu( );
     BoardInitPeriph( );
 
-    if( UserNvmCtxMgmtRestore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-    {
-        printf( "\r\n###### ===== User setting CTXS RESTORED ==== ######\r\n\r\n" );
-
-        printf( "Fwd cnt : %08lX\r\n", flow.fwd_cnt );
-        printf( "Rev cnt : %08lX\r\n", flow.rev_cnt );
-        printf( "Sampling : %02X\r\n", config.sampling );
-        printf( "Digital alarm enable : %02X\r\n", config.digital_alarm );
-        printf( "Analog alarm lvl. : %04X\r\n\r\n", config.analog_alarm );
-    }
+    RestoreUserSetting();
 
     macPrimitives.MacMcpsConfirm = McpsConfirm;
     macPrimitives.MacMcpsIndication = McpsIndication;
@@ -1111,7 +1117,7 @@ int main( void )
 
     // Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
     Encoder.OnPulseDetect = OnLed3Toggle;
-    Encoder.isActiveMode = 1;
+    Encoder.ConfigData->isActiveMode = 1;
 
     DeviceState = DEVICE_STATE_RESTORE;
 
@@ -1312,13 +1318,13 @@ int main( void )
             }
             case DEVICE_STATE_SEND:
             {
-                if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-                {
-                    printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
-                }
-
                 if( NextTx == true )
                 {
+                    if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+                    {
+                        printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
+                    }
+
                     PrepareTxFrame( AppPort );
 
                     NextTx = SendFrame( );
@@ -1344,13 +1350,19 @@ int main( void )
 
                 if ((last_flow.fwd_cnt == flow.fwd_cnt) && (last_flow.rev_cnt == flow.rev_cnt))
                 {
-                    Encoder.isActiveMode = 0;
+                    Encoder.ConfigData->isActiveMode = 0;
                 } else {
+                    Encoder.ConfigData->isActiveMode = 1;
                     last_flow = flow;
                 }
                 
+                if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+                {
+                    printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
+                }
+
                 // Schedule next packet transmission
-                if(Encoder.isActiveMode) {
+                if(Encoder.ConfigData->isActiveMode == 1) {
                     TimerStop( &passive_sleep_timer );
                     TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime );
                     TimerStart( &TxNextPacketTimer );
@@ -1375,12 +1387,14 @@ int main( void )
                 {
                     // Clear flag and prevent MCU to go into low power modes.
                     IsMacProcessPending = 0;
-                    Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
+                    
                 }
                 else
                 {
+                    Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
                     // The MCU wakes up through events
                     BoardLowPowerHandler( );
+
                 }
                 CRITICAL_SECTION_END( );
                 break;

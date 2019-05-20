@@ -37,20 +37,6 @@ typedef enum
 /*!
  * TIM object type definition
  */
-typedef struct Encoder_s
-{
-    EncoderId_t EncoderId;
-    Gpio_t Pulse;
-    Gpio_t Direction;
-    Gpio_t Tampering;
-    Gpio_t Alarm;
-	void ( *OnSendOneshot) ( void );
-	void ( *OnPulseDetect ) (  void );
-	uint8_t isActiveMode;
-} Encoder_t;
-
-extern Encoder_t Encoder;
-
 typedef struct {
 	uint32_t fwd_cnt;
 	uint32_t rev_cnt;
@@ -70,8 +56,24 @@ typedef struct
 	uint8_t sampling;
 	uint8_t digital_alarm;
 	uint16_t analog_alarm;
+	uint8_t isActiveMode;
 } flow_config_t;
 
+typedef struct Encoder_s
+{
+    EncoderId_t EncoderId;
+    Gpio_t Pulse;
+    Gpio_t Direction;
+    Gpio_t Tampering;
+    Gpio_t Alarm;
+	void ( *OnSendOneshot) ( void );
+	void ( *OnPulseDetect ) (  void );
+	flow_t * FlowData;
+	flow_t * LastFlowData;
+	flow_config_t * ConfigData;
+} Encoder_t;
+
+extern Encoder_t Encoder;
 extern flow_t flow;
 extern flow_t last_flow;
 extern flow_config_t config;
