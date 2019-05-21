@@ -169,11 +169,11 @@ static TimerEvent_t Led3Timer;
 static TimerEvent_t Led2Timer;
 
 /*!
- * Timer to handle the passive device sleep
+ * Timer to handle the passive device sleep 2 houre
  */
-static TimerEvent_t passive_sleep_timer = { 0 };
-static TimerTime_t passive_sleep_time = 1U * 60U * 1000U; /* 1 hour */
-static void OnPassiveSleepTimer(void* context);
+// static TimerEvent_t passive_sleep_timer = { 0 };
+static uint32_t passive_sleep_time = 2U * 60U * 60U * 1000U;
+// static void OnPassiveSleepTimer(void* context);
 
 /*!
  * Timer to handle the iwdg
@@ -510,7 +510,7 @@ static void OnTxNextPacketTimerEvent( void* context )
     LoRaMacStatus_t status;
 
     TimerStop( &TxNextPacketTimer );
-    TimerStop( &passive_sleep_timer );
+    // TimerStop( &passive_sleep_timer );
 
     mibReq.Type = MIB_NETWORK_ACTIVATION;
     status = LoRaMacMibGetRequestConfirm( &mibReq );
@@ -593,12 +593,12 @@ static void OnLed2Toggle( void )
     TimerStart( &Led2Timer );
 }
 
-static void OnPassiveSleepTimer(void* context) 
-{
-    TimerStop( &passive_sleep_timer );
-    Encoder.ConfigData->isActiveMode = 1;
-    return;
-}
+// static void OnPassiveSleepTimer(void* context) 
+// {
+//     TimerStop( &passive_sleep_timer );
+//     Encoder.ConfigData->isActiveMode = 1;
+//     return;
+// }
 
 /*!
  * \brief Function executed on TxOneshotPacket  event
@@ -1216,10 +1216,7 @@ int main( void )
             }
 
             case DEVICE_STATE_START:
-            {
-                TimerInit( &passive_sleep_timer, OnPassiveSleepTimer);
-                TimerSetValue( &passive_sleep_timer, passive_sleep_time );
-                
+            {                
                 TimerInit( &TxNextPacketTimer, OnTxNextPacketTimerEvent );
 
                 TimerInit( &Led4Timer, OnLed4TimerEvent );
@@ -1344,35 +1341,29 @@ int main( void )
                 else
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime =  (config.sampling == 0) ? (uint32_t)(APP_TX_DUTYCYCLE) : ((uint32_t)config.sampling * APP_TX_DUTYCYCLE);
+                    if ((last_flow.fwd_cnt == flow.fwd_cnt) && (last_flow.rev_cnt == flow.rev_cnt))
+                    {
+                        TxDutyCycleTime =  passive_sleep_time; //duty cycle 2 hours for passive mode
+                        Encoder.ConfigData->isActiveMode = 0;
+                         printf( "\r\n###### ===== Passive mode ==== ######\r\n\r\n" );
+                    } else {
+                        TxDutyCycleTime =  (config.sampling == 0) ? (uint32_t)(APP_TX_DUTYCYCLE) : 
+                                            ((uint32_t)config.sampling * (uint32_t) APP_TX_DUTYCYCLE); //Duty cycle 1 ~ 15 min.
+                        Encoder.ConfigData->isActiveMode = 1;
+                        last_flow = flow;
+                        printf( "\r\n###### ===== Active mode ==== ######\r\n\r\n" );
+                    }
                     TxDutyCycleTime += randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
                 }
 
-                if ((last_flow.fwd_cnt == flow.fwd_cnt) && (last_flow.rev_cnt == flow.rev_cnt))
-                {
-                    Encoder.ConfigData->isActiveMode = 0;
-                } else {
-                    Encoder.ConfigData->isActiveMode = 1;
-                    last_flow = flow;
-                }
-                
                 if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
                 {
                     printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
                 }
 
                 // Schedule next packet transmission
-                if(Encoder.ConfigData->isActiveMode == 1) {
-                    TimerStop( &passive_sleep_timer );
-                    TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime );
-                    TimerStart( &TxNextPacketTimer );
-                    printf( "\r\n###### ===== Active mode ==== ######\r\n\r\n" );
-                } else {
-                    TimerStop( &TxNextPacketTimer );
-                    TimerSetValue( &passive_sleep_timer, passive_sleep_time );
-                    TimerStart( &passive_sleep_timer );
-                    printf( "\r\n###### ===== Passive mode ==== ######\r\n\r\n" );
-                }
+                TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime );
+                TimerStart( &TxNextPacketTimer );
                 break;
             }
             case DEVICE_STATE_SLEEP:
@@ -1387,14 +1378,12 @@ int main( void )
                 {
                     // Clear flag and prevent MCU to go into low power modes.
                     IsMacProcessPending = 0;
-                    
                 }
                 else
                 {
                     Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
                     // The MCU wakes up through events
                     BoardLowPowerHandler( );
-
                 }
                 CRITICAL_SECTION_END( );
                 break;
