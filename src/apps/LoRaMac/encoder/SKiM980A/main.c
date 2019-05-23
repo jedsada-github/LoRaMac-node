@@ -1256,7 +1256,7 @@ int main( void )
                 TimerSetValue( &Led2Timer, 25 );
 
                 TimerInit( &Led1Timer, OnLed1TimerEvent );
-                TimerSetValue( &Led1Timer, 1000 );
+                TimerSetValue( &Led1Timer, 500 );
                 TimerStart(&Led1Timer);
 
                 TimerInit( &WdtTimer, OnWdtTimerEvent );

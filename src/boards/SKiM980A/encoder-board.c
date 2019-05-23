@@ -166,7 +166,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		{
             flow.status |= DIR_FLAG;
 		 	flow.fwd_cnt++;
-             printf( "\r\nForward cnt : %ld\r\n\r\n",  flow.fwd_cnt);
+            printf( "\r\nForward cnt : %ld\r\n\r\n",  flow.fwd_cnt);
 		} else {
             flow.status &= ~DIR_FLAG;
 		 	flow.rev_cnt++;

@@ -108,6 +108,7 @@
 #define LED_2                                       PB_14
 #define LED_3                                       PB_13
 #define LED_4                                       PB_15
+#define USER_BUTTON                                 JTAG_TDI
 #else
 #define LED_2                                       PA_0
 #define LED_3                                       PA_1

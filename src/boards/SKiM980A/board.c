@@ -55,6 +55,8 @@ Gpio_t Led2;
 Gpio_t Led3;
 Gpio_t Led4;
 
+Gpio_t USR1;
+
 /*
  * MCU objects
  */
@@ -164,6 +166,7 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioWrite( &Led1, 0 );
 #endif
+        GpioInit( &USR1, USER_BUTTON, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
         GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );

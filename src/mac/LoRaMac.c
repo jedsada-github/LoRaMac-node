@@ -5017,7 +5017,8 @@ LoRaMacStatus_t LoRaMacMcpsRequest( McpsReq_t* mcpsRequest )
         case MCPS_CONFIRMED:
         {
             readyToSend = true;
-
+            MacCtx.AckTimeoutRetries = MIN( mcpsRequest->Req.Confirmed.NbTrials, MAX_ACK_RETRIES );
+            
             macHdr.Bits.MType = FRAME_TYPE_DATA_CONFIRMED_UP;
             fPort = mcpsRequest->Req.Confirmed.fPort;
             fBuffer = mcpsRequest->Req.Confirmed.fBuffer;
