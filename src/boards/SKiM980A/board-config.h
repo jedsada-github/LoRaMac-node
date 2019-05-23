@@ -104,6 +104,7 @@
 #define DIR                                         PA_1
 #define TAMPERING                                   PA_8
 #define ALARM                                       PB_12
+#define LED_1                                       JTAG_TDO
 #define LED_2                                       PB_14
 #define LED_3                                       PB_13
 #define LED_4                                       PB_15

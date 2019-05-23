@@ -169,6 +169,11 @@ static TimerEvent_t Led3Timer;
 static TimerEvent_t Led2Timer;
 
 /*!
+ * Timer to handle the state of LED2 BLUE
+ */
+static TimerEvent_t Led1Timer;
+
+/*!
  * Timer to handle the passive device sleep 2 houre
  */
 // static TimerEvent_t passive_sleep_timer = { 0 };
@@ -259,6 +264,7 @@ extern Gpio_t Led4; // Tx
 extern Gpio_t Led2; // Rx
 extern Gpio_t Led3; // App red
 
+extern Gpio_t Led1; // Heart beat
 /*!
  * MAC status strings
  */
@@ -479,6 +485,7 @@ static bool SendFrame( void )
             mcpsReq.Req.Confirmed.fPort = AppPort;
             mcpsReq.Req.Confirmed.fBuffer = AppDataBuffer;
             mcpsReq.Req.Confirmed.fBufferSize = AppDataSize;
+            mcpsReq.Req.Confirmed.NbTrials = 8;
             mcpsReq.Req.Confirmed.Datarate = LORAWAN_DEFAULT_DATARATE;
         }
     }
@@ -561,6 +568,17 @@ static void OnLed2TimerEvent( void* context )
 }
 
 /*!
+ * \brief Function executed on Led 1 Timeout event
+ */
+static void OnLed1TimerEvent( void* context )
+{
+    TimerStop( &Led1Timer );
+    // Switch LED 1 Toggle
+    GpioToggle( &Led1 );
+    TimerStart( &Led1Timer );
+}
+
+/*!
  * \brief Function executed on Led 4 Green Toggle event
  */
 static void OnLed4Toggle( void )
@@ -587,10 +605,19 @@ static void OnLed3Toggle( void )
  */
 static void OnLed2Toggle( void )
 {
-     // Switch LED 3 Toggle
+     // Switch LED 2 Toggle
     // GpioToggle( &Led2 );
     GpioWrite( &Led2, 1 );
     TimerStart( &Led2Timer );
+}
+
+/*!
+ * \brief Function executed on Led 1 Blue Toggle event
+ */
+static void OnLed1Toggle( void )
+{
+     // Switch LED 1 Toggle
+    GpioToggle( &Led1 );
 }
 
 // static void OnPassiveSleepTimer(void* context) 
@@ -1227,6 +1254,10 @@ int main( void )
 
                 TimerInit( &Led2Timer, OnLed2TimerEvent );
                 TimerSetValue( &Led2Timer, 25 );
+
+                TimerInit( &Led1Timer, OnLed1TimerEvent );
+                TimerSetValue( &Led1Timer, 1000 );
+                TimerStart(&Led1Timer);
 
                 TimerInit( &WdtTimer, OnWdtTimerEvent );
                 TimerSetValue( &WdtTimer, 1000 );

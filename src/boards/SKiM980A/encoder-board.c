@@ -116,7 +116,7 @@ void OnTamperingIrq( void* context )
         if (!(flow.status && TAMPER_FLAG)) {
         	flow.status |= TAMPER_FLAG;
             printf( "\r\n###### ===== Tampering attached ==== ######\r\n\r\n" );
-		    // HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
+		    HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
         }
 	} else {
         if ((flow.status && TAMPER_FLAG))

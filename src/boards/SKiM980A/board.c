@@ -35,6 +35,7 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
+#include "stm32l1xx_it.h"
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -49,6 +50,7 @@
 #if ( USE_POTENTIOMETER == 0 )
 Gpio_t Led1;
 #endif
+Gpio_t Led1;
 Gpio_t Led2;
 Gpio_t Led3;
 Gpio_t Led4;
@@ -162,6 +164,7 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioWrite( &Led1, 0 );
 #endif
+        GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
@@ -687,18 +690,6 @@ void HAL_MspInit(void)
 
   /*Disable fast wakeUp*/  
   HAL_PWREx_EnableFastWakeUp( );  
-}
-
-/**
-  * @brief WWDG Initialization Function
-  * @param None
-  * @retval None
-  */
-void MX_WWDG_Init(void)
-{
-
-  
-
 }
 
 #if !defined ( __CC_ARM )
