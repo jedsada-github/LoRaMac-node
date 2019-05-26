@@ -171,7 +171,7 @@ static TimerEvent_t Led2Timer;
 /*!
  * Timer to handle the state of LED2 BLUE
  */
-static TimerEvent_t Led1Timer;
+//static TimerEvent_t Led1Timer;
 
 /*!
  * Timer to handle the passive device sleep 2 houre
@@ -193,7 +193,7 @@ static bool NextTx = true;
 
 /*!
  * Indicates if LoRaMacProcess call is pending.
- * 
+ *
  * \warning If variable is equal to 0 then the MCU can be set in low power mode
  */
 static uint8_t IsMacProcessPending = 0;
@@ -300,7 +300,7 @@ const char* MacStatusStrings[] =
  * MAC event info status strings.
  */
 const char* EventInfoStatusStrings[] =
-{ 
+{
     "OK",                            // LORAMAC_EVENT_INFO_STATUS_OK
     "Error",                         // LORAMAC_EVENT_INFO_STATUS_ERROR
     "Tx timeout",                    // LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT
@@ -322,7 +322,7 @@ const char* EventInfoStatusStrings[] =
 
 /*!
  * Prints the provided buffer in HEX
- * 
+ *
  * \param buffer Buffer to be printed
  * \param size   Buffer size to be printed
  */
@@ -389,7 +389,7 @@ static void PrepareTxFrame( uint8_t port )
             uint16_t vdd = 0;
 
             // Read the current potentiometer setting in percent
-           
+
 #if defined( USE_ENCODER )
             potiPercentage = BoardGetPotiLevel( );
             vdd = BoardGetBatteryLevel( );
@@ -570,13 +570,14 @@ static void OnLed2TimerEvent( void* context )
 /*!
  * \brief Function executed on Led 1 Timeout event
  */
-static void OnLed1TimerEvent( void* context )
-{
-    TimerStop( &Led1Timer );
-    // Switch LED 1 Toggle
-    GpioToggle( &Led1 );
-    TimerStart( &Led1Timer );
-}
+//static void OnLed1TimerEvent( void* context )
+//{
+//    TimerStop( &Led1Timer );
+//    // Switch LED 1 Toggle
+//    GpioToggle( &Led1 );
+//    WdtRefresh(&Wdt);
+//    TimerStart( &Led1Timer );
+//}
 
 /*!
  * \brief Function executed on Led 4 Green Toggle event
@@ -614,13 +615,13 @@ static void OnLed2Toggle( void )
 /*!
  * \brief Function executed on Led 1 Blue Toggle event
  */
-static void OnLed1Toggle( void )
-{
-     // Switch LED 1 Toggle
-    GpioToggle( &Led1 );
-}
+//static void OnLed1Toggle( void )
+//{
+//     // Switch LED 1 Toggle
+//    GpioToggle( &Led1 );
+//}
 
-// static void OnPassiveSleepTimer(void* context) 
+// static void OnPassiveSleepTimer(void* context)
 // {
 //     TimerStop( &passive_sleep_timer );
 //     Encoder.ConfigData->isActiveMode = 1;
@@ -639,6 +640,7 @@ static void OnWdtTimerEvent( void* context )
 {
     TimerStop(&WdtTimer);
     WdtRefresh(&Wdt);
+    GpioToggle( &Led1 );
     TimerStart(&WdtTimer);
 }
 
@@ -829,7 +831,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                 config.sampling = (mcpsIndication->Buffer[0] & 0x0f);
 
                 if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-                {          
+                {
                     printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
                     printf( "Fwd cnt : %08lX\r\n", flow.fwd_cnt );
                     printf( "Rev cnt : %08lX\r\n", flow.rev_cnt );
@@ -989,7 +991,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
     printf( "\r\n###### ===== DOWNLINK FRAME %lu ==== ######\r\n", mcpsIndication->DownLinkCounter );
 
     printf( "RX WINDOW   : %s\r\n", slotStrings[mcpsIndication->RxSlot] );
-    
+
     printf( "RX PORT     : %d\r\n", mcpsIndication->Port );
 
     if( mcpsIndication->BufferSize != 0 )
@@ -1125,7 +1127,7 @@ int main( void )
     LoRaMacCallback_t macCallbacks;
     MibRequestConfirm_t mibReq;
     LoRaMacStatus_t status;
-    
+
     BoardInitMcu( );
     BoardInitPeriph( );
 
@@ -1243,7 +1245,7 @@ int main( void )
             }
 
             case DEVICE_STATE_START:
-            {                
+            {
                 TimerInit( &TxNextPacketTimer, OnTxNextPacketTimerEvent );
 
                 TimerInit( &Led4Timer, OnLed4TimerEvent );
@@ -1255,12 +1257,12 @@ int main( void )
                 TimerInit( &Led2Timer, OnLed2TimerEvent );
                 TimerSetValue( &Led2Timer, 25 );
 
-                TimerInit( &Led1Timer, OnLed1TimerEvent );
-                TimerSetValue( &Led1Timer, 500 );
-                TimerStart(&Led1Timer);
+//                TimerInit( &Led1Timer, OnLed1TimerEvent );
+//                TimerSetValue( &Led1Timer, 500 );
+//                TimerStart(&Led1Timer);
 
                 TimerInit( &WdtTimer, OnWdtTimerEvent );
-                TimerSetValue( &WdtTimer, 1000 );
+                TimerSetValue( &WdtTimer, 500 );
                 TimerStart(&WdtTimer);
 
                 mibReq.Type = MIB_PUBLIC_NETWORK;
@@ -1357,7 +1359,7 @@ int main( void )
 
                     NextTx = SendFrame( );
                 }
-               
+
                 DeviceState = DEVICE_STATE_CYCLE;
                 break;
             }
@@ -1378,7 +1380,7 @@ int main( void )
                         Encoder.ConfigData->isActiveMode = 0;
                          printf( "\r\n###### ===== Passive mode ==== ######\r\n\r\n" );
                     } else {
-                        TxDutyCycleTime =  (config.sampling == 0) ? (uint32_t)(APP_TX_DUTYCYCLE) : 
+                        TxDutyCycleTime =  (config.sampling == 0) ? (uint32_t)(APP_TX_DUTYCYCLE) :
                                             ((uint32_t)config.sampling * (uint32_t) APP_TX_DUTYCYCLE); //Duty cycle 1 ~ 15 min.
                         Encoder.ConfigData->isActiveMode = 1;
                         last_flow = flow;

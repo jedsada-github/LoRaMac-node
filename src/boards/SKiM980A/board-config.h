@@ -51,7 +51,6 @@
 #define USE_SPI                                     0
 #define USE_ENCODER                                 1
 
-
 /*!
  * Board MCU pins definitions
  */

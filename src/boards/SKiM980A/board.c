@@ -35,7 +35,6 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
-#include "stm32l1xx_it.h"
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -171,7 +170,7 @@ void BoardInitMcu( void )
         GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        
+
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
         {
@@ -188,7 +187,7 @@ void BoardInitMcu( void )
 
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX1272IoInit( );
-    
+
 #if (USE_ENCODER == 1)
     //Encoder initialized
     EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
@@ -402,13 +401,13 @@ static void BoardUnusedIoInit( void )
     HAL_DBGMCU_EnableDBGStopMode( );
     HAL_DBGMCU_EnableDBGStandbyMode( );
     __HAL_DBGMCU_FREEZE_WWDG();
-    __HAL_DBGMCU_FREEZE_IWDG();   
+    __HAL_DBGMCU_FREEZE_IWDG();
 #else
     HAL_DBGMCU_DisableDBGSleepMode( );
     HAL_DBGMCU_DisableDBGStopMode( );
     HAL_DBGMCU_DisableDBGStandbyMode( );
      __HAL_DBGMCU_UNFREEZE_WWDG();
-    __HAL_DBGMCU_UNFREEZE_IWDG();  
+    __HAL_DBGMCU_UNFREEZE_IWDG();
 
     GpioInit( &ioPin, JTAG_TMS, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     GpioInit( &ioPin, JTAG_TCK, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
@@ -503,7 +502,7 @@ void SystemClockReConfig( void )
 //    __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
 //    __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_1);
 //     __HAL_FLASH_SLEEP_POWERDOWN_DISABLE();
- 
+
     // Enable PLL
     __HAL_RCC_PLL_CONFIG(RCC_PLLSOURCE_HSE, RCC_PLL_MUL6, RCC_PLL_DIV3);
     __HAL_RCC_PLL_ENABLE( );
@@ -520,23 +519,23 @@ void SystemClockReConfig( void )
     // __HAL_RCC_MSI_DISABLE();
 }
 
-void SystemClockMCU_STOP_wRTC( void ) 
-{ 
+void SystemClockMCU_STOP_wRTC( void )
+{
     /* RCC system reset */
      HAL_RCC_DeInit();
 
 //   /* Flash no latency*/
    __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_0);
-  
+
 //   /* Disable Prefetch Buffer */
    __HAL_FLASH_PREFETCH_BUFFER_DISABLE();
 
 //   /* Disable 64-bit access */
    __HAL_FLASH_ACC64_DISABLE();
-         
+
 //   /* Disable FLASH during SLeep  */
    __HAL_FLASH_SLEEP_POWERDOWN_ENABLE();
- 
+
   /* Enable the PWR APB1 Clock */
 //   RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
     __HAL_RCC_PWR_CLK_ENABLE();
@@ -549,7 +548,7 @@ void SystemClockMCU_STOP_wRTC( void )
 
   /* Configure the MSI frequency */
   __HAL_RCC_MSI_RANGE_CONFIG(RCC_MSIRANGE_0);
-  
+
   /* Select MSI as system clock source */
   __HAL_RCC_SYSCLK_CONFIG(RCC_SYSCLKSOURCE_MSI);
 
@@ -569,7 +568,7 @@ void SystemClockMCU_STOP_wRTC( void )
 //    __HAL_RCC_LSE_CONFIG(RCC_LSE_ON);
 
   /* Disable LSI clock */
-  __HAL_RCC_LSI_DISABLE();  
+  __HAL_RCC_LSI_DISABLE();
 }
 
 void SysTick_Handler( void )
@@ -645,7 +644,7 @@ void BoardLowPowerHandler( void )
 {
     __disable_irq( );
     /*!
-     * If an interrupt has occurred after __disable_irq( ), it is kept pending 
+     * If an interrupt has occurred after __disable_irq( ), it is kept pending
      * and cortex will not enter low power anyway
      */
 
@@ -684,15 +683,15 @@ void HAL_Delay(__IO uint32_t Delay)
 void HAL_MspInit(void)
 {
    __HAL_RCC_PWR_CLK_ENABLE();
-  
+
   /* Disable the Power Voltage Detector */
-  HAL_PWR_DisablePVD( ); 
+  HAL_PWR_DisablePVD( );
 
   /* Set MCU in ULP (Ultra Low Power) */
   HAL_PWREx_EnableUltraLowPower( );
 
-  /*Disable fast wakeUp*/  
-  HAL_PWREx_EnableFastWakeUp( );  
+  /*Disable fast wakeUp*/
+  HAL_PWREx_EnableFastWakeUp( );
 }
 
 #if !defined ( __CC_ARM )
