@@ -432,7 +432,7 @@ void SystemClockConfig( void )
     // RCC_OscInitStruct.HSIState       = RCC_HSI_ON;
     // RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.LSEState       = RCC_LSE_ON;
-    // RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
+    RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL6;

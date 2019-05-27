@@ -42,8 +42,9 @@ void WdtInit( Wdt_t *obj, WdtId_t wdtId)
     } 
     else if( wdtId == WDT_IWDG)
     {
+        __HAL_RCC_LSI_ENABLE();
         IWdtHandle.Instance = IWDG;
-        IWdtHandle.Init.Prescaler = IWDG_PRESCALER_256;
+        IWdtHandle.Init.Prescaler = IWDG_PRESCALER_32;
         IWdtHandle.Init.Reload = 4095;
         if(HAL_IWDG_Init(&IWdtHandle) != HAL_OK)
         {

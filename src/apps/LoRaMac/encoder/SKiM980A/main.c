@@ -400,7 +400,7 @@ static void PrepareTxFrame( uint8_t port )
             AppDataBuffer[3] = (flow.rev_cnt >> 16) & 0xff;
             AppDataBuffer[4] = (flow.rev_cnt >> 8) & 0xff;
             AppDataBuffer[5] = (flow.rev_cnt) & 0xff;
-            AppDataBuffer[6] = (flow.rate == 0) ? (flow.rate & 0xff) : ((int)(((float) flow.rate / (float) config.sampling) / 100.0f) & 0xff);
+            AppDataBuffer[6] = (flow.rate == 0) ? (uint8_t)(flow.rate & 0xff) : ((uint8_t)(((float) flow.rate / (float) config.sampling) / 10.0f) & 0xff);
             AppDataBuffer[7] = ((flow.status << 4)  & 0xf0) | ((potiPercentage >> 8) & 0x0f);
             AppDataBuffer[8] = potiPercentage & 0xff;
             AppDataBuffer[9] = vdd & 0xff;
@@ -582,13 +582,13 @@ static void OnLed2TimerEvent( void* context )
 /*!
  * \brief Function executed on Led 4 Green Toggle event
  */
-static void OnLed4Toggle( void )
-{
-    // Switch LED 4 Toggle
-    // GpioToggle( &Led4 );
-    GpioWrite( &Led4, 1 );
-    TimerStart( &Led4Timer );
-}
+// static void OnLed4Toggle( void )
+// {
+//     // Switch LED 4 Toggle
+//     // GpioToggle( &Led4 );
+//     GpioWrite( &Led4, 1 );
+//     TimerStart( &Led4Timer );
+// }
 
 /*!
  * \brief Function executed on Led 3 Red Toggle event
@@ -604,13 +604,13 @@ static void OnLed3Toggle( void )
 /*!
  * \brief Function executed on Led 2 Blue Toggle event
  */
-static void OnLed2Toggle( void )
-{
-     // Switch LED 2 Toggle
-    // GpioToggle( &Led2 );
-    GpioWrite( &Led2, 1 );
-    TimerStart( &Led2Timer );
-}
+// static void OnLed2Toggle( void )
+// {
+//      // Switch LED 2 Toggle
+//     // GpioToggle( &Led2 );
+//     GpioWrite( &Led2, 1 );
+//     TimerStart( &Led2Timer );
+// }
 
 /*!
  * \brief Function executed on Led 1 Blue Toggle event
@@ -1108,7 +1108,11 @@ void RestoreUserSetting( void )
     if( UserNvmCtxMgmtRestore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
     {
         printf( "\r\n###### ===== User setting CTXS RESTORED ==== ######\r\n\r\n" );
-
+        if (config.sampling == 0)
+        {
+            config.sampling = 1;
+        }
+        
         printf( "Fwd cnt : %08lX\r\n", flow.fwd_cnt );
         printf( "Rev cnt : %08lX\r\n", flow.rev_cnt );
         printf( "Sampling : %02X\r\n", config.sampling );
