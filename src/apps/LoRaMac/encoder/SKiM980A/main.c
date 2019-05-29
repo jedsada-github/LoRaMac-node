@@ -46,7 +46,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            1000 * 60//60U * 1000U * 15U /* 15 min */
+#define APP_TX_DUTYCYCLE                            1000 * 60 // 1 min 
 
 /*!
  * Defines a random delay for application data transmission duty cycle. 1s,
@@ -391,6 +391,7 @@ static void PrepareTxFrame( uint8_t port )
             // Read the current potentiometer setting in percent
 
 #if defined( USE_ENCODER )
+            memset1(AppDataBuffer, 0x0, LORAWAN_APP_DATA_MAX_SIZE);
             potiPercentage = BoardGetPotiLevel( );
             vdd = BoardGetBatteryLevel( );
             AppDataSizeBackup = AppDataSize = 11;
@@ -1149,7 +1150,7 @@ int main( void )
     LoRaMacInitialization( &macPrimitives, &macCallbacks, ACTIVE_REGION );
 
     // Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
-    Encoder.OnPulseDetect = OnLed3Toggle;
+    Encoder.OnShowPulseDetect = OnLed3Toggle;
     Encoder.ConfigData->isActiveMode = 1;
 
     DeviceState = DEVICE_STATE_RESTORE;

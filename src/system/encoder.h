@@ -67,7 +67,7 @@ typedef struct Encoder_s
     Gpio_t Tampering;
     Gpio_t Alarm;
 	void ( *OnSendOneshot) ( void );
-	void ( *OnPulseDetect ) (  void );
+	void ( *OnShowPulseDetect ) (  void );
 	flow_t * FlowData;
 	flow_t * LastFlowData;
 	flow_config_t * ConfigData;

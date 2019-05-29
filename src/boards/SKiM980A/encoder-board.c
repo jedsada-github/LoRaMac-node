@@ -26,11 +26,13 @@
 #include "math.h"
 // #include "timer.h"
 
+#define USE_GPIO
+
 #define TAMPER_FLAG    0x1
 #define ALARM_FLAG     0x2
 #define DIR_FLAG       0x4
 
-EncoderIrqHandler *EncoderIrq[] = { OnTamperingIrq , OnAlarmIrq, NULL};
+EncoderIrqHandler *EncoderIrq[] = { OnTamperingIrq , OnAlarmIrq, OnPulseDetected, NULL};
 
 Encoder_t Encoder;
 flow_t flow;
@@ -52,6 +54,18 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
 
      if( timId == TIM_2 )
      {
+        GpioInit( &obj->Tampering, tampering, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
+        GpioSetInterrupt( &obj->Tampering, IRQ_RISING_FALLING_EDGE, IRQ_HIGH_PRIORITY, EncoderIrq[0]);
+        // GpioSetContext(&obj->Tampering, &obj);
+        GpioInit( &obj->Alarm, alarm, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
+        GpioSetInterrupt( &obj->Alarm, IRQ_FALLING_EDGE, IRQ_HIGH_PRIORITY, EncoderIrq[1]);
+        // GpioSetContext(&obj->Alarm, &obj);
+
+#ifdef USE_GPIO
+        GpioInit( &obj->Pulse, pulse, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
+        GpioSetInterrupt( &obj->Pulse, IRQ_FALLING_EDGE, IRQ_HIGH_PRIORITY, EncoderIrq[2]);
+        GpioInit( &obj->Direction, dir, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
+#else
         __HAL_RCC_TIM2_CLK_ENABLE();
 
         TimHandle.Instance = ( TIM_TypeDef* )TIM2_BASE;
@@ -68,14 +82,14 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         TimHandle.Init.Period = 0xffff;
         TimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
         sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-        sConfig.IC1Polarity = TIM_INPUTCHANNELPOLARITY_FALLING;
+        sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
         sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
         sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-        sConfig.IC1Filter = 0;
-        // sConfig.IC2Polarity = TIM_ICPOLARITY_FALLING;
-        // sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-        // sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-        // sConfig.IC2Filter = 0;
+        sConfig.IC1Filter = 15;
+        sConfig.IC2Polarity = TIM_ICPOLARITY_FALLING;
+        sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+        sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+        sConfig.IC2Filter = 15;
         HAL_TIM_Encoder_Init(&TimHandle, &sConfig);
 
         sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
@@ -85,19 +99,16 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
         HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
         HAL_NVIC_EnableIRQ(TIM2_IRQn);
 
-        GpioInit( &obj->Tampering, tampering, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
-        GpioSetInterrupt( &obj->Tampering, IRQ_RISING_FALLING_EDGE, IRQ_VERY_HIGH_PRIORITY, EncoderIrq[0]);
-        // GpioSetContext(&obj->Tampering, &obj);
-        GpioInit( &obj->Alarm, alarm, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
-        GpioSetInterrupt( &obj->Alarm, IRQ_FALLING_EDGE, IRQ_VERY_HIGH_PRIORITY, EncoderIrq[1]);
-        // GpioSetContext(&obj->Alarm, &obj);
+        HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
+#endif
+
 
         Encoder.FlowData = &flow;
         Encoder.LastFlowData = &last_flow;
         Encoder.ConfigData = &config;
         // TimerInit( &StorePacketTimer, OnStorePacketTimerEvent );
         // TimerSetValue( &StorePacketTimer, 60000 );
-        HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
+       
     }
 
     CRITICAL_SECTION_END( );
@@ -157,6 +168,41 @@ void OnAlarmIrq( void* context )
     }
 }
 
+#ifdef USE_GPIO
+
+void OnPulseDetected( void* context )
+{
+    CRITICAL_SECTION_BEGIN();
+
+    if (GpioRead(&Encoder.Direction) != GPIO_PIN_RESET)
+    {
+        flow.status |= DIR_FLAG;
+        flow.fwd_cnt++;
+        printf( "\r\nForward cnt : %ld\r\n\r\n",  flow.fwd_cnt);
+    } else {
+        flow.status &= ~DIR_FLAG;
+        flow.rev_cnt++;
+        printf( "\r\nBackward cnt : %ld\r\n\r\n",  flow.rev_cnt);
+    }
+    flow.rate++;
+
+    if (Encoder.OnShowPulseDetect != NULL)
+    {
+        Encoder.OnShowPulseDetect();
+    }
+
+    if(Encoder.ConfigData->isActiveMode == 0) {
+        Encoder.ConfigData->isActiveMode = 1;
+        if (Encoder.OnSendOneshot != NULL)
+        {
+            Encoder.OnSendOneshot(  );  
+        }
+    }
+
+    CRITICAL_SECTION_END();
+}
+
+#else
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	CRITICAL_SECTION_BEGIN();
@@ -183,9 +229,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 
 	CRITICAL_SECTION_END();
 
-    if (Encoder.OnPulseDetect != NULL)
+    if (Encoder.OnShowPulseDetect != NULL)
     {
-        Encoder.OnPulseDetect();
+        Encoder.OnShowPulseDetect();
     }
 
     if(Encoder.ConfigData->isActiveMode == 0) {
@@ -202,6 +248,8 @@ void TIM2_IRQHandler( void )
 {
     HAL_TIM_IRQHandler( &TimHandle );
 }
+
+#endif /* USE_GPIO */
 
 /*!
  * \brief Function executed on Led 4 Timeout event

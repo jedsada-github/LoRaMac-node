@@ -27,5 +27,6 @@
 // An encoder.c file has to be implmented under system directory.
 void OnTamperingIrq( void* context );
 void OnAlarmIrq( void* context );
+void OnPulseDetected( void* context );
 
 #endif // __ENCODER_BOARD_H__

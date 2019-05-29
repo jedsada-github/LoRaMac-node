@@ -425,7 +425,10 @@ void SystemClockConfig( void )
 
     __HAL_RCC_PWR_CLK_ENABLE( );
 
-    __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
+    __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE2 );
+
+    /* Wait Until the Voltage Regulator is ready */
+    while (__HAL_PWR_GET_FLAG(PWR_FLAG_VOS) != RESET);
 
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE ;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
@@ -485,7 +488,7 @@ void CalibrateSystemWakeupTime( void )
 void SystemClockReConfig( void )
 {
     __HAL_RCC_PWR_CLK_ENABLE( );
-    __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
+    __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE2 );
 
     /* Wait Until the Voltage Regulator is ready */
     while (__HAL_PWR_GET_FLAG(PWR_FLAG_VOS) != RESET);
