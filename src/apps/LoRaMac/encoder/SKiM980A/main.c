@@ -518,7 +518,6 @@ static void OnTxNextPacketTimerEvent( void* context )
     LoRaMacStatus_t status;
 
     TimerStop( &TxNextPacketTimer );
-    // TimerStop( &passive_sleep_timer );
 
     mibReq.Type = MIB_NETWORK_ACTIVATION;
     status = LoRaMacMibGetRequestConfirm( &mibReq );
@@ -1123,6 +1122,25 @@ void RestoreUserSetting( void )
     }
 
 }
+
+uint32_t ParseDutyCycleRate(uint8_t rate)
+{
+    switch (rate)
+    {
+    case RATE_15_MIN: // 15 min
+        return 15 * APP_TX_DUTYCYCLE;
+    case RATE_30_MIN: // 30 min
+        return 30 * APP_TX_DUTYCYCLE;
+    case RATE_60_MIN: // 60 min
+        return 60 * APP_TX_DUTYCYCLE;
+    case RATE_90_MIN: // 90 min
+        return 90 * APP_TX_DUTYCYCLE;
+    case RATE_01_MIN: // 1 min
+    default:
+        return APP_TX_DUTYCYCLE;
+    }
+}
+
 /**
  * Main application entry point.
  */
@@ -1385,8 +1403,7 @@ int main( void )
                         Encoder.ConfigData->isActiveMode = 0;
                          printf( "\r\n###### ===== Passive mode ==== ######\r\n\r\n" );
                     } else {
-                        TxDutyCycleTime =  (config.sampling == 0) ? (uint32_t)(APP_TX_DUTYCYCLE) :
-                                            ((uint32_t)config.sampling * (uint32_t) APP_TX_DUTYCYCLE); //Duty cycle 1 ~ 15 min.
+                        TxDutyCycleTime = ParseDutyCycleRate(config.sampling);
                         Encoder.ConfigData->isActiveMode = 1;
                         last_flow = flow;
                         printf( "\r\n###### ===== Active mode ==== ######\r\n\r\n" );

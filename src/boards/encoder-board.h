@@ -24,6 +24,14 @@
 
 #include "encoder.h"
 
+typedef enum {
+    RATE_01_MIN = 0,
+    RATE_15_MIN,
+    RATE_30_MIN,
+    RATE_60_MIN,
+    RATE_90_MIN
+} DUTYCYCLE_RATE ;
+
 // An encoder.c file has to be implmented under system directory.
 void OnTamperingIrq( void* context );
 void OnAlarmIrq( void* context );

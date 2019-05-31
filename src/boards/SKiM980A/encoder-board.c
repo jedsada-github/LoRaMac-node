@@ -124,18 +124,16 @@ void OnTamperingIrq( void* context )
     CRITICAL_SECTION_BEGIN();
     // Encoder_t *obj = (Encoder_t *) context;
     if (GpioRead(&Encoder.Tampering) == GPIO_PIN_RESET) {
-        if (!(flow.status && TAMPER_FLAG)) {
         	flow.status |= TAMPER_FLAG;
             printf( "\r\n###### ===== Tampering attached ==== ######\r\n\r\n" );
+#ifndef USE_GPIO
 		    HAL_TIM_Encoder_Start_IT(&TimHandle, TIM_CHANNEL_1);
-        }
+#endif            
 	} else {
-        if ((flow.status && TAMPER_FLAG))
-        {
             flow.status &= ~TAMPER_FLAG;
 		    printf( "\r\n###### ===== Tampering released ==== ######\r\n\r\n" );
             // HAL_TIM_Encoder_Stop_IT(&TimHandle, TIM_CHANNEL_1);
-        }		
+        		
     }	
     CRITICAL_SECTION_END();
     if (Encoder.OnSendOneshot != NULL)
@@ -149,17 +147,11 @@ void OnAlarmIrq( void* context )
     CRITICAL_SECTION_BEGIN();
     // Encoder_t *obj = (Encoder_t *) context;
     if (GpioRead(&Encoder.Alarm) == GPIO_PIN_RESET) {
-        if (!(flow.status && ALARM_FLAG))
-        {
             flow.status |= ALARM_FLAG;
             printf( "\r\n###### ===== Alarm ==== ######\r\n\r\n" );
-        }
 	} else {
-        if ((flow.status && ALARM_FLAG)) 
-        {
             flow.status &= ~ALARM_FLAG;
             printf( "\r\n###### ===== Silent ==== ######\r\n\r\n" );
-        }
 	}
     CRITICAL_SECTION_END();  
     if (Encoder.OnSendOneshot != NULL && config.digital_alarm > 0) 
@@ -191,15 +183,15 @@ void OnPulseDetected( void* context )
         Encoder.OnShowPulseDetect();
     }
 
+    CRITICAL_SECTION_END();
+
     if(Encoder.ConfigData->isActiveMode == 0) {
         Encoder.ConfigData->isActiveMode = 1;
         if (Encoder.OnSendOneshot != NULL)
         {
             Encoder.OnSendOneshot(  );  
         }
-    }
-
-    CRITICAL_SECTION_END();
+    }  
 }
 
 #else
