@@ -21,6 +21,8 @@
  * \author    Gregory Cristian ( Semtech )
  */
 
+#include "wdt.h"
+
 /*!
  * \brief  This function handles NMI exception.
  * \param  None
@@ -67,6 +69,10 @@ void HardFault_Handler_C( unsigned int *args )
     ( void )stacked_lr ;
     ( void )stacked_pc ;
     ( void )stacked_psr;
+
+    // WWDG start
+    Wdt_t wwdt;
+    WdtInit( &wwdt, WDT_WWDG);
 
     while( 1 );
 }

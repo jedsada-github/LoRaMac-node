@@ -86,5 +86,5 @@ void WWDG_IRQHandler(void)
 
 void HAL_WWDG_EarlyWakeupCallback(WWDG_HandleTypeDef *hwwdg)
 {
-
+    printf("***Hardware fault****\r\n");
 }

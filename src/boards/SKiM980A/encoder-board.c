@@ -38,7 +38,9 @@ Encoder_t Encoder;
 flow_t flow;
 flow_t last_flow;
 flow_config_t config;
+#ifndef USE_GPIO
 static TIM_HandleTypeDef TimHandle;
+#endif
 extern Gpio_t Led3;
 
 /*!
@@ -116,7 +118,9 @@ void EncoderInit( Encoder_t *obj, EncoderId_t timId, PinNames pulse, PinNames di
 
 void EncoderDeInit( Encoder_t *obj )
 {
-    HAL_TIM_Encoder_DeInit(&TimHandle);
+#ifndef USE_GPIO
+    // HAL_TIM_Encoder_DeInit(&TimHandle);
+#endif
 }
 
 void OnTamperingIrq( void* context )
@@ -132,14 +136,18 @@ void OnTamperingIrq( void* context )
 	} else {
             flow.status &= ~TAMPER_FLAG;
 		    printf( "\r\n###### ===== Tampering released ==== ######\r\n\r\n" );
+#ifndef USE_GPIO
             // HAL_TIM_Encoder_Stop_IT(&TimHandle, TIM_CHANNEL_1);
+#endif
         		
     }	
-    CRITICAL_SECTION_END();
+    
     if (Encoder.OnSendOneshot != NULL)
     {
         Encoder.OnSendOneshot(  );  
     }
+    
+    CRITICAL_SECTION_END();
 }
 
 void OnAlarmIrq( void* context )
@@ -153,11 +161,13 @@ void OnAlarmIrq( void* context )
             flow.status &= ~ALARM_FLAG;
             printf( "\r\n###### ===== Silent ==== ######\r\n\r\n" );
 	}
-    CRITICAL_SECTION_END();  
+    
     if (Encoder.OnSendOneshot != NULL && config.digital_alarm > 0) 
     {
         Encoder.OnSendOneshot(  );
     }
+
+    CRITICAL_SECTION_END();  
 }
 
 #ifdef USE_GPIO
@@ -183,8 +193,6 @@ void OnPulseDetected( void* context )
         Encoder.OnShowPulseDetect();
     }
 
-    CRITICAL_SECTION_END();
-
     if(Encoder.ConfigData->isActiveMode == 0) {
         Encoder.ConfigData->isActiveMode = 1;
         if (Encoder.OnSendOneshot != NULL)
@@ -192,6 +200,8 @@ void OnPulseDetected( void* context )
             Encoder.OnSendOneshot(  );  
         }
     }  
+    
+    CRITICAL_SECTION_END();
 }
 
 #else
