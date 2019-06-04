@@ -58,4 +58,6 @@ void AdcDeInit( Adc_t *obj );
  */
 uint16_t AdcReadChannel( Adc_t *obj, uint32_t channel );
 
+void AdcSetWatchdogLVL( Adc_t *obj, uint32_t channel, uint32_t lower_threshold );
+
 #endif // __ADC_H__

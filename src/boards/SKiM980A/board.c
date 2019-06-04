@@ -656,6 +656,10 @@ void BoardLowPowerHandler( void )
     __enable_irq( );
 }
 
+void BoardSetADCAlarmLVL(uint32_t lower_threshold) 
+{
+    AdcSetWatchdogLVL(&Adc, ADC_CHANNEL_3, lower_threshold );
+}
 /**
   * @brief This function configures the source of the time base.
   * @brief  don't enable systick

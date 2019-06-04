@@ -30,6 +30,7 @@ typedef enum {
     RATE_30_MIN,
     RATE_60_MIN,
     RATE_90_MIN
+    /* 5 to 15 reserved for default RATE_01_MIN */
 } DUTYCYCLE_RATE ;
 
 // An encoder.c file has to be implmented under system directory.

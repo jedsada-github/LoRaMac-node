@@ -120,4 +120,6 @@ uint8_t GetBoardPowerSource( void );
  */
 Version_t BoardGetVersion( void );
 
+void BoardSetADCAlarmLVL(uint32_t lower_threshold);
+
 #endif // __BOARD_H__

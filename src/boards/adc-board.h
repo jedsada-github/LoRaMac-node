@@ -53,4 +53,14 @@ void AdcMcuConfig( void );
  */
 uint16_t AdcMcuReadChannel( Adc_t *obj, uint32_t channel );
 
+/*!
+ * \brief Set AWD the value of the given channel
+ *
+ * \param [IN] obj     ADC object
+ * \param [IN] channel ADC input channel
+ * \param [IN] high_lvl ADC high level threshold
+ * \param [IN] low_lvl ADC low level threshold
+ */
+void AdcMcuWatchdog( Adc_t *obj, uint32_t channel, uint32_t high_lvl, uint32_t low_lvl);
+
 #endif // __ADC_BOARD_H__

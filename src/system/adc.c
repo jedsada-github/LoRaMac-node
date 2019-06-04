@@ -56,3 +56,8 @@ uint16_t AdcReadChannel( Adc_t *obj, uint32_t channel )
         return 0;
     }
 }
+
+void AdcSetWatchdogLVL( Adc_t *obj, uint32_t channel, uint32_t lower_threshold )
+{
+    AdcMcuWatchdog( obj, channel, UINT32_MAX,  lower_threshold);
+}
