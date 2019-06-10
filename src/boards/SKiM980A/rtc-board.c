@@ -484,9 +484,6 @@ static uint64_t RtcGetCalendarValue( RTC_DateTypeDef* date, RTC_TimeTypeDef* tim
     uint32_t correction;
     uint32_t seconds;
 
-    // Get Time and Date
-    HAL_RTC_GetTime( &RtcHandle, time, RTC_FORMAT_BIN );
-
     // Make sure it is correct due to asynchronus nature of RTC
     do
     {
