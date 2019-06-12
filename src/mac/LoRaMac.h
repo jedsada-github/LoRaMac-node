@@ -308,14 +308,6 @@ typedef struct sLoRaMacCtxs
      * \brief   Size of MLME Confirm queue module context
      */
     size_t ConfirmQueueNvmCtxSize;
-    /*!
-     * \brief   Pointer to FCnt handler module context
-     */
-    void* FCntHandlerNvmCtx;
-    /*!
-     * \brief   Size of FCnt handler module context
-     */
-    size_t FCntHandlerNvmCtxSize;
 }LoRaMacCtxs_t;
 
 /*!
@@ -439,7 +431,7 @@ typedef struct sBeaconInfo
      * Timestamp in seconds since 00:00:00, Sunday 6th of January 1980
      * (start of the GPS epoch) modulo 2^32
      */
-    uint32_t Time;
+    SysTime_t Time;
     /*!
      * Frequency
      */
@@ -568,23 +560,27 @@ typedef union eLoRaMacFlags_t
         /*!
          * MCPS-Req pending
          */
-        uint8_t McpsReq         : 1;
+        uint8_t McpsReq                 : 1;
         /*!
          * MCPS-Ind pending
          */
-        uint8_t McpsInd         : 1;
+        uint8_t McpsInd                 : 1;
         /*!
          * MLME-Req pending
          */
-        uint8_t MlmeReq         : 1;
+        uint8_t MlmeReq                 : 1;
         /*!
          * MLME-Ind pending
          */
-        uint8_t MlmeInd         : 1;
+        uint8_t MlmeInd                 : 1;
+        /*!
+         * MLME-Ind to schedule an uplink pending
+         */
+        uint8_t MlmeSchedUplinkInd      : 1;
         /*!
          * MAC cycle done
          */
-        uint8_t MacDone         : 1;
+        uint8_t MacDone                 : 1;
     }Bits;
 }LoRaMacFlags_t;
 
@@ -2276,10 +2272,6 @@ typedef enum LoRaMacNvmCtxModule_e
      * Context for the confirm queue
      */
     LORAMAC_NVMCTXMODULE_CONFIRM_QUEUE,
-    /*!
-     * Context for the frame count handler
-     */
-    LORAMAC_NVMCTXMODULE_FCNT_HANDLER
 }LoRaMacNvmCtxModule_t;
 
 
