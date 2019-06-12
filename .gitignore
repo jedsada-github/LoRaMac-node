@@ -26,3 +26,8 @@ tmp/
 .vscode/launch.json
 .cmaketools.json
 ipch/
+.settings/
+Debug/
+*.tsc
+*.tsp
+.vscode/c_cpp_properties.json

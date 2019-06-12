@@ -32,7 +32,7 @@
         "SUB_PROJECT":"encoder",
 
         // Switch for Class B support of LoRaMac:
-        "CLASSB_ENABLED":"ON",
+        "CLASSB_ENABLED":"OFF",
 
         // Select the active region for which the stack will be initialized.
         // You can choose between:

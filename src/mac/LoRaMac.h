@@ -308,14 +308,6 @@ typedef struct sLoRaMacCtxs
      * \brief   Size of MLME Confirm queue module context
      */
     size_t ConfirmQueueNvmCtxSize;
-    /*!
-     * \brief   Pointer to FCnt handler module context
-     */
-    void* FCntHandlerNvmCtx;
-    /*!
-     * \brief   Size of FCnt handler module context
-     */
-    size_t FCntHandlerNvmCtxSize;
 }LoRaMacCtxs_t;
 
 /*!
@@ -363,7 +355,7 @@ typedef struct sLoRaMacParams
      */
     uint32_t JoinAcceptDelay2;
     /*!
-     * Number of uplink messages repetitions [1:15]
+     * Number of uplink messages repetitions [1:15] (unconfirmed messages only)
      */
     uint8_t ChannelsNbTrans;
     /*!
@@ -785,7 +777,7 @@ typedef struct sMcpsConfirm
     /*!
      * Provides the number of retransmissions
      */
-    uint8_t NbTrans;
+    uint8_t NbRetries;
     /*!
      * The transmission time on air of the frame
      */
@@ -880,14 +872,11 @@ typedef struct sMcpsIndication
  * Name                         | Request | Indication | Response | Confirm
  * ---------------------------- | :-----: | :--------: | :------: | :-----:
  * \ref MLME_JOIN               | YES     | NO         | NO       | YES
- * \ref MLME_REJOIN_0           | YES     | NO         | NO       | YES
- * \ref MLME_REJOIN_1           | YES     | NO         | NO       | YES
  * \ref MLME_LINK_CHECK         | YES     | NO         | NO       | YES
  * \ref MLME_TXCW               | YES     | NO         | NO       | YES
  * \ref MLME_SCHEDULE_UPLINK    | NO      | YES        | NO       | NO
  * \ref MLME_DERIVE_MC_KE_KEY   | YES     | NO         | NO       | YES
  * \ref MLME_DERIVE_MC_KEY_PAIR | YES     | NO         | NO       | YES
- * \ref MLME_REVERT_JOIN        | NO      | YES        | NO       | NO
  *
  * The following table provides links to the function implementations of the
  * related MLME primitives.
@@ -989,13 +978,6 @@ typedef enum eMlme
      * LoRaWAN end-device certification
      */
     MLME_BEACON_LOST,
-    /*!
-     *
-     * Indicates that the device hasn't received a RekeyConf and it reverts to the join state.
-     *
-     * \remark The upper layer is required to trigger the Join process again.
-     */
-    MLME_REVERT_JOIN,
 }Mlme_t;
 
 /*!
@@ -1248,9 +1230,6 @@ typedef struct sMlmeIndication
  * \ref MIB_DEFAULT_ANTENNA_GAIN                 | YES | YES
  * \ref MIB_NVM_CTXS                             | YES | YES
  * \ref MIB_ABP_LORAWAN_VERSION                  | YES | YES
- * \ref MIB_REJOIN_0_CYCLE                       | YES | YES
- * \ref MIB_REJOIN_1_CYCLE                       | YES | YES
- * \ref MIB_REJOIN_2_CYCLE                       | YES | NO
  *
  * The following table provides links to the function implementations of the
  * related MIB primitives:
@@ -1489,7 +1468,7 @@ typedef enum eMib
     /*!
      * Set the number of repetitions on a channel
      *
-     * LoRaWAN Specification V1.0.2, chapter 5.2, V1.1.0, chapter 5.3
+     * LoRaWAN Specification V1.0.2, chapter 5.2
      */
     MIB_CHANNELS_NB_TRANS,
     /*!
@@ -1595,18 +1574,6 @@ typedef enum eMib
      * LoRaWAN MAC layer operating version when activated by ABP.
      */
     MIB_ABP_LORAWAN_VERSION,
-    /*!
-     * Time between periodic transmission of a Type 0 Rejoin request.
-     */
-    MIB_REJOIN_0_CYCLE,
-    /*!
-     * Time between periodic transmission of a Type 1 Rejoin request.
-     */
-    MIB_REJOIN_1_CYCLE,
-    /*!
-     * Time between periodic transmission of a Type 2 Rejoin request.
-     */
-    MIB_REJOIN_2_CYCLE,
     /*!
      * Beacon interval in ms
      */
@@ -1991,18 +1958,6 @@ typedef union uMibParam
      */
     Version_t AbpLrWanVersion;
     /*!
-     * Time in seconds between cyclic transmission of Type 0 Rejoin requests.
-     */
-    uint32_t Rejoin0CycleInSec;
-    /*!
-     * Time in seconds between cyclic transmission of Type 1 Rejoin requests.
-     */
-    uint32_t Rejoin1CycleInSec;
-    /*!
-     * Time in seconds between cyclic transmission of Type 2 Rejoin requests.
-     */
-    uint32_t Rejoin2CycleInSec;
-    /*!
      * Beacon interval in ms
      *
      * Related MIB type: \ref MIB_BEACON_INTERVAL
@@ -2301,10 +2256,6 @@ typedef enum LoRaMacNvmCtxModule_e
      * Context for the confirm queue
      */
     LORAMAC_NVMCTXMODULE_CONFIRM_QUEUE,
-    /*!
-     * Context for the frame count handler
-     */
-    LORAMAC_NVMCTXMODULE_FCNT_HANDLER
 }LoRaMacNvmCtxModule_t;
 
 
