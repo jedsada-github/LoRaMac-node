@@ -211,8 +211,6 @@ static void ComputePingOffset( uint64_t beaconTime, uint32_t address, uint16_t p
     buffer[6] = ( address >> 16 ) & 0xFF;
     buffer[7] = ( address >> 24 ) & 0xFF;
 
-    SecureElementSetKey( SLOT_RAND_ZERO_KEY, zeroKey );
-
     SecureElementAesEncrypt( buffer, 16, SLOT_RAND_ZERO_KEY, cipher );
 
     result = ( ( ( uint32_t ) cipher[0] ) + ( ( ( uint32_t ) cipher[1] ) * 256 ) );
