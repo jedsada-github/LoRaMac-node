@@ -562,6 +562,11 @@ bool RadioIsChannelFree( RadioModems_t modem, uint32_t freq, int16_t rssiThresh,
     int16_t rssi = 0;
     uint32_t carrierSenseTime = 0;
 
+    if( RadioGetStatus( ) != RF_IDLE )
+    {
+        return false;
+    }
+
     RadioSetModem( modem );
 
     RadioSetChannel( freq );
@@ -968,8 +973,8 @@ void RadioSetTxContinuousWave( uint32_t freq, int8_t power, uint16_t time )
     SX126xSetRfTxPower( power );
     SX126xSetTxContinuousWave( );
 
-    TimerSetValue( &RxTimeoutTimer, time  * 1e3 );
-    TimerStart( &RxTimeoutTimer );
+    TimerSetValue( &TxTimeoutTimer, time  * 1e3 );
+    TimerStart( &TxTimeoutTimer );
 }
 
 int16_t RadioRssi( RadioModems_t modem )

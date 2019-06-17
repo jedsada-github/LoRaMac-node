@@ -24,6 +24,7 @@
 #include "utilities.h"
 #include "board.h"
 #include "uart-board.h"
+#include "uart-usb-board.h"
 
 /*!
  * Number of times the UartPutBuffer will try to send the buffer before
