@@ -82,6 +82,13 @@
         "stm32l1xx_hal_conf.h": "c",
         "usbd_cdc_if.h": "c",
         "usb_device.h": "c",
-        "stm32l1xx_hal_pcd.h": "c"
+        "stm32l1xx_hal_pcd.h": "c",
+        "usbd_cdc.h": "c",
+        "usbd_desc.h": "c",
+        "usbd_def.h": "c",
+        "stm32l1xx.h": "c",
+        "stm32l151xba.h": "c",
+        "uart.h": "c",
+        "gps.h": "c"
     }
 }

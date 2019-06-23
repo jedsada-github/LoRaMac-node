@@ -40,7 +40,7 @@
 /* USER CODE END PV */
 
 PCD_HandleTypeDef hpcd_USB_FS;
-void Error_Handler(void);
+// void Error_Handler(void);
 
 /* USER CODE BEGIN 0 */
 
@@ -67,14 +67,32 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
   if(pcdHandle->Instance==USB)
   {
   /* USER CODE BEGIN USB_MspInit 0 */
+      GPIO_InitTypeDef  GPIO_InitStruct;
+
+  /* Enable the GPIOA clock */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /* Configure USB DM/DP pin. This is optional, and maintained only for user guidance.
+     For the STM32L products there is no need to configure the PA12/PA11 pins couple
+     as Alternate Function */
+  GPIO_InitStruct.Pin = (GPIO_PIN_11 | GPIO_PIN_12);
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE END USB_MspInit 0 */
-    /* Peripheral clock enable */
-    __HAL_RCC_USB_CLK_ENABLE();
+      /* Enable USB Clock */
+  __HAL_RCC_USB_CLK_ENABLE();
 
-    /* Peripheral interrupt init */
-    HAL_NVIC_SetPriority(USB_LP_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(USB_LP_IRQn);
+  /* Enable SYSCFG Clock */
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+  /* Set USB Interrupt priority */
+  HAL_NVIC_SetPriority(USB_LP_IRQn, 0, 0);
+
+  /* Enable USB Interrupt */
+  HAL_NVIC_EnableIRQ(USB_LP_IRQn);
   /* USER CODE BEGIN USB_MspInit 1 */
 
   /* USER CODE END USB_MspInit 1 */
@@ -173,7 +191,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
 
   if ( hpcd->Init.speed != PCD_SPEED_FULL)
   {
-    Error_Handler();
+    // Error_Handler();
   }
     /* Set Speed. */
   USBD_LL_SetSpeed((USBD_HandleTypeDef*)hpcd->pData, speed);
@@ -306,7 +324,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   hpcd_USB_FS.Init.battery_charging_enable = DISABLE;
   if (HAL_PCD_Init(&hpcd_USB_FS) != HAL_OK)
   {
-    // Error_Handler( );
+    assert_param( FAIL ); // Error_Handler( );
   }
 
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
@@ -327,11 +345,13 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   /* USER CODE BEGIN EndPoint_Configuration */
   HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x00 , PCD_SNG_BUF, 0x18);
   HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x80 , PCD_SNG_BUF, 0x58);
+  // HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x00 , PCD_SNG_BUF, 0x40);
+  // HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x80 , PCD_SNG_BUF, 0x80);
   /* USER CODE END EndPoint_Configuration */
   /* USER CODE BEGIN EndPoint_Configuration_CDC */
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x81 , PCD_SNG_BUF, 0xC0);
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x01 , PCD_SNG_BUF, 0x110);
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x82 , PCD_SNG_BUF, 0x100);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_IN_EP , PCD_SNG_BUF, 0xC0);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_OUT_EP , PCD_SNG_BUF, 0x110);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_CMD_EP , PCD_SNG_BUF, 0x100);
   /* USER CODE END EndPoint_Configuration_CDC */
   return USBD_OK;
 }
@@ -597,6 +617,26 @@ void *USBD_static_malloc(uint32_t size)
 void USBD_static_free(void *p)
 {
 
+}
+
+/**
+  * @brief  Software Device Connection
+  * @param  hpcd: PCD handle
+  * @param  state: connection state (0 : disconnected / 1: connected)
+  * @retval None
+  */
+void HAL_PCDEx_SetConnectionState(PCD_HandleTypeDef *hpcd, uint8_t state)
+{
+  if (state == 1)
+  {
+    /*  DP Pull-Down is Internal */
+    __HAL_SYSCFG_USBPULLUP_ENABLE();
+  }
+  else
+  {
+    /*  DP Pull-Down is Internal */
+    __HAL_SYSCFG_USBPULLUP_DISABLE();
+  }
 }
 
 /**

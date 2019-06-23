@@ -89,17 +89,23 @@
 #define I2C_SCL                                     PB_8
 #define I2C_SDA                                     PB_9
 
-#define UART_TX                                     PA_9
-#define UART_RX                                     PA_10
+#define GPS_UART_TX                                 PA_9
+#define GPS_UART_RX                                 PA_10
 
 #if ( USE_POTENTIOMETER == 1 )
 #define POTI                                        PA_3
 #else
 #define LED_1                                       PA_3
 #endif
-#define LED_2                                       PA_0
-#define LED_3                                       PA_1
-#define LED_4                                       PA_8
+#define PULSE                                       PA_0
+#define DIR                                         PA_1
+#define TAMPERING                                   PA_8
+#define GPS_POWER_ON                                PB_12
+#define LED_1                                       JTAG_TDO
+#define LED_2                                       PB_14
+#define LED_3                                       PB_13
+#define LED_4                                       PB_15
+#define USER_BUTTON                                 JTAG_TDI
 
 // Debug pins definition.
 #define RADIO_DBG_PIN_TX                            NC

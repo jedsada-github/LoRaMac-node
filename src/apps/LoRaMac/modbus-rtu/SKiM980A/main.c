@@ -143,6 +143,11 @@ static TimerEvent_t Led2Timer;
  */
 static TimerEvent_t LedBeaconTimer;
 
+/*!
+ * Timer to handle the state of LED2
+ */
+static TimerEvent_t LedHeartBeatTimer;
+
 static void OnMacProcessNotify( void );
 static void OnNvmContextChange( LmHandlerNvmContextStates_t state );
 static void OnNetworkParametersChange( CommissioningParams_t* params );
@@ -177,6 +182,11 @@ static void OnLed2TimerEvent( void* context );
  * \brief Function executed on Beacon timer Timeout event
  */
 static void OnLedBeaconTimerEvent( void* context );
+
+/*!
+ * \brief Function executed on Heart beat timer Timeout event
+ */
+static void OnLedHeartBeatTimerEvent( void* context );
 
 static LmHandlerCallbacks_t LmHandlerCallbacks =
 {
@@ -230,6 +240,7 @@ static volatile uint8_t IsTxFramePending = 0;
 extern Gpio_t Led4; // Tx
 extern Gpio_t Led2; // Rx and blinks every 5 seconds when beacon is acquired
 extern Gpio_t Led3; // App
+extern Gpio_t Led1; // Heart beat
 
 /*!
  * Main application entry point.
@@ -247,6 +258,10 @@ int main( void )
 
     TimerInit( &LedBeaconTimer, OnLedBeaconTimerEvent );
     TimerSetValue( &LedBeaconTimer, 5000 );
+
+    TimerInit( &LedHeartBeatTimer, OnLedHeartBeatTimerEvent );
+    TimerSetValue( &LedHeartBeatTimer, 500 );
+    TimerStart( &LedHeartBeatTimer );
 
     const Version_t appVersion = { .Fields.Major = 1, .Fields.Minor = 0, .Fields.Revision = 0 };
     const Version_t gitHubVersion = { .Fields.Major = 4, .Fields.Minor = 4, .Fields.Revision = 2 };
@@ -510,3 +525,14 @@ static void OnLedBeaconTimerEvent( void* context )
 
     TimerStart( &LedBeaconTimer );
 }
+
+/*!
+ * \brief Function executed on Heart Beat timer Timeout event
+ */
+static void OnLedHeartBeatTimerEvent( void* context )
+{
+    TimerStop( &LedHeartBeatTimer );
+    GpioToggle( &Led1 );
+    TimerStart( &LedHeartBeatTimer );
+}
+

@@ -45,6 +45,8 @@ void UartMcuInit( Uart_t *obj, UartId_t uartId, PinNames tx, PinNames rx )
     if( uartId == UART_USB_CDC )
     {
 #if defined( USE_USB_CDC )
+        GpioInit( &obj->Tx, tx, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, GPIO_SPEED_FREQ_VERY_HIGH );
+        GpioInit( &obj->Rx, rx, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, GPIO_SPEED_FREQ_VERY_HIGH );
         UartUsbInit( obj, uartId, NC, NC );
 #endif
     }

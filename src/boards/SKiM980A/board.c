@@ -35,6 +35,7 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
+#include "gps.h"
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -49,6 +50,7 @@
 #if ( USE_POTENTIOMETER == 0 )
 Gpio_t Led1;
 #endif
+Gpio_t Led1;
 Gpio_t Led2;
 Gpio_t Led3;
 Gpio_t Led4;
@@ -59,6 +61,7 @@ Gpio_t Led4;
 Adc_t Adc;
 I2c_t I2c;
 Uart_t Uart1;
+Uart_t Usb;
 
 /*!
  * Initializes the unused GPIO to a know status
@@ -93,11 +96,11 @@ static bool McuInitialized = false;
 /*!
  * UART2 FIFO buffers size
  */
-#define UART1_FIFO_TX_SIZE                                1024
-#define UART1_FIFO_RX_SIZE                                1024
+// #define UART1_FIFO_TX_SIZE                                1024
+// #define UART1_FIFO_RX_SIZE                                1024
 
-uint8_t Uart1TxBuffer[UART1_FIFO_TX_SIZE];
-uint8_t Uart1RxBuffer[UART1_FIFO_RX_SIZE];
+// uint8_t Uart1TxBuffer[UART1_FIFO_TX_SIZE];
+// uint8_t Uart1RxBuffer[UART1_FIFO_RX_SIZE];
 
 /*!
  * Flag to indicate if the SystemWakeupTime is Calibrated
@@ -139,17 +142,23 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 #endif
+        GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
         SystemClockConfig( );
-
+        
+        // Configure your terminal for 8 Bits data (7 data bit + 1 parity bit), no parity and no flow ctrl
+#if defined( USE_USB_CDC )
+        UartInit( &Usb, UART_USB_CDC, USB_DP, USB_DM );
+#else
         FifoInit( &Uart1.FifoTx, Uart1TxBuffer, UART1_FIFO_TX_SIZE );
         FifoInit( &Uart1.FifoRx, Uart1RxBuffer, UART1_FIFO_RX_SIZE );
-        // Configure your terminal for 8 Bits data (7 data bit + 1 parity bit), no parity and no flow ctrl
+
         UartInit( &Uart1, UART_1, UART_TX, UART_RX );
         UartConfig( &Uart1, RX_TX, 9600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
+#endif
 
         RtcInit( );
 
@@ -157,6 +166,7 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioWrite( &Led1, 0 );
 #endif
+        GpioWrite( &Led1, 0 );
         GpioWrite( &Led2, 0 );
         GpioWrite( &Led3, 0 );
         GpioWrite( &Led4, 0 );
@@ -547,7 +557,7 @@ void BoardLowPowerHandler( void )
  */
 int _write( int fd, const void *buf, size_t count )
 {
-    while( UartPutBuffer( &Uart1, ( uint8_t* )buf, ( uint16_t )count ) != 0 ){ };
+    while( UartPutBuffer( &Usb, ( uint8_t* )buf, ( uint16_t )count ) != 0 ){ };
     return count;
 }
 
@@ -557,9 +567,9 @@ int _write( int fd, const void *buf, size_t count )
 int _read( int fd, const void *buf, size_t count )
 {
     size_t bytesRead = 0;
-    while( UartGetBuffer( &Uart1, ( uint8_t* )buf, count, ( uint16_t* )&bytesRead ) != 0 ){ };
+    while( UartGetBuffer( &Usb, ( uint8_t* )buf, count, ( uint16_t* )&bytesRead ) != 0 ){ };
     // Echo back the character
-    while( UartPutBuffer( &Uart1, ( uint8_t* )buf, ( uint16_t )bytesRead ) != 0 ){ };
+    while( UartPutBuffer( &Usb, ( uint8_t* )buf, ( uint16_t )bytesRead ) != 0 ){ };
     return bytesRead;
 }
 

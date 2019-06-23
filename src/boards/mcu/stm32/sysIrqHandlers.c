@@ -21,6 +21,8 @@
  * \author    Gregory Cristian ( Semtech )
  */
 
+#define HARD_FAULT_HANDLER_ENABLED
+
 /*!
  * \brief  This function handles NMI exception.
  * \param  None

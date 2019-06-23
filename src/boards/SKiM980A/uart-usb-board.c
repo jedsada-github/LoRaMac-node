@@ -10,13 +10,15 @@
  *
  * \endcode
  *
- * \author    Anol Paisal (EmOne)
+ * \author    Anol Paisal (anol.p@emone.co.th)
  *
  */
 
 #include "uart-usb-board.h"
 #include "usb_device.h"
+#include "usbd_cdc_if.h"
 
+extern PCD_HandleTypeDef hpcd_USB_FS;
 /*!
  * \brief Initializes the UART object and MCU peripheral
  *
@@ -42,7 +44,7 @@ void UartUsbInit( Uart_t *obj, UartId_t uartId, PinNames tx, PinNames rx )
  */
 void UartUsbConfig( Uart_t *obj, UartMode_t mode, uint32_t baudrate, WordLength_t wordLength, StopBits_t stopBits, Parity_t parity, FlowCtrl_t flowCtrl )
 {
-
+    
 }
 
 /*!
@@ -74,7 +76,7 @@ uint8_t UartUsbIsUsbCableConnected( void )
  * \retval status     [0: OK, 1: Busy, 2: Fail]
  */
 uint8_t UartUsbPutBuffer( Uart_t *obj, uint8_t *buffer, uint16_t size ) {
-    return 0;
+    return CDC_Transmit_FS(buffer, size);
 }
 
 /*!
@@ -85,7 +87,7 @@ uint8_t UartUsbPutBuffer( Uart_t *obj, uint8_t *buffer, uint16_t size ) {
  * \retval status    [0: OK, 1: Busy, 2: Fail]
  */
 uint8_t UartUsbPutChar( Uart_t *obj, uint8_t data ) {
-    return 0;
+    return CDC_Transmit_FS(&data, 1);
 }
 
 /*!
@@ -97,4 +99,18 @@ uint8_t UartUsbPutChar( Uart_t *obj, uint8_t data ) {
  */
 uint8_t UartUsbGetChar( Uart_t *obj, uint8_t *data ) {
     return 0;
+}
+
+/**
+  * @brief This function handles USB low priority interrupt.
+  */
+void USB_LP_IRQHandler(void)
+{
+  /* USER CODE BEGIN USB_LP_IRQn 0 */
+
+  /* USER CODE END USB_LP_IRQn 0 */
+  HAL_PCD_IRQHandler(&hpcd_USB_FS);
+  /* USER CODE BEGIN USB_LP_IRQn 1 */
+
+  /* USER CODE END USB_LP_IRQn 1 */
 }
