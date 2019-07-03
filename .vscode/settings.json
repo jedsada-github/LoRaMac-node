@@ -64,7 +64,10 @@
         "REGION_CN470":"OFF",
         "REGION_KR920":"OFF",
         "REGION_IN865":"OFF",
-        "REGION_RU864":"OFF"
+        "REGION_RU864":"OFF",
+
+        "USE_USB_CDC":"ON",
+        "USE_ENCODER":"ON"
     },
     "files.associations": {
         "nvmctxmgmt.h": "c",
@@ -75,6 +78,15 @@
         "encoder-board.h": "c",
         "spi-board.h": "c",
         "spi.h": "c",
-        "encoder.h": "c"
+        "encoder.h": "c",
+        "uart-usb-board.h": "c",
+        "uart-board.h": "c",
+        "usb_device.h": "c",
+        "usbd_def.h": "c",
+        "stm32l1xx_hal.h": "c",
+        "stm32l1xx_hal_conf.h": "c",
+        "stm32l1xx_hal_pcd.h": "c",
+        "stm32l1xx_hal_def.h": "c",
+        "stm32_hal_legacy.h": "c"
     }
 }

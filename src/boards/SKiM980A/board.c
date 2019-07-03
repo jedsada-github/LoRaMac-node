@@ -35,6 +35,7 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
+#include "gps-board.h"
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -153,12 +154,15 @@ void BoardInitMcu( void )
 
         SystemClockConfig( );
 
+#if defined ( USE_USB_CDC )
+        UartInit( &Uart1, UART_USB_CDC, USB_DP, USB_DM );
+#else
         FifoInit( &Uart1.FifoTx, Uart1TxBuffer, UART1_FIFO_TX_SIZE );
         FifoInit( &Uart1.FifoRx, Uart1RxBuffer, UART1_FIFO_RX_SIZE );
         // Configure your terminal for 8 Bits data (7 data bit + 1 parity bit), no parity and no flow ctrl
         UartInit( &Uart1, UART_1, UART_TX, UART_RX );
         UartConfig( &Uart1, RX_TX, 115200, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
-
+#endif
         RtcInit( );
 
         // Switch LED 1, 2, 3, 4 OFF
@@ -425,7 +429,7 @@ void SystemClockConfig( void )
 
     __HAL_RCC_PWR_CLK_ENABLE( );
 
-    __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE2 );
+    __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
 
     /* Wait Until the Voltage Regulator is ready */
     while (__HAL_PWR_GET_FLAG(PWR_FLAG_VOS) != RESET);
@@ -435,7 +439,7 @@ void SystemClockConfig( void )
     // RCC_OscInitStruct.HSIState       = RCC_HSI_ON;
     // RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.LSEState       = RCC_LSE_ON;
-    RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
+    // RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL6;
@@ -699,6 +703,10 @@ void HAL_MspInit(void)
 
   /*Disable fast wakeUp*/
   HAL_PWREx_EnableFastWakeUp( );
+}
+
+void Error_Handler(void) {
+    assert_param( FAIL );
 }
 
 #if !defined ( __CC_ARM )

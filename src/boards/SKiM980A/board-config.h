@@ -50,7 +50,8 @@
 #define USE_POTENTIOMETER                           1
 #define USE_SPI                                     0
 #define USE_ENCODER                                 1
-
+#define USE_GPS                                     1
+#define USE_USB_CDC                                 1
 /*!
  * Board MCU pins definitions
  */
@@ -112,6 +113,13 @@
 #define LED_2                                       PA_0
 #define LED_3                                       PA_1
 #define LED_4                                       PA_8
+#endif
+
+#if (USE_GPS == 1)
+#define GPS_UART_TX                                 UART_TX
+#define GPS_UART_RX                                 UART_RX
+#define GPS_POWER_ON                                ALARM
+#define GPS_PPS                                     NC
 #endif
 
 #if (USE_SPI == 1)

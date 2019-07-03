@@ -24,6 +24,8 @@
 #include "utilities.h"
 #include "board.h"
 #include "uart-board.h"
+#include "uart-usb-board.h"
+#include "usb_device.h"
 
 /*!
  * Number of times the UartPutBuffer will try to send the buffer before
@@ -41,12 +43,11 @@ extern Uart_t Uart1;
 void UartMcuInit( Uart_t *obj, UartId_t uartId, PinNames tx, PinNames rx )
 {
     obj->UartId = uartId;
-
     if( uartId == UART_USB_CDC )
     {
-#if defined( USE_USB_CDC )
-        UartUsbInit( obj, uartId, NC, NC );
-#endif
+// #if defined( USE_USB_CDC )
+        UartUsbInit( obj, uartId, tx, rx );
+// #endif
     }
     else
     {
@@ -385,3 +386,4 @@ void DMA1_Channel4_IRQHandler(void)
 
   /* USER CODE END DMA1_Channel4_IRQn 1 */
 }
+
