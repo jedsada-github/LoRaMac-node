@@ -31,3 +31,4 @@ Debug/
 *.tsc
 *.tsp
 .vscode/c_cpp_properties.json
+*.tdc
