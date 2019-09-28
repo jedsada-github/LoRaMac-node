@@ -54,9 +54,9 @@
 
 #define RF_FREQUENCY                                915000000 // Hz
 
-#elif defined( REGION_US915_HYBRID )
+#elif defined( REGION_RU864 )
 
-#define RF_FREQUENCY                                915000000 // Hz
+#define RF_FREQUENCY                                864000000 // Hz
 
 #else
 
@@ -91,7 +91,7 @@ extern Gpio_t Led3;
 /*!
  * \brief Function executed on Led 1 Timeout event
  */
-void OnLed1TimerEvent( void )
+void OnLed1TimerEvent( void* context )
 {
     Led1TimerEvent = true;
 }
@@ -99,7 +99,7 @@ void OnLed1TimerEvent( void )
 /*!
  * \brief Function executed on Led 2 Timeout event
  */
-void OnLed2TimerEvent( void )
+void OnLed2TimerEvent( void* context )
 {
     Led2TimerEvent = true;
 }
@@ -107,7 +107,7 @@ void OnLed2TimerEvent( void )
 /*!
  * \brief Function executed on Led 3 Timeout event
  */
-void OnLed3TimerEvent( void )
+void OnLed3TimerEvent( void* context )
 {
     Led3TimerEvent = true;
 }

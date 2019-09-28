@@ -40,9 +40,17 @@
 
 #define RF_FREQUENCY                                915000000 // Hz
 
+#elif defined( REGION_CN470 )
+
+#define RF_FREQUENCY                                470000000 // Hz
+
 #elif defined( REGION_CN779 )
 
 #define RF_FREQUENCY                                779000000 // Hz
+
+#elif defined( REGION_EU433 )
+
+#define RF_FREQUENCY                                433000000 // Hz
 
 #elif defined( REGION_EU868 )
 
@@ -60,9 +68,9 @@
 
 #define RF_FREQUENCY                                915000000 // Hz
 
-#elif defined( REGION_US915_HYBRID )
+#elif defined( REGION_RU864 )
 
-#define RF_FREQUENCY                                915000000 // Hz
+#define RF_FREQUENCY                                864000000 // Hz
 
 #else
     #error "Please define a frequency band in the compiler options."
@@ -152,7 +160,7 @@ int main( void )
         // Tick the RTC to execute callback in context of the main loop (in stead of the IRQ)
         TimerProcess( );
 
-        TimerLowPowerHandler( );
+        BoardLowPowerHandler( );
     }
 }
 

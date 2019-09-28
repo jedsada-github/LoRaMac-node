@@ -24,10 +24,12 @@ enable_language(ASM)
 #---------------------------------------------------------------------------------------
 
 list(APPEND ${PROJECT_NAME}_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/adc-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/delay-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/eeprom-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/gpio-board.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lpm-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/rtc-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/spi-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/uart-board.c"
@@ -62,14 +64,14 @@ elseif(MBED_RADIO_SHIELD STREQUAL SX1276MB1LAS)
     list(APPEND ${PROJECT_NAME}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sx1276mb1las-board.c")
 elseif(MBED_RADIO_SHIELD STREQUAL SX1276MB1MAS)
     list(APPEND ${PROJECT_NAME}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sx1276mb1mas-board.c")
-elseif(MBED_RADIO_SHIELD STREQUAL SX1261DVK1BAS)
-    list(APPEND ${PROJECT_NAME}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sx1261dvk1bas-board.c")
-elseif(MBED_RADIO_SHIELD STREQUAL SX1262DVK1CAS)
-    list(APPEND ${PROJECT_NAME}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sx1262dvk1cas-board.c")
-elseif(MBED_RADIO_SHIELD STREQUAL SX1262DVK1DAS)
-    list(APPEND ${PROJECT_NAME}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sx1262dvk1das-board.c")
+elseif(MBED_RADIO_SHIELD STREQUAL SX1261MBXBAS)
+    list(APPEND ${PROJECT_NAME}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sx1261mbxbas-board.c")
+elseif(MBED_RADIO_SHIELD STREQUAL SX1262MBXCAS)
+    list(APPEND ${PROJECT_NAME}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sx1262mbxcas-board.c")
+elseif(MBED_RADIO_SHIELD STREQUAL SX1262MBXDAS)
+    list(APPEND ${PROJECT_NAME}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sx1262mbxdas-board.c")
 else()
-    message(STATUS " Please specify the MBED_RADIO_SHIELD !\nPossible values are: SX1272MB2DAS, SX1276MB1LAS, SX1276MB1MAS, SX1261DVK1BAS, SX1262DVK1CAS and SX1262DVK1DAS.")
+    message(STATUS " Please specify the MBED_RADIO_SHIELD !\nPossible values are: SX1272MB2DAS, SX1276MB1LAS, SX1276MB1MAS, SX1261MBXBAS, SX1262MBXCAS and SX1262MBXDAS.")
 endif()
 
 add_library(${PROJECT_NAME} OBJECT EXCLUDE_FROM_ALL ${${PROJECT_NAME}_SOURCES})
@@ -78,6 +80,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSE_HAL_DRIVER -DSTM32L073xx
 
 # Add define if debbuger support is enabled
 target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<BOOL:${USE_DEBUGGER}>:USE_DEBUGGER>)
+
+# Add define if radio debug pins support is enabled
+target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<BOOL:${USE_RADIO_DEBUG}>:USE_RADIO_DEBUG>)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

@@ -29,7 +29,7 @@
 #include "gpio-ioe.h"
 #endif
 
-static GpioIrqHandler *GpioIrq[16];
+static Gpio_t *GpioIrq[16];
 
 void GpioMcuInit( Gpio_t *obj, PinNames pin, PinModes mode, PinConfigs config, PinTypes type, uint32_t value )
 {
@@ -125,6 +125,11 @@ void GpioMcuInit( Gpio_t *obj, PinNames pin, PinModes mode, PinConfigs config, P
     }
 }
 
+void GpioMcuSetContext( Gpio_t *obj, void* context )
+{
+    obj->Context = context;
+}
+
 void GpioMcuSetInterrupt( Gpio_t *obj, IrqModes irqMode, IrqPriorities irqPriority, GpioIrqHandler *irqHandler )
 {
     if( obj->pin < IOE_0 )
@@ -138,6 +143,8 @@ void GpioMcuSetInterrupt( Gpio_t *obj, IrqModes irqMode, IrqPriorities irqPriori
         {
             return;
         }
+
+        obj->IrqHandler = irqHandler;
 
         GPIO_InitStructure.Pin =  obj->pinIndex;
 
@@ -213,7 +220,7 @@ void GpioMcuSetInterrupt( Gpio_t *obj, IrqModes irqMode, IrqPriorities irqPriori
             break;
         }
 
-        GpioIrq[( obj->pin ) & 0x0F] = irqHandler;
+        GpioIrq[( obj->pin ) & 0x0F] = obj;
 
         HAL_NVIC_SetPriority( IRQnb , priority, 0 );
         HAL_NVIC_EnableIRQ( IRQnb );
@@ -231,13 +238,14 @@ void GpioMcuRemoveInterrupt( Gpio_t *obj )
 {
     if( obj->pin < IOE_0 )
     {
+        // Clear callback before changing pin mode
+        GpioIrq[( obj->pin ) & 0x0F] = NULL;
+
         GPIO_InitTypeDef   GPIO_InitStructure;
 
         GPIO_InitStructure.Pin =  obj->pinIndex ;
         GPIO_InitStructure.Mode = GPIO_MODE_ANALOG;
         HAL_GPIO_Init( obj->port, &GPIO_InitStructure );
-
-        GpioIrq[( obj->pin ) & 0x0F] = NULL;
     }
     else
     {
@@ -252,7 +260,7 @@ void GpioMcuWrite( Gpio_t *obj, uint32_t value )
 {
     if( obj->pin < IOE_0 )
     {
-        if( ( obj == NULL ) || ( obj->port == NULL ) )
+        if( obj == NULL )
         {
             assert_param( FAIL );
         }
@@ -276,7 +284,7 @@ void GpioMcuToggle( Gpio_t *obj )
 {
     if( obj->pin < IOE_0 )
     {
-        if( ( obj == NULL ) || ( obj->port == NULL ) )
+        if( obj == NULL )
         {
             assert_param( FAIL );
         }
@@ -325,49 +333,31 @@ uint32_t GpioMcuRead( Gpio_t *obj )
 
 void EXTI0_IRQHandler( void )
 {
-#if !defined( USE_NO_TIMER )
-    RtcRecoverMcuStatus( );
-#endif
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_0 );
 }
 
 void EXTI1_IRQHandler( void )
 {
-#if !defined( USE_NO_TIMER )
-    RtcRecoverMcuStatus( );
-#endif
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_1 );
 }
 
 void EXTI2_IRQHandler( void )
 {
-#if !defined( USE_NO_TIMER )
-    RtcRecoverMcuStatus( );
-#endif
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_2 );
 }
 
 void EXTI3_IRQHandler( void )
 {
-#if !defined( USE_NO_TIMER )
-    RtcRecoverMcuStatus( );
-#endif
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_3 );
 }
 
 void EXTI4_IRQHandler( void )
 {
-#if !defined( USE_NO_TIMER )
-    RtcRecoverMcuStatus( );
-#endif
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_4 );
 }
 
 void EXTI9_5_IRQHandler( void )
 {
-#if !defined( USE_NO_TIMER )
-    RtcRecoverMcuStatus( );
-#endif
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_5 );
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_6 );
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_7 );
@@ -377,9 +367,6 @@ void EXTI9_5_IRQHandler( void )
 
 void EXTI15_10_IRQHandler( void )
 {
-#if !defined( USE_NO_TIMER )
-    RtcRecoverMcuStatus( );
-#endif
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_10 );
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_11 );
     HAL_GPIO_EXTI_IRQHandler( GPIO_PIN_12 );
@@ -401,8 +388,8 @@ void HAL_GPIO_EXTI_Callback( uint16_t gpioPin )
         }
     }
 
-    if( GpioIrq[callbackIndex] != NULL )
+    if( ( GpioIrq[callbackIndex] != NULL ) && ( GpioIrq[callbackIndex]->IrqHandler != NULL ) )
     {
-        GpioIrq[callbackIndex]( );
+        GpioIrq[callbackIndex]->IrqHandler( GpioIrq[callbackIndex]->Context );
     }
 }

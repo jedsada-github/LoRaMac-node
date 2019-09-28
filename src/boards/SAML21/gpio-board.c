@@ -55,6 +55,11 @@ void GpioMcuInit( Gpio_t *obj, PinNames pin, PinModes mode, PinConfigs config, P
     }
 }
 
+void GpioMcuSetContext( Gpio_t *obj, void* context )
+{
+    obj->Context = context;
+}
+
 void GpioMcuSetInterrupt( Gpio_t *obj, IrqModes irqMode, IrqPriorities irqPriority, GpioIrqHandler *irqHandler )
 {
     //ext_irq_register( obj->pin, irqHandler );
@@ -68,7 +73,7 @@ void GpioMcuRemoveInterrupt( Gpio_t *obj )
 void GpioMcuWrite( Gpio_t *obj, uint32_t value )
 {
 
-    if( ( obj == NULL ) /*|| ( obj->port == NULL )*/ )
+    if( obj == NULL )
     {
         //assert_param( FAIL );
         while( 1 );
@@ -83,7 +88,7 @@ void GpioMcuWrite( Gpio_t *obj, uint32_t value )
 
 void GpioMcuToggle( Gpio_t *obj )
 {
-    if( ( obj == NULL ) /*|| ( obj->port == NULL )*/ )
+    if( obj == NULL )
     {
         //assert_param( FAIL );
         while( 1 );

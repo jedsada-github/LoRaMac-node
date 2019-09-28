@@ -25,6 +25,7 @@
 #include "gpio.h"
 #include "gps.h"
 #include "uart.h"
+#include "lpm-board.h"
 #include "rtc-board.h"
 #include "gps-board.h"
 
@@ -35,25 +36,26 @@
 #define FIFO_RX_SIZE                                128
 
 //uint8_t TxBuffer[FIFO_TX_SIZE];
-uint8_t RxBuffer[FIFO_RX_SIZE];
+static uint8_t RxBuffer[FIFO_RX_SIZE];
 
 /*!
  * \brief Buffer holding the  raw data received from the gps
  */
-uint8_t NmeaString[128];
+static uint8_t NmeaString[128];
 
 /*!
  * \brief Maximum number of data byte that we will accept from the GPS
  */
-uint8_t NmeaStringSize = 0;
+static volatile uint8_t NmeaStringSize = 0;
 
-Gpio_t GpsPowerEn;
+static Gpio_t GpsPowerEn;
+static Gpio_t GpsPps;
 
-bool GpsPowerEnInverted = false;
+static volatile bool GpsPowerEnInverted = false;
 
 extern Uart_t Uart1;
 
-void GpsMcuOnPpsSignal( void )
+void GpsMcuOnPpsSignal( void* context )
 {
     bool parseData = false;
 
@@ -61,6 +63,9 @@ void GpsMcuOnPpsSignal( void )
 
     if( parseData == true )
     {
+        // Disables lowest power modes
+        LpmSetStopMode( LPM_GPS_ID , LPM_DISABLE );
+
         UartInit( &Uart1, UART_1, GPS_UART_TX, GPS_UART_RX );
         UartConfig( &Uart1, RX_ONLY, 9600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
     }
@@ -73,8 +78,6 @@ void GpsMcuInvertPpsTrigger( void )
 
 void GpsMcuInit( void )
 {
-    Gpio_t ioPin;
-
     NmeaStringSize = 0;
 
     switch( BoardGetVersion( ).Fields.Major )
@@ -90,8 +93,8 @@ void GpsMcuInit( void )
     }
     GpioInit( &GpsPowerEn, GPS_POWER_ON, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
-    GpioInit( &ioPin, GPS_PPS, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioSetInterrupt( &ioPin, IRQ_FALLING_EDGE, IRQ_VERY_LOW_PRIORITY, &GpsMcuOnPpsSignal );
+    GpioInit( &GpsPps, GPS_PPS, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    GpioSetInterrupt( &GpsPps, IRQ_FALLING_EDGE, IRQ_VERY_LOW_PRIORITY, &GpsMcuOnPpsSignal );
 
     FifoInit( &Uart1.FifoRx, RxBuffer, FIFO_RX_SIZE );
     Uart1.IrqNotify = GpsMcuIrqNotify;
@@ -147,7 +150,8 @@ void GpsMcuIrqNotify( UartNotifyId_t id )
                 NmeaString[NmeaStringSize++] = '\0';
                 GpsParseGpsData( ( int8_t* )NmeaString, NmeaStringSize );
                 UartDeInit( &Uart1 );
-                BlockLowPowerDuringTask ( false );
+                // Enables lowest power modes
+                LpmSetStopMode( LPM_GPS_ID , LPM_ENABLE );
             }
         }
     }

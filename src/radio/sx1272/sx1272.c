@@ -22,9 +22,6 @@
  */
 #include <math.h>
 #include <string.h>
-#if defined( USE_RADIO_DEBUG )
-#include "board-config.h"
-#endif
 #include "utilities.h"
 #include "timer.h"
 #include "radio.h"
@@ -97,37 +94,37 @@ void SX1272SetOpMode( uint8_t opMode );
 /*!
  * \brief DIO 0 IRQ callback
  */
-void SX1272OnDio0Irq( void );
+void SX1272OnDio0Irq( void* context );
 
 /*!
  * \brief DIO 1 IRQ callback
  */
-void SX1272OnDio1Irq( void );
+void SX1272OnDio1Irq( void* context );
 
 /*!
  * \brief DIO 2 IRQ callback
  */
-void SX1272OnDio2Irq( void );
+void SX1272OnDio2Irq( void* context );
 
 /*!
  * \brief DIO 3 IRQ callback
  */
-void SX1272OnDio3Irq( void );
+void SX1272OnDio3Irq( void* context );
 
 /*!
  * \brief DIO 4 IRQ callback
  */
-void SX1272OnDio4Irq( void );
+void SX1272OnDio4Irq( void* context );
 
 /*!
  * \brief DIO 5 IRQ callback
  */
-void SX1272OnDio5Irq( void );
+void SX1272OnDio5Irq( void* context );
 
 /*!
  * \brief Tx & Rx timeout timer callback
  */
-void SX1272OnTimeoutIrq( void );
+void SX1272OnTimeoutIrq( void* context );
 
 /*
  * Private global constants
@@ -211,11 +208,6 @@ TimerEvent_t TxTimeoutTimer;
 TimerEvent_t RxTimeoutTimer;
 TimerEvent_t RxTimeoutSyncWord;
 
-#if defined( USE_RADIO_DEBUG )
-Gpio_t DbgPinTx;
-Gpio_t DbgPinRx;
-#endif
-
 /*
  * Radio driver functions implementation
  */
@@ -225,11 +217,6 @@ void SX1272Init( RadioEvents_t *events )
     uint8_t i;
 
     RadioEvents = events;
-
-#if defined( USE_RADIO_DEBUG )
-    GpioInit( &DbgPinTx, RADIO_DBG_PIN_TX, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &DbgPinRx, RADIO_DBG_PIN_RX, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-#endif
 
     // Initialize driver timeout timers
     TimerInit( &TxTimeoutTimer, SX1272OnTimeoutIrq );
@@ -272,6 +259,11 @@ bool SX1272IsChannelFree( RadioModems_t modem, uint32_t freq, int16_t rssiThresh
     bool status = true;
     int16_t rssi = 0;
     uint32_t carrierSenseTime = 0;
+
+    if( SX1272GetStatus( ) != RF_IDLE )
+    {
+        return false;
+    }
 
     SX1272SetModem( modem );
 
@@ -758,8 +750,13 @@ void SX1272SetSleep( void )
 {
     TimerStop( &RxTimeoutTimer );
     TimerStop( &TxTimeoutTimer );
+    TimerStop( &RxTimeoutSyncWord );
 
     SX1272SetOpMode( RF_OPMODE_SLEEP );
+
+    // Disable TCXO radio is in SLEEP mode
+    SX1272SetBoardTcxo( false );
+
     SX1272.Settings.State = RF_IDLE;
 }
 
@@ -767,6 +764,7 @@ void SX1272SetStby( void )
 {
     TimerStop( &RxTimeoutTimer );
     TimerStop( &TxTimeoutTimer );
+    TimerStop( &RxTimeoutSyncWord );
 
     SX1272SetOpMode( RF_OPMODE_STANDBY );
     SX1272.Settings.State = RF_IDLE;
@@ -775,6 +773,7 @@ void SX1272SetStby( void )
 void SX1272SetRx( uint32_t timeout )
 {
     bool rxContinuous = false;
+    TimerStop( &TxTimeoutTimer );
 
     switch( SX1272.Settings.Modem )
     {
@@ -872,11 +871,8 @@ void SX1272SetRx( uint32_t timeout )
     {
         SX1272SetOpMode( RF_OPMODE_RECEIVER );
 
-        if( rxContinuous == false )
-        {
-            TimerSetValue( &RxTimeoutSyncWord, SX1272.Settings.Fsk.RxSingleTimeout );
-            TimerStart( &RxTimeoutSyncWord );
-        }
+        TimerSetValue( &RxTimeoutSyncWord, SX1272.Settings.Fsk.RxSingleTimeout );
+        TimerStart( &RxTimeoutSyncWord );
     }
     else
     {
@@ -893,6 +889,8 @@ void SX1272SetRx( uint32_t timeout )
 
 void SX1272SetTx( uint32_t timeout )
 {
+    TimerStop( &RxTimeoutTimer );
+
     TimerSetValue( &TxTimeoutTimer, timeout );
 
     switch( SX1272.Settings.Modem )
@@ -1032,15 +1030,17 @@ void SX1272SetOpMode( uint8_t opMode )
     switch( opMode )
     {
         case RF_OPMODE_TRANSMITTER:
-            GpioWrite( &DbgPinTx, 1 );
+            SX1272DbgPinTxWrite( 1 );
+            SX1272DbgPinRxWrite( 0 );
             break;
         case RF_OPMODE_RECEIVER:
         case RFLR_OPMODE_RECEIVER_SINGLE:
-            GpioWrite( &DbgPinRx, 1 );
+            SX1272DbgPinTxWrite( 0 );
+            SX1272DbgPinRxWrite( 1 );
             break;
         default:
-            GpioWrite( &DbgPinTx, 0 );
-            GpioWrite( &DbgPinRx, 0 );
+            SX1272DbgPinTxWrite( 0 );
+            SX1272DbgPinRxWrite( 0 );
             break;
     }
 #endif
@@ -1050,6 +1050,8 @@ void SX1272SetOpMode( uint8_t opMode )
     }
     else
     {
+        // Enable TCXO if operating mode different from SLEEP.
+        SX1272SetBoardTcxo( true );
         SX1272SetAntSwLowPower( false );
         SX1272SetAntSw( opMode );
     }
@@ -1077,14 +1079,14 @@ void SX1272SetModem( RadioModems_t modem )
     {
     default:
     case MODEM_FSK:
-        SX1272SetSleep( );
+        SX1272SetOpMode( RF_OPMODE_SLEEP );
         SX1272Write( REG_OPMODE, ( SX1272Read( REG_OPMODE ) & RFLR_OPMODE_LONGRANGEMODE_MASK ) | RFLR_OPMODE_LONGRANGEMODE_OFF );
 
         SX1272Write( REG_DIOMAPPING1, 0x00 );
         SX1272Write( REG_DIOMAPPING2, 0x30 ); // DIO5=ModeReady
         break;
     case MODEM_LORA:
-        SX1272SetSleep( );
+        SX1272SetOpMode( RF_OPMODE_SLEEP );
         SX1272Write( REG_OPMODE, ( SX1272Read( REG_OPMODE ) & RFLR_OPMODE_LONGRANGEMODE_MASK ) | RFLR_OPMODE_LONGRANGEMODE_ON );
 
         SX1272Write( REG_DIOMAPPING1, 0x00 );
@@ -1189,7 +1191,7 @@ uint32_t SX1272GetWakeupTime( void )
     return SX1272GetBoardTcxoWakeupTime( ) + RADIO_WAKEUP_TIME;
 }
 
-void SX1272OnTimeoutIrq( void )
+void SX1272OnTimeoutIrq( void* context )
 {
     switch( SX1272.Settings.State )
     {
@@ -1261,7 +1263,7 @@ void SX1272OnTimeoutIrq( void )
     }
 }
 
-void SX1272OnDio0Irq( void )
+void SX1272OnDio0Irq( void* context )
 {
     volatile uint8_t irqFlags = 0;
 
@@ -1355,8 +1357,6 @@ void SX1272OnDio0Irq( void )
                 break;
             case MODEM_LORA:
                 {
-                    int8_t snr = 0;
-
                     // Clear Irq
                     SX1272Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_RXDONE );
 
@@ -1379,24 +1379,14 @@ void SX1272OnDio0Irq( void )
                         break;
                     }
 
-                    SX1272.Settings.LoRaPacketHandler.SnrValue = SX1272Read( REG_LR_PKTSNRVALUE );
-                    if( SX1272.Settings.LoRaPacketHandler.SnrValue & 0x80 ) // The SNR sign bit is 1
-                    {
-                        // Invert and divide by 4
-                        snr = ( ( ~SX1272.Settings.LoRaPacketHandler.SnrValue + 1 ) & 0xFF ) >> 2;
-                        snr = -snr;
-                    }
-                    else
-                    {
-                        // Divide by 4
-                        snr = ( SX1272.Settings.LoRaPacketHandler.SnrValue & 0xFF ) >> 2;
-                    }
+                    // Returns SNR value [dB] rounded to the nearest integer value
+                    SX1272.Settings.LoRaPacketHandler.SnrValue = ( ( ( int8_t )SX1272Read( REG_LR_PKTSNRVALUE ) ) + 2 ) >> 2;
 
                     int16_t rssi = SX1272Read( REG_LR_PKTRSSIVALUE );
-                    if( snr < 0 )
+                    if( SX1272.Settings.LoRaPacketHandler.SnrValue < 0 )
                     {
                         SX1272.Settings.LoRaPacketHandler.RssiValue = RSSI_OFFSET + rssi + ( rssi >> 4 ) +
-                                                                      snr;
+                                                                      SX1272.Settings.LoRaPacketHandler.SnrValue;
                     }
                     else
                     {
@@ -1447,7 +1437,7 @@ void SX1272OnDio0Irq( void )
     }
 }
 
-void SX1272OnDio1Irq( void )
+void SX1272OnDio1Irq( void* context )
 {
     switch( SX1272.Settings.State )
     {
@@ -1455,6 +1445,9 @@ void SX1272OnDio1Irq( void )
             switch( SX1272.Settings.Modem )
             {
             case MODEM_FSK:
+                // Stop timer
+                TimerStop( &RxTimeoutSyncWord );
+
                 // FifoLevel interrupt
                 // Read received packet size
                 if( ( SX1272.Settings.FskPacketHandler.Size == 0 ) && ( SX1272.Settings.FskPacketHandler.NbBytes == 0 ) )
@@ -1468,11 +1461,17 @@ void SX1272OnDio1Irq( void )
                         SX1272.Settings.FskPacketHandler.Size = SX1272Read( REG_PAYLOADLENGTH );
                     }
                 }
-
-                if( ( SX1272.Settings.FskPacketHandler.Size - SX1272.Settings.FskPacketHandler.NbBytes ) > SX1272.Settings.FskPacketHandler.FifoThresh )
+                // ERRATA 3.1 - PayloadReady Set for 31.25ns if FIFO is Empty
+                //
+                //              When FifoLevel interrupt is used to offload the
+                //              FIFO, the microcontroller should  monitor  both
+                //              PayloadReady  and FifoLevel interrupts, and
+                //              read only (FifoThreshold-1) bytes off the FIFO
+                //              when FifoLevel fires
+                if( ( SX1272.Settings.FskPacketHandler.Size - SX1272.Settings.FskPacketHandler.NbBytes ) >= SX1272.Settings.FskPacketHandler.FifoThresh )
                 {
-                    SX1272ReadFifo( ( RxTxBuffer + SX1272.Settings.FskPacketHandler.NbBytes ), SX1272.Settings.FskPacketHandler.FifoThresh );
-                    SX1272.Settings.FskPacketHandler.NbBytes += SX1272.Settings.FskPacketHandler.FifoThresh;
+                    SX1272ReadFifo( ( RxTxBuffer + SX1272.Settings.FskPacketHandler.NbBytes ), SX1272.Settings.FskPacketHandler.FifoThresh - 1 );
+                    SX1272.Settings.FskPacketHandler.NbBytes += SX1272.Settings.FskPacketHandler.FifoThresh - 1;
                 }
                 else
                 {
@@ -1524,7 +1523,7 @@ void SX1272OnDio1Irq( void )
     }
 }
 
-void SX1272OnDio2Irq( void )
+void SX1272OnDio2Irq( void* context )
 {
     switch( SX1272.Settings.State )
     {
@@ -1594,7 +1593,7 @@ void SX1272OnDio2Irq( void )
     }
 }
 
-void SX1272OnDio3Irq( void )
+void SX1272OnDio3Irq( void* context )
 {
     switch( SX1272.Settings.Modem )
     {
@@ -1625,7 +1624,7 @@ void SX1272OnDio3Irq( void )
     }
 }
 
-void SX1272OnDio4Irq( void )
+void SX1272OnDio4Irq( void* context )
 {
     switch( SX1272.Settings.Modem )
     {
@@ -1644,7 +1643,7 @@ void SX1272OnDio4Irq( void )
     }
 }
 
-void SX1272OnDio5Irq( void )
+void SX1272OnDio5Irq( void* context )
 {
     switch( SX1272.Settings.Modem )
     {

@@ -47,6 +47,16 @@ void SX126xIoIrqInit( DioIrqHandler dioIrq );
 void SX126xIoDeInit( void );
 
 /*!
+ * \brief Initializes the TCXO power pin.
+ */
+void SX126xIoTcxoInit( void );
+
+/*!
+ * \brief Initializes the radio debug pins.
+ */
+void SX126xIoDbgInit( void );
+
+/*!
  * \brief HW Reset of the radio
  */
 void SX126xReset( void );
@@ -76,8 +86,10 @@ void SX126xWriteCommand( RadioCommands_t opcode, uint8_t *buffer, uint16_t size 
  * \param [in]  opcode        Opcode of the command
  * \param [out] buffer        Buffer holding data from the radio
  * \param [in]  size          Size of the buffer
+ *
+ * \retval status Return command radio status
  */
-void SX126xReadCommand( RadioCommands_t opcode, uint8_t *buffer, uint16_t size );
+uint8_t SX126xReadCommand( RadioCommands_t opcode, uint8_t *buffer, uint16_t size );
 
 /*!
  * \brief Write a single byte of data to the radio memory
@@ -104,12 +116,11 @@ uint8_t SX126xReadRegister( uint16_t address );
 void SX126xSetRfTxPower( int8_t power );
 
 /*!
- * \brief Gets the board PA selection configuration
+ * \brief Gets the device ID
  *
- * \param [IN] channel Channel frequency in Hz
- * \retval PaSelect RegPaConfig PaSelect value
+ * \retval id Connected device ID
  */
-uint8_t SX126xGetPaSelect( uint32_t channel );
+uint8_t SX126xGetDeviceId( void );
 
 /*!
  * \brief Initializes the RF Switch I/Os pins interface
@@ -137,6 +148,20 @@ bool SX126xCheckRfFrequency( uint32_t frequency );
  * \retval time Board TCXO wakeup time in ms.
  */
 uint32_t SX126xGetBoardTcxoWakeupTime( void );
+
+/*!
+ * \brief Writes new Tx debug pin state
+ *
+ * \param [IN] state Debug pin state
+ */
+void SX126xDbgPinTxWrite( uint8_t state );
+
+/*!
+ * \brief Writes new Rx debug pin state
+ *
+ * \param [IN] state Debug pin state
+ */
+void SX126xDbgPinRxWrite( uint8_t state );
 
 /*!
  * Radio hardware and global parameters

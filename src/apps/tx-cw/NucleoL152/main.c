@@ -70,9 +70,9 @@
 #define RF_FREQUENCY                                915000000 // Hz
 #define TX_OUTPUT_POWER                             14        // 14 dBm
 
-#elif defined( REGION_US915_HYBRID )
+#elif defined( REGION_RU864 )
 
-#define RF_FREQUENCY                                915000000 // Hz
+#define RF_FREQUENCY                                864000000 // Hz
 #define TX_OUTPUT_POWER                             14        // 14 dBm
 
 #else
@@ -102,7 +102,7 @@ extern Gpio_t Led2;
 /*!
  * \brief Function executed on Led 1 Timeout event
  */
-void OnLed1TimerEvent( void )
+void OnLed1TimerEvent( void* context )
 {
     Led1TimerEvent = true;
 }
@@ -110,7 +110,7 @@ void OnLed1TimerEvent( void )
 /*!
  * \brief Function executed on Led 2 Timeout event
  */
-void OnLed2TimerEvent( void )
+void OnLed2TimerEvent( void* context )
 {
     Led2TimerEvent = true;
 }
@@ -152,6 +152,11 @@ int main( void )
     // Blink LEDs just to show some activity
     while( 1 )
     {
+        // Process Radio IRQ
+        if( Radio.IrqProcess != NULL )
+        {
+            Radio.IrqProcess( );
+        }
         if( Led1TimerEvent == true )
         {
             Led1TimerEvent = false;

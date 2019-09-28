@@ -74,6 +74,16 @@ void SX1276IoIrqInit( DioIrqHandler **irqHandlers );
 void SX1276IoDeInit( void );
 
 /*!
+ * \brief Initializes the TCXO power pin.
+ */
+void SX1276IoTcxoInit( void );
+
+/*!
+ * \brief Initializes the radio debug pins.
+ */
+void SX1276IoDbgInit( void );
+
+/*!
  * \brief Resets the radio
  */
 void SX1276Reset( void );
@@ -84,14 +94,6 @@ void SX1276Reset( void );
  * \param [IN] power Sets the RF output power
  */
 void SX1276SetRfTxPower( int8_t power );
-
-/*!
- * \brief Gets the board PA selection configuration
- *
- * \param [IN] channel Channel frequency in Hz
- * \retval PaSelect RegPaConfig PaSelect value
- */
-uint8_t SX1276GetPaSelect( uint32_t channel );
 
 /*!
  * \brief Set the RF Switch I/Os pins in low power mode
@@ -130,11 +132,32 @@ void SX1276SetAntSw( uint8_t opMode );
 bool SX1276CheckRfFrequency( uint32_t frequency );
 
 /*!
+ * \brief Enables/disables the TCXO if available on board design.
+ *
+ * \param [IN] state TCXO enabled when true and disabled when false.
+ */
+void SX1276SetBoardTcxo( uint8_t state );
+
+/*!
  * \brief Gets the Defines the time required for the TCXO to wakeup [ms].
  *
  * \retval time Board TCXO wakeup time in ms.
  */
 uint32_t SX1276GetBoardTcxoWakeupTime( void );
+
+/*!
+ * \brief Writes new Tx debug pin state
+ *
+ * \param [IN] state Debug pin state
+ */
+void SX1276DbgPinTxWrite( uint8_t state );
+
+/*!
+ * \brief Writes new Rx debug pin state
+ *
+ * \param [IN] state Debug pin state
+ */
+void SX1276DbgPinRxWrite( uint8_t state );
 
 /*!
  * Radio hardware and global parameters

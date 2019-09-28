@@ -29,6 +29,7 @@
  * \author    Daniel Jaeckle ( STACKFORCE )
  */
 #include <math.h>
+#include "radio.h"
 #include "utilities.h"
 #include "RegionCommon.h"
 
@@ -50,15 +51,15 @@ static uint8_t CountChannels( uint16_t mask, uint8_t nbBits )
     return nbActiveBits;
 }
 
-uint16_t RegionCommonGetJoinDc( TimerTime_t elapsedTime )
+uint16_t RegionCommonGetJoinDc( SysTime_t elapsedTime )
 {
     uint16_t dutyCycle = 0;
 
-    if( elapsedTime < 3600000 )
+    if( elapsedTime.Seconds < 3600 )
     {
         dutyCycle = BACKOFF_DC_1_HOUR;
     }
-    else if( elapsedTime < ( 3600000 + 36000000 ) )
+    else if( elapsedTime.Seconds < ( 3600 + 36000 ) )
     {
         dutyCycle = BACKOFF_DC_10_HOURS;
     }
@@ -161,15 +162,17 @@ void RegionCommonSetBandTxDone( bool joined, Band_t* band, TimerTime_t lastTxDon
 
 TimerTime_t RegionCommonUpdateBandTimeOff( bool joined, bool dutyCycle, Band_t* bands, uint8_t nbBands )
 {
-    TimerTime_t nextTxDelay = ( TimerTime_t )( -1 );
+    TimerTime_t nextTxDelay = TIMERTIME_T_MAX;
 
     // Update bands Time OFF
     for( uint8_t i = 0; i < nbBands; i++ )
     {
         if( joined == false )
         {
-            uint32_t txDoneTime =  MAX( TimerGetElapsedTime( bands[i].LastJoinTxDoneTime ),
-                                        ( dutyCycle == true ) ? TimerGetElapsedTime( bands[i].LastTxDoneTime ) : 0 );
+            TimerTime_t elapsedJoin = TimerGetElapsedTime( bands[i].LastJoinTxDoneTime );
+            TimerTime_t elapsedTx = TimerGetElapsedTime( bands[i].LastTxDoneTime );
+            TimerTime_t txDoneTime =  MAX( elapsedJoin,
+                                        ( dutyCycle == true ) ? elapsedTx : 0 );
 
             if( bands[i].TimeOff <= txDoneTime )
             {
@@ -184,14 +187,14 @@ TimerTime_t RegionCommonUpdateBandTimeOff( bool joined, bool dutyCycle, Band_t* 
         {
             if( dutyCycle == true )
             {
-                if( bands[i].TimeOff <= TimerGetElapsedTime( bands[i].LastTxDoneTime ) )
+                TimerTime_t elapsed = TimerGetElapsedTime( bands[i].LastTxDoneTime );
+                if( bands[i].TimeOff <= elapsed )
                 {
                     bands[i].TimeOff = 0;
                 }
                 if( bands[i].TimeOff != 0 )
                 {
-                    nextTxDelay = MIN( bands[i].TimeOff - TimerGetElapsedTime( bands[i].LastTxDoneTime ),
-                                       nextTxDelay );
+                    nextTxDelay = MIN( bands[i].TimeOff - elapsed, nextTxDelay );
                 }
             }
             else
@@ -201,7 +204,8 @@ TimerTime_t RegionCommonUpdateBandTimeOff( bool joined, bool dutyCycle, Band_t* 
             }
         }
     }
-    return nextTxDelay;
+
+    return ( nextTxDelay == TIMERTIME_T_MAX ) ? 0 : nextTxDelay;
 }
 
 uint8_t RegionCommonParseLinkAdrReq( uint8_t* payload, RegionCommonLinkAdrParams_t* linkAdrParams )
@@ -238,16 +242,10 @@ uint8_t RegionCommonLinkAdrReqVerifyParams( RegionCommonLinkAdrReqVerifyParams_t
     // Handle the case when ADR is off.
     if( verifyParams->AdrEnabled == false )
     {
-        // When ADR is off, we are allowed to change the channels mask and the NbRep,
-        // if the datarate and the TX power of the LinkAdrReq are set to 0x0F.
-        if( ( verifyParams->Datarate != 0x0F ) || ( verifyParams->TxPower != 0x0F ) )
-        {
-            status = 0;
-            nbRepetitions = verifyParams->CurrentNbRep;
-        }
-        // Get the current datarate and tx power
-        datarate = verifyParams->CurrentDatarate;
-        txPower = verifyParams->CurrentTxPower;
+        // When ADR is off, we are allowed to change the channels mask
+        nbRepetitions = verifyParams->CurrentNbRep;
+        datarate =  verifyParams->CurrentDatarate;
+        txPower =  verifyParams->CurrentTxPower;
     }
 
     if( status != 0 )
@@ -357,4 +355,33 @@ void RegionCommonCalcBackOff( RegionCommonCalcBackOffParams_t* calcBackOffParams
             calcBackOffParams->Bands[bandIdx].TimeOff = 0;
         }
     }
+}
+
+
+void RegionCommonRxBeaconSetup( RegionCommonRxBeaconSetupParams_t* rxBeaconSetupParams )
+{
+    bool rxContinuous = true;
+    uint8_t datarate;
+
+    // Set the radio into sleep mode
+    Radio.Sleep( );
+
+    // Setup frequency and payload length
+    Radio.SetChannel( rxBeaconSetupParams->Frequency );
+    Radio.SetMaxPayloadLength( MODEM_LORA, rxBeaconSetupParams->BeaconSize );
+
+    // Check the RX continuous mode
+    if( rxBeaconSetupParams->RxTime != 0 )
+    {
+        rxContinuous = false;
+    }
+
+    // Get region specific datarate
+    datarate = rxBeaconSetupParams->Datarates[rxBeaconSetupParams->BeaconDatarate];
+
+    // Setup radio
+    Radio.SetRxConfig( MODEM_LORA, rxBeaconSetupParams->BeaconChannelBW, datarate,
+                       1, 0, 10, rxBeaconSetupParams->SymbolTimeout, true, rxBeaconSetupParams->BeaconSize, false, 0, 0, false, rxContinuous );
+
+    Radio.Rx( rxBeaconSetupParams->RxTime );
 }

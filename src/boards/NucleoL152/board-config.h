@@ -36,7 +36,7 @@
 /*!
  * Defines the time required for the TCXO to wakeup [ms].
  */
-#if defined( SX1262DVK1DAS )
+#if defined( SX1262MBXDAS )
 #define BOARD_TCXO_WAKEUP_TIME                      5
 #else
 #define BOARD_TCXO_WAKEUP_TIME                      0
@@ -51,7 +51,7 @@
 #define RADIO_MISO                                  PA_6
 #define RADIO_SCLK                                  PA_5
 
-#if defined( SX1261DVK1BAS ) || defined( SX1262DVK1CAS ) || defined( SX1262DVK1DAS )
+#if defined( SX1261MBXBAS ) || defined( SX1262MBXCAS ) || defined( SX1262MBXDAS )
 
 #define RADIO_NSS                                   PA_8
 #define RADIO_BUSY                                  PB_3
@@ -64,6 +64,10 @@
 
 #define LED_1                                       PC_1
 #define LED_2                                       PC_0
+
+// Debug pins definition.
+#define RADIO_DBG_PIN_TX                            PB_6
+#define RADIO_DBG_PIN_RX                            PC_7
 
 #elif defined( SX1272MB2DAS) || defined( SX1276MB1LAS ) || defined( SX1276MB1MAS )
 
@@ -81,6 +85,10 @@
 #define LED_1                                       NC
 #define LED_2                                       NC
 
+// Debug pins definition.
+#define RADIO_DBG_PIN_TX                            PB_0
+#define RADIO_DBG_PIN_RX                            PA_4
+
 #endif
 
 #define OSC_LSE_IN                                  PC_14
@@ -97,9 +105,5 @@
 
 #define UART_TX                                     PA_2
 #define UART_RX                                     PA_3
-
-// Debug pins definition.
-#define RADIO_DBG_PIN_TX                            NC
-#define RADIO_DBG_PIN_RX                            NC
 
 #endif // __BOARD_CONFIG_H__

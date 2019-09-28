@@ -31,6 +31,14 @@
 #include "sx1276-board.h"
 
 /*!
+ * \brief Gets the board PA selection configuration
+ *
+ * \param [IN] channel Channel frequency in Hz
+ * \retval PaSelect RegPaConfig PaSelect value
+ */
+static uint8_t SX1276GetPaSelect( uint32_t channel );
+
+/*!
  * Flag used to set the RF switch control pins in low power mode when the radio is not active.
  */
 static bool RadioIsActive = false;
@@ -63,14 +71,19 @@ const struct Radio_s Radio =
     SX1276ReadBuffer,
     SX1276SetMaxPayloadLength,
     SX1276SetPublicNetwork,
-    SX1276GetWakeupTime
+    SX1276GetWakeupTime,
+    NULL, // void ( *IrqProcess )( void )
+    NULL, // void ( *RxBoosted )( uint32_t timeout ) - SX126x Only
+    NULL, // void ( *SetRxDutyCycle )( uint32_t rxTime, uint32_t sleepTime ) - SX126x Only
 };
 
 /*!
- * Antenna switch GPIO pins objects
+ * Debug GPIO pins objects
  */
-Gpio_t AntRx;
-Gpio_t AntTx;
+#if defined( USE_RADIO_DEBUG )
+Gpio_t DbgPinTx;
+Gpio_t DbgPinRx;
+#endif
 
 void SX1276IoInit( void )
 {
@@ -92,14 +105,81 @@ void SX1276IoInit( void )
     gpio_set_pin_function( RADIO_DIO_5, PINMUX_PB15A_EIC_EXTINT15 );
 }
 
+static void Dio0IrqHandler( void );
+static void Dio1IrqHandler( void );
+static void Dio2IrqHandler( void );
+static void Dio3IrqHandler( void );
+static void Dio4IrqHandler( void );
+static void Dio5IrqHandler( void );
+
+static Gpio_t *DioIrqs[] = {
+    &SX1276.DIO0,
+    &SX1276.DIO1,
+    &SX1276.DIO2,
+    &SX1276.DIO3,
+    &SX1276.DIO4,
+    &SX1276.DIO5
+};
+
+static ext_irq_cb_t ExtIrqHandlers[] = {
+    Dio0IrqHandler,
+    Dio1IrqHandler,
+    Dio2IrqHandler,
+    Dio3IrqHandler,
+    Dio4IrqHandler,
+    Dio5IrqHandler
+};
+
+static void DioIrqHanlderProcess( uint8_t index )
+{
+    if( ( DioIrqs[index] != NULL ) && ( DioIrqs[index]->IrqHandler != NULL ) )
+    {
+        DioIrqs[index]->IrqHandler( DioIrqs[index]->Context );
+    }
+}
+
+static void Dio0IrqHandler( void )
+{
+    DioIrqHanlderProcess( 0 );
+}
+
+static void Dio1IrqHandler( void )
+{
+    DioIrqHanlderProcess( 1 );
+}
+
+static void Dio2IrqHandler( void )
+{
+    DioIrqHanlderProcess( 2 );
+}
+
+static void Dio3IrqHandler( void )
+{
+    DioIrqHanlderProcess( 3 );
+}
+
+static void Dio4IrqHandler( void )
+{
+    DioIrqHanlderProcess( 4 );
+}
+
+static void Dio5IrqHandler( void )
+{
+    DioIrqHanlderProcess( 5 );
+}
+
+static void IoIrqInit( uint8_t index, DioIrqHandler *irqHandler )
+{
+    DioIrqs[index]->IrqHandler = irqHandler;
+    ext_irq_register( DioIrqs[index]->pin, ExtIrqHandlers[index] );
+}
+
 void SX1276IoIrqInit( DioIrqHandler **irqHandlers )
 {
-    ext_irq_register( RADIO_DIO_0, irqHandlers[0] );
-    ext_irq_register( RADIO_DIO_1, irqHandlers[1] );
-    ext_irq_register( RADIO_DIO_2, irqHandlers[2] );
-    ext_irq_register( RADIO_DIO_3, irqHandlers[3] );
-    ext_irq_register( RADIO_DIO_4, irqHandlers[4] );
-    ext_irq_register( RADIO_DIO_5, irqHandlers[5] );
+    for( int8_t i = 0; i < 5; i++ )
+    {
+        IoIrqInit( i, irqHandlers[i] );
+    }
 }
 
 void SX1276IoDeInit( void )
@@ -122,12 +202,20 @@ void SX1276IoDeInit( void )
     gpio_set_pin_function( RADIO_DIO_5, PINMUX_PB15A_EIC_EXTINT15 );
 }
 
-/*!
- * \brief Enables/disables the TCXO if available on board design.
- *
- * \param [IN] state TCXO enabled when true and disabled when false.
- */
-static void SX1276SetBoardTcxo( uint8_t state )
+void SX1276IoDbgInit( void )
+{
+#if defined( USE_RADIO_DEBUG )
+    GpioInit( &DbgPinTx, RADIO_DBG_PIN_TX, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    GpioInit( &DbgPinRx, RADIO_DBG_PIN_RX, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+#endif
+}
+
+void SX1276IoTcxoInit( void )
+{
+    // No TCXO component available on this board design.
+}
+
+void SX1276SetBoardTcxo( uint8_t state )
 {
     // No TCXO component available on this board design.
 #if 0
@@ -175,7 +263,6 @@ void SX1276SetRfTxPower( int8_t power )
     paDac = SX1276Read( REG_PADAC );
 
     paConfig = ( paConfig & RF_PACONFIG_PASELECT_MASK ) | SX1276GetPaSelect( SX1276.Settings.Channel );
-    paConfig = ( paConfig & RF_PACONFIG_MAX_POWER_MASK ) | 0x70;
 
     if( ( paConfig & RF_PACONFIG_PASELECT_PABOOST ) == RF_PACONFIG_PASELECT_PABOOST )
     {
@@ -214,21 +301,28 @@ void SX1276SetRfTxPower( int8_t power )
     }
     else
     {
-        if( power < -1 )
+        if( power > 0 )
         {
-            power = -1;
+            if( power > 15 )
+            {
+                power = 15;
+            }
+            paConfig = ( paConfig & RF_PACONFIG_MAX_POWER_MASK & RF_PACONFIG_OUTPUTPOWER_MASK ) | ( 7 << 4 ) | ( power );
         }
-        if( power > 14 )
+        else
         {
-            power = 14;
+            if( power < -4 )
+            {
+                power = -4;
+            }
+            paConfig = ( paConfig & RF_PACONFIG_MAX_POWER_MASK & RF_PACONFIG_OUTPUTPOWER_MASK ) | ( 0 << 4 ) | ( power + 4 );
         }
-        paConfig = ( paConfig & RF_PACONFIG_OUTPUTPOWER_MASK ) | ( uint8_t )( ( uint16_t )( power + 1 ) & 0x0F );
     }
     SX1276Write( REG_PACONFIG, paConfig );
     SX1276Write( REG_PADAC, paDac );
 }
 
-uint8_t SX1276GetPaSelect( uint32_t channel )
+static uint8_t SX1276GetPaSelect( uint32_t channel )
 {
     return RF_PACONFIG_PASELECT_PABOOST;
 }
@@ -240,15 +334,6 @@ void SX1276SetAntSwLowPower( bool status )
     if( RadioIsActive != status )
     {
         RadioIsActive = status;
-
-        if( status == false )
-        {
-            SX1276SetBoardTcxo( true );
-        }
-        else
-        {
-            SX1276SetBoardTcxo( false );
-        }
     }
 }
 
@@ -262,3 +347,15 @@ bool SX1276CheckRfFrequency( uint32_t frequency )
     // Implement check. Currently all frequencies are supported
     return true;
 }
+
+#if defined( USE_RADIO_DEBUG )
+void SX1276DbgPinTxWrite( uint8_t state )
+{
+    GpioWrite( &DbgPinTx, state );
+}
+
+void SX1276DbgPinRxWrite( uint8_t state )
+{
+    GpioWrite( &DbgPinRx, state );
+}
+#endif

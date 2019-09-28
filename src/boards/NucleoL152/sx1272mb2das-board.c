@@ -28,6 +28,14 @@
 #include "sx1272-board.h"
 
 /*!
+ * \brief Gets the board PA selection configuration
+ *
+ * \param [IN] channel Channel frequency in Hz
+ * \retval PaSelect RegPaConfig PaSelect value
+ */
+static uint8_t SX1272GetPaSelect( uint32_t channel );
+
+/*!
  * Flag used to set the RF switch control pins in low power mode when the radio is not active.
  */
 static bool RadioIsActive = false;
@@ -60,13 +68,24 @@ const struct Radio_s Radio =
     SX1272ReadBuffer,
     SX1272SetMaxPayloadLength,
     SX1272SetPublicNetwork,
-    SX1272GetWakeupTime
+    SX1272GetWakeupTime,
+    NULL, // void ( *IrqProcess )( void )
+    NULL, // void ( *RxBoosted )( uint32_t timeout ) - SX126x Only
+    NULL, // void ( *SetRxDutyCycle )( uint32_t rxTime, uint32_t sleepTime ) - SX126x Only
 };
 
 /*!
  * Antenna switch GPIO pins objects
  */
 Gpio_t AntSwitch;
+
+/*!
+ * Debug GPIO pins objects
+ */
+#if defined( USE_RADIO_DEBUG )
+Gpio_t DbgPinTx;
+Gpio_t DbgPinRx;
+#endif
 
 void SX1272IoInit( void )
 {
@@ -100,12 +119,20 @@ void SX1272IoDeInit( void )
     GpioInit( &SX1272.DIO3, RADIO_DIO_3, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 }
 
-/*!
- * \brief Enables/disables the TCXO if available on board design.
- *
- * \param [IN] state TCXO enabled when true and disabled when false.
- */
-static void SX1272SetBoardTcxo( uint8_t state )
+void SX1272IoDbgInit( void )
+{
+#if defined( USE_RADIO_DEBUG )
+    GpioInit( &DbgPinTx, RADIO_DBG_PIN_TX, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    GpioInit( &DbgPinRx, RADIO_DBG_PIN_RX, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+#endif
+}
+
+void SX1272IoTcxoInit( void )
+{
+    // No TCXO component available on this board design.
+}
+
+void SX1272SetBoardTcxo( uint8_t state )
 {
     // No TCXO component available on this board design.
 #if 0
@@ -205,7 +232,7 @@ void SX1272SetRfTxPower( int8_t power )
     SX1272Write( REG_PADAC, paDac );
 }
 
-uint8_t SX1272GetPaSelect( uint32_t channel )
+static uint8_t SX1272GetPaSelect( uint32_t channel )
 {
     return RF_PACONFIG_PASELECT_RFO;
 }
@@ -218,12 +245,10 @@ void SX1272SetAntSwLowPower( bool status )
 
         if( status == false )
         {
-            SX1272SetBoardTcxo( true );
             SX1272AntSwInit( );
         }
         else
         {
-            SX1272SetBoardTcxo( false );
             SX1272AntSwDeInit( );
         }
     }
@@ -260,3 +285,15 @@ bool SX1272CheckRfFrequency( uint32_t frequency )
     // Implement check. Currently all frequencies are supported
     return true;
 }
+
+#if defined( USE_RADIO_DEBUG )
+void SX1272DbgPinTxWrite( uint8_t state )
+{
+    GpioWrite( &DbgPinTx, state );
+}
+
+void SX1272DbgPinRxWrite( uint8_t state )
+{
+    GpioWrite( &DbgPinRx, state );
+}
+#endif

@@ -29,9 +29,10 @@
 #include "uart.h"
 #include "timer.h"
 #include "board-config.h"
+#include "lpm-board.h"
 #include "rtc-board.h"
 
-#if defined( SX1261DVK1BAS ) || defined( SX1262DVK1CAS ) || defined( SX1262DVK1DAS )
+#if defined( SX1261MBXBAS ) || defined( SX1262MBXCAS ) || defined( SX1262MBXDAS )
     #include "sx126x-board.h"
 #elif defined( SX1272MB2DAS)
     #include "sx1272-board.h"
@@ -105,36 +106,26 @@ uint8_t Uart2RxBuffer[UART2_FIFO_RX_SIZE];
 /*!
  * Flag to indicate if the SystemWakeupTime is Calibrated
  */
-static bool SystemWakeupTimeCalibrated = false;
+static volatile bool SystemWakeupTimeCalibrated = false;
 
 /*!
  * Callback indicating the end of the system wake-up time calibration
  */
-static void OnCalibrateSystemWakeupTimeTimerEvent( void )
+static void OnCalibrateSystemWakeupTimeTimerEvent( void* context )
 {
+    RtcSetMcuWakeUpTime( );
     SystemWakeupTimeCalibrated = true;
 }
 
-/*!
- * Nested interrupt counter.
- *
- * \remark Interrupt should only be fully disabled once the value is 0
- */
-static uint8_t IrqNestLevel = 0;
-
-void BoardDisableIrq( void )
+void BoardCriticalSectionBegin( uint32_t *mask )
 {
+    *mask = __get_PRIMASK( );
     __disable_irq( );
-    IrqNestLevel++;
 }
 
-void BoardEnableIrq( void )
+void BoardCriticalSectionEnd( uint32_t *mask )
 {
-    IrqNestLevel--;
-    if( IrqNestLevel == 0 )
-    {
-        __enable_irq( );
-    }
+    __set_PRIMASK( *mask );
 }
 
 void BoardInitPeriph( void )
@@ -160,18 +151,23 @@ void BoardInitMcu( void )
         FifoInit( &Uart2.FifoRx, Uart2RxBuffer, UART2_FIFO_RX_SIZE );
         // Configure your terminal for 8 Bits data (7 data bit + 1 parity bit), no parity and no flow ctrl
         UartInit( &Uart2, UART_2, UART_TX, UART_RX );
-        UartConfig( &Uart2, RX_TX, 115200, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
+        UartConfig( &Uart2, RX_TX, 921600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
 
         RtcInit( );
 
         BoardUnusedIoInit( );
+        if( GetBoardPowerSource( ) == BATTERY_POWER )
+        {
+            // Disables OFF mode - Enables lowest power mode (STOP)
+            LpmSetOffMode( LPM_APPLI_ID, LPM_DISABLE );
+        }
     }
     else
     {
         SystemClockReConfig( );
     }
 
-#if defined( SX1261DVK1BAS ) || defined( SX1262DVK1CAS ) || defined( SX1262DVK1DAS )
+#if defined( SX1261MBXBAS ) || defined( SX1262MBXCAS ) || defined( SX1262MBXDAS )
     SpiInit( &SX126x.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX126xIoInit( );
 #elif defined( SX1272MB2DAS)
@@ -185,6 +181,16 @@ void BoardInitMcu( void )
     if( McuInitialized == false )
     {
         McuInitialized = true;
+#if defined( SX1261MBXBAS ) || defined( SX1262MBXCAS ) || defined( SX1262MBXDAS )
+        SX126xIoDbgInit( );
+        // WARNING: If necessary the TCXO control is initialized by SX126xInit function.
+#elif defined( SX1272MB2DAS)
+        SX1272IoDbgInit( );
+        SX1272IoTcxoInit( );
+#elif defined( SX1276MB1LAS ) || defined( SX1276MB1MAS )
+        SX1276IoDbgInit( );
+        SX1276IoTcxoInit( );
+#endif
         if( GetBoardPowerSource( ) == BATTERY_POWER )
         {
             CalibrateSystemWakeupTime( );
@@ -194,16 +200,15 @@ void BoardInitMcu( void )
 
 void BoardResetMcu( void )
 {
-    BoardDisableIrq( );
+    CRITICAL_SECTION_BEGIN( );
 
     //Restart system
     NVIC_SystemReset( );
-
 }
 
 void BoardDeInitMcu( void )
 {
-#if defined( SX1261DVK1BAS ) || defined( SX1262DVK1CAS ) || defined( SX1262DVK1DAS )
+#if defined( SX1261MBXBAS ) || defined( SX1262MBXCAS ) || defined( SX1262MBXDAS )
     SpiDeInit( &SX126x.Spi );
     SX126xIoDeInit( );
 #elif defined( SX1272MB2DAS)
@@ -312,7 +317,7 @@ void CalibrateSystemWakeupTime( void )
         TimerStart( &CalibrateSystemWakeupTimeTimer );
         while( SystemWakeupTimeCalibrated == false )
         {
-            TimerLowPowerHandler( );
+
         }
     }
 }
@@ -322,26 +327,26 @@ void SystemClockReConfig( void )
     __HAL_RCC_PWR_CLK_ENABLE( );
     __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
 
-    /* Enable HSI */
+    // Enable HSI
     __HAL_RCC_HSI_CONFIG( RCC_HSI_ON );
 
-    /* Wait till HSE is ready */
+    // Wait till HSI is ready
     while( __HAL_RCC_GET_FLAG( RCC_FLAG_HSIRDY ) == RESET )
     {
     }
 
-    /* Enable PLL */
+    // Enable PLL
     __HAL_RCC_PLL_ENABLE( );
 
-    /* Wait till PLL is ready */
+    // Wait till PLL is ready
     while( __HAL_RCC_GET_FLAG( RCC_FLAG_PLLRDY ) == RESET )
     {
     }
 
-    /* Select PLL as system clock source */
+    // Select PLL as system clock source
     __HAL_RCC_SYSCLK_CONFIG ( RCC_SYSCLKSOURCE_PLLCLK );
 
-    /* Wait till PLL is used as system clock source */
+    // Wait till PLL is used as system clock source
     while( __HAL_RCC_GET_SYSCLK_SOURCE( ) != RCC_SYSCLKSOURCE_STATUS_PLLCLK )
     {
     }
@@ -365,15 +370,114 @@ uint8_t GetBoardPowerSource( void )
     }
 }
 
-#ifdef __GNUC__
-int __io_putchar( int c )
-#else /* __GNUC__ */
-int fputc( int c, FILE *stream )
-#endif
+/**
+  * \brief Enters Low Power Stop Mode
+  *
+  * \note ARM exists the function when waking up
+  */
+void LpmEnterStopMode( void)
 {
-    while( UartPutChar( &Uart2, c ) != 0 );
+    CRITICAL_SECTION_BEGIN( );
+
+    BoardDeInitMcu( );
+
+    // Disable the Power Voltage Detector
+    HAL_PWR_DisablePVD( );
+
+    // Clear wake up flag
+    SET_BIT( PWR->CR, PWR_CR_CWUF );
+
+    // Enable Ultra low power mode
+    HAL_PWREx_EnableUltraLowPower( );
+
+    // Enable the fast wake up from Ultra low power mode
+    HAL_PWREx_EnableFastWakeUp( );
+
+    CRITICAL_SECTION_END( );
+
+    // Enter Stop Mode
+    HAL_PWR_EnterSTOPMode( PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI );
+}
+
+/*!
+ * \brief Exists Low Power Stop Mode
+ */
+void LpmExitStopMode( void )
+{
+    // Disable IRQ while the MCU is not running on HSI
+    CRITICAL_SECTION_BEGIN( );
+
+    // Initilizes the peripherals
+    BoardInitMcu( );
+
+    CRITICAL_SECTION_END( );
+}
+
+/*!
+ * \brief Enters Low Power Sleep Mode
+ *
+ * \note ARM exits the function when waking up
+ */
+void LpmEnterSleepMode( void)
+{
+    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+}
+
+void BoardLowPowerHandler( void )
+{
+    __disable_irq( );
+    /*!
+     * If an interrupt has occurred after __disable_irq( ), it is kept pending 
+     * and cortex will not enter low power anyway
+     */
+
+    LpmEnterLowPower( );
+
+    __enable_irq( );
+}
+
+#if !defined ( __CC_ARM )
+
+/*
+ * Function to be used by stdout for printf etc
+ */
+int _write( int fd, const void *buf, size_t count )
+{
+    while( UartPutBuffer( &Uart2, ( uint8_t* )buf, ( uint16_t )count ) != 0 ){ };
+    return count;
+}
+
+/*
+ * Function to be used by stdin for scanf etc
+ */
+int _read( int fd, const void *buf, size_t count )
+{
+    size_t bytesRead = 0;
+    while( UartGetBuffer( &Uart2, ( uint8_t* )buf, count, ( uint16_t* )&bytesRead ) != 0 ){ };
+    // Echo back the character
+    while( UartPutBuffer( &Uart2, ( uint8_t* )buf, ( uint16_t )bytesRead ) != 0 ){ };
+    return bytesRead;
+}
+
+#else
+
+// Keil compiler
+int fputc( int c, FILE *stream )
+{
+    while( UartPutChar( &Uart2, ( uint8_t )c ) != 0 );
     return c;
 }
+
+int fgetc( FILE *stream )
+{
+    uint8_t c = 0;
+    while( UartGetChar( &Uart2, &c ) != 0 );
+    // Echo back the character
+    while( UartPutChar( &Uart2, c ) != 0 );
+    return ( int )c;
+}
+
+#endif
 
 #ifdef USE_FULL_ASSERT
 /*

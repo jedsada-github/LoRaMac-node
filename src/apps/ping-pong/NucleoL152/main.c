@@ -63,9 +63,9 @@
 
 #define RF_FREQUENCY                                915000000 // Hz
 
-#elif defined( REGION_US915_HYBRID )
+#elif defined( REGION_RU864 )
 
-#define RF_FREQUENCY                                915000000 // Hz
+#define RF_FREQUENCY                                864000000 // Hz
 
 #else
     #error "Please define a frequency band in the compiler options."
@@ -93,8 +93,21 @@
 
 #define FSK_FDEV                                    25000     // Hz
 #define FSK_DATARATE                                50000     // bps
-#define FSK_BANDWIDTH                               1000000   // Hz >> DSB in sx126x
-#define FSK_AFC_BANDWIDTH                           1000000   // Hz
+
+#if defined( SX1272MB2DAS ) || defined( SX1276MB1LAS ) || defined( SX1276MB1MAS )
+
+#define FSK_BANDWIDTH                               50000     // Hz >> SSB in sx127x
+#define FSK_AFC_BANDWIDTH                           83333     // Hz
+
+#elif defined( SX1261MBXBAS ) || defined( SX1262MBXCAS ) || defined( SX1262MBXDAS )
+
+#define FSK_BANDWIDTH                               100000    // Hz >> DSB in sx126x
+#define FSK_AFC_BANDWIDTH                           166666    // Hz >> Unused in sx126x
+
+#else
+    #error "Please define a mbed shield in the compiler options."
+#endif
+
 #define FSK_PREAMBLE_LENGTH                         5         // Same for Tx and Rx
 #define FSK_FIX_LENGTH_PAYLOAD_ON                   false
 
@@ -325,9 +338,12 @@ int main( void )
             break;
         }
 
-        TimerLowPowerHandler( );
+        BoardLowPowerHandler( );
         // Process Radio IRQ
-        Radio.IrqProcess( );
+        if( Radio.IrqProcess != NULL )
+        {
+            Radio.IrqProcess( );
+        }
     }
 }
 
