@@ -44,7 +44,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal_def.h"
 
-#if defined (USB) || defined (USB_OTG_FS) || defined (USB_OTG_HS)
+#if defined (USB) || defined (USB_OTG_FS) || defined (USB_OTG_HS) || defined (USE_USB_CDC)
 
 /** @addtogroup STM32L4xx_HAL_Driver
   * @{
@@ -224,7 +224,7 @@ typedef struct
 } USB_OTG_HCTypeDef;
 #endif /* defined USB_OTG_FS || USB_OTG_HS */
 
-#if defined (USB)
+#if defined (USB) || defined (USE_USB_CDC)
 /**
   * @brief  USB Initialization Structure definition
   */

@@ -23,8 +23,11 @@
 #include "stm32l1xx.h"
 #include "board-config.h"
 #include "adc-board.h"
+#include "board.h"
+#include "encoder.h"
 
 ADC_HandleTypeDef AdcHandle;
+ADC_AnalogWDGConfTypeDef awd;
 
 void AdcMcuInit( Adc_t *obj, PinNames adcInput )
 {
@@ -40,10 +43,24 @@ void AdcMcuInit( Adc_t *obj, PinNames adcInput )
     }
 }
 
+void AdcMcuDeInit( Adc_t *obj )
+{
+    AdcHandle.Instance = ( ADC_TypeDef* )ADC1_BASE;
+
+    __HAL_RCC_ADC1_CLK_DISABLE( );
+
+    HAL_ADC_DeInit( &AdcHandle );
+}
+
 void AdcMcuConfig( void )
 {
     // Configure ADC
+#if defined (USE_ENCODER)
+    AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV2;
+    AdcHandle.Init.Resolution            = ADC_RESOLUTION_10B;
+#else
     AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;
+#endif
     AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
     AdcHandle.Init.ContinuousConvMode    = DISABLE;
     AdcHandle.Init.DiscontinuousConvMode = DISABLE;
@@ -101,4 +118,39 @@ uint16_t AdcMcuReadChannel( Adc_t *obj, uint32_t channel )
     __HAL_RCC_HSI_DISABLE( );
 
     return adcData;
+}
+
+void AdcMcuWatchdog( Adc_t *obj, uint32_t channel, uint32_t high_lvl, uint32_t low_lvl)
+{
+    awd.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_REG;      /*!< Configures the ADC analog watchdog mode: single/all channels, regular/injected group.
+                                   This parameter can be a value of @ref ADC_analog_watchdog_mode. */
+    awd.Channel = channel;           /*!< Selects which ADC channel to monitor by analog watchdog.
+                                   This parameter has an effect only if watchdog mode is configured on single channel (parameter WatchdogMode)
+                                   This parameter can be a value of @ref ADC_channels. */
+    awd.ITMode = ENABLE;            /*!< Specifies whether the analog watchdog is configured in interrupt or polling mode.
+                                   This parameter can be set to ENABLE or DISABLE */
+    awd.HighThreshold = high_lvl;     /*!< Configures the ADC analog watchdog High threshold value.
+                                   This parameter must be a number between Min_Data = 0x000 and Max_Data = 0xFFF. */
+    awd.LowThreshold = low_lvl;      /*!< Configures the ADC analog watchdog High threshold value.
+                                   This parameter must be a number between Min_Data = 0x000 and Max_Data = 0xFFF. */
+    awd.WatchdogNumber = 0;    /*!< Reserved for future use, can be set to 0 */
+
+    HAL_ADC_AnalogWDGConfig(&AdcHandle, &awd);
+}
+
+/**
+  * @brief  Analog watchdog callback in non blocking mode. 
+  * @param  hadc: ADC handle
+  * @retval None
+  */
+void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
+{
+    CRITICAL_SECTION_BEGIN();
+    if (Encoder.OnSendOneshot != NULL &&  config.analog_alarm > 0)
+    {
+        awd.ITMode = DISABLE; 
+        HAL_ADC_AnalogWDGConfig(&AdcHandle, &awd);
+        Encoder.OnSendOneshot();
+    }
+    CRITICAL_SECTION_END();  
 }

@@ -25,6 +25,9 @@
 
 #include <stdint.h>
 #include "utilities.h"
+#include "encoder-board.h"
+#include "wdt-board.h"
+
 /*!
  * Possible power sources
  */
@@ -60,7 +63,11 @@ void BoardDeInitMcu( void );
  *
  * \retval value  Potentiometer level ( value in percent )
  */
+#if (USE_ENCODER == 1)
+uint16_t BoardGetPotiLevel( void );
+#else
 uint8_t BoardGetPotiLevel( void );
+#endif
 
 /*!
  * \brief Measure the Battery voltage
@@ -112,5 +119,7 @@ uint8_t GetBoardPowerSource( void );
  * \retval value  Version
  */
 Version_t BoardGetVersion( void );
+
+void BoardSetADCAlarmLVL(uint32_t lower_threshold);
 
 #endif // __BOARD_H__

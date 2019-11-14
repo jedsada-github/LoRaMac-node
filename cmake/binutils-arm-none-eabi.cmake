@@ -36,6 +36,13 @@ function(print_section_sizes TARGET)
 endfunction()
 
 #---------------------------------------------------------------------------------------
+# Creates output in elf32 
+#---------------------------------------------------------------------------------------
+function(create_elf_output TARGET)
+    add_custom_target(${TARGET}.elf ALL DEPENDS ${TARGET} COMMAND ${CMAKE_OBJCOPY} -Oelf32-littlearm ${TARGET} ${TARGET}.elf)
+endfunction()
+
+#---------------------------------------------------------------------------------------
 # Creates output in hex format
 #---------------------------------------------------------------------------------------
 function(create_hex_output TARGET)

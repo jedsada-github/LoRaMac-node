@@ -98,8 +98,6 @@
  */
 #define LORAWAN_APP_PORT                            2
 
-static uint8_t DevEui[] = LORAWAN_DEVICE_EUI;
-static uint8_t JoinEui[] = LORAWAN_JOIN_EUI;
 #if( ABP_ACTIVATION_LRWAN_VERSION == ABP_ACTIVATION_LRWAN_VERSION_V10x )
 static uint8_t GenAppKey[] = LORAWAN_GEN_APP_KEY;
 #else
@@ -356,8 +354,6 @@ static void JoinNetwork( void )
     LoRaMacStatus_t status;
     MlmeReq_t mlmeReq;
     mlmeReq.Type = MLME_JOIN;
-    mlmeReq.Req.Join.DevEui = DevEui;
-    mlmeReq.Req.Join.JoinEui = JoinEui;
     mlmeReq.Req.Join.Datarate = LORAWAN_DEFAULT_DATARATE;
 
     // Starts the join procedure
@@ -1140,6 +1136,8 @@ int main( void )
     LoRaMacCallback_t macCallbacks;
     MibRequestConfirm_t mibReq;
     LoRaMacStatus_t status;
+    uint8_t devEui[] = LORAWAN_DEVICE_EUI;
+    uint8_t joinEui[] = LORAWAN_JOIN_EUI;
 
     BoardInitMcu( );
     BoardInitPeriph( );
@@ -1203,13 +1201,21 @@ int main( void )
                     LoRaMacMibSetRequestConfirm( &mibReq );
 
                     // Initialize LoRaMac device unique ID if not already defined in Commissioning.h
-                    if( ( DevEui[0] == 0 ) && ( DevEui[1] == 0 ) &&
-                        ( DevEui[2] == 0 ) && ( DevEui[3] == 0 ) &&
-                        ( DevEui[4] == 0 ) && ( DevEui[5] == 0 ) &&
-                        ( DevEui[6] == 0 ) && ( DevEui[7] == 0 ) )
+                    if( ( devEui[0] == 0 ) && ( devEui[1] == 0 ) &&
+                        ( devEui[2] == 0 ) && ( devEui[3] == 0 ) &&
+                        ( devEui[4] == 0 ) && ( devEui[5] == 0 ) &&
+                        ( devEui[6] == 0 ) && ( devEui[7] == 0 ) )
                     {
-                        BoardGetUniqueId( DevEui );
+                        BoardGetUniqueId( devEui );
                     }
+
+                    mibReq.Type = MIB_DEV_EUI;
+                    mibReq.Param.DevEui = devEui;
+                    LoRaMacMibSetRequestConfirm( &mibReq );
+
+                    mibReq.Type = MIB_JOIN_EUI;
+                    mibReq.Param.JoinEui = joinEui;
+                    LoRaMacMibSetRequestConfirm( &mibReq );
 
 #if( OVER_THE_AIR_ACTIVATION == 0 )
                     // Choose a random device address if not already defined in Commissioning.h
@@ -1303,16 +1309,20 @@ int main( void )
             }
             case DEVICE_STATE_JOIN:
             {
-                printf( "DevEui      : %02X", DevEui[0] );
+                mibReq.Type = MIB_DEV_EUI;
+                LoRaMacMibGetRequestConfirm( &mibReq );
+                printf( "DevEui      : %02X", mibReq.Param.DevEui[0] );
                 for( int i = 1; i < 8; i++ )
                 {
-                    printf( "-%02X", DevEui[i] );
+                    printf( "-%02X", mibReq.Param.DevEui[i] );
                 }
                 printf( "\r\n" );
-                printf( "AppEui      : %02X", JoinEui[0] );
+                mibReq.Type = MIB_JOIN_EUI;
+                LoRaMacMibGetRequestConfirm( &mibReq );
+                printf( "AppEui      : %02X", mibReq.Param.JoinEui[0] );
                 for( int i = 1; i < 8; i++ )
                 {
-                    printf( "-%02X", JoinEui[i] );
+                    printf( "-%02X", mibReq.Param.JoinEui[i] );
                 }
                 printf( "\r\n" );
                 printf( "AppKey      : %02X", NwkKey[0] );
