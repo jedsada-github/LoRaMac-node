@@ -260,10 +260,7 @@ bool SX1272IsChannelFree( RadioModems_t modem, uint32_t freq, int16_t rssiThresh
     int16_t rssi = 0;
     uint32_t carrierSenseTime = 0;
 
-    if( SX1272GetStatus( ) != RF_IDLE )
-    {
-        return false;
-    }
+    SX1272SetSleep( );
 
     SX1272SetModem( modem );
 
@@ -750,6 +747,7 @@ void SX1272SetSleep( void )
 {
     TimerStop( &RxTimeoutTimer );
     TimerStop( &TxTimeoutTimer );
+    TimerStop( &RxTimeoutSyncWord );
 
     SX1272SetOpMode( RF_OPMODE_SLEEP );
 
@@ -763,6 +761,7 @@ void SX1272SetStby( void )
 {
     TimerStop( &RxTimeoutTimer );
     TimerStop( &TxTimeoutTimer );
+    TimerStop( &RxTimeoutSyncWord );
 
     SX1272SetOpMode( RF_OPMODE_STANDBY );
     SX1272.Settings.State = RF_IDLE;

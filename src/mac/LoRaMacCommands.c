@@ -33,11 +33,6 @@ Maintainer: Miguel Luis ( Semtech ), Daniel Jaeckle ( STACKFORCE ), Johannes Bru
 #define CID_FIELD_SIZE 1
 
 /*!
- * List of all stick MAC command answers which will be deleted after a receiving downlink
- */
-const uint8_t CIDsStickyAnsCmds[] = { MOTE_MAC_DL_CHANNEL_ANS, MOTE_MAC_RX_PARAM_SETUP_ANS, MOTE_MAC_RX_TIMING_SETUP_ANS };
-
-/*!
  *  Mac Commands list structure
  */
 typedef struct sMacCommandsList
@@ -409,14 +404,14 @@ LoRaMacCommandStatus_t LoRaMacCommandsGetCmd( uint8_t cid, MacCommand_t** macCmd
         curElement = curElement->Next;
     }
 
+    // Update the pointer anyway
+    *macCmd = curElement;
+
     // Handle error in case if we reached the end without finding it.
     if( curElement == NULL )
     {
         return LORAMAC_COMMANDS_ERROR_CMD_NOT_FOUND;
     }
-
-    *macCmd = curElement;
-
     return LORAMAC_COMMANDS_SUCCESS;
 }
 
@@ -460,16 +455,9 @@ LoRaMacCommandStatus_t LoRaMacCommandsRemoveStickyAnsCmds( void )
     while( curElement != NULL )
     {
         nexElement = curElement->Next;
-        if( curElement->IsSticky == true )
+        if( IsSticky( curElement->CID ) == true )
         {
-            for( uint8_t i = 0; i < sizeof( CIDsStickyAnsCmds ); i++ )
-            {
-                if( curElement->CID == CIDsStickyAnsCmds[i] )
-                {
-                    LoRaMacCommandsRemoveCmd( curElement );
-                    break;
-                }
-            }
+            LoRaMacCommandsRemoveCmd( curElement );
         }
         curElement = nexElement;
     }
@@ -491,15 +479,16 @@ LoRaMacCommandStatus_t LoRaMacCommandsGetSizeSerializedCmds( size_t* size )
 
 LoRaMacCommandStatus_t LoRaMacCommandsSerializeCmds( size_t availableSize, size_t* effectiveSize, uint8_t* buffer )
 {
+    MacCommand_t* curElement = NvmCtx.MacCommandList.First;
+    MacCommand_t* nextElement;
+    uint8_t itr = 0;
+
     if( ( buffer == NULL ) || ( effectiveSize == NULL ) )
     {
         return LORAMAC_COMMANDS_ERROR_NPE;
     }
-    MacCommand_t* curElement;
-    curElement = NvmCtx.MacCommandList.First;
-    uint8_t itr = 0;
 
-    // Loop through all elements
+    // Loop through all elements which fits into the buffer
     while( curElement != NULL )
     {
         // If the next MAC command still fits into the buffer, add it.
@@ -507,7 +496,7 @@ LoRaMacCommandStatus_t LoRaMacCommandsSerializeCmds( size_t availableSize, size_
         {
             buffer[itr++] = curElement->CID;
             memcpy1( &buffer[itr], curElement->Payload, curElement->PayloadSize );
-            itr = itr + curElement->PayloadSize;
+            itr += curElement->PayloadSize;
         }
         else
         {
@@ -515,6 +504,18 @@ LoRaMacCommandStatus_t LoRaMacCommandsSerializeCmds( size_t availableSize, size_
         }
         curElement = curElement->Next;
     }
+
+    // Remove all commands which do not fit into the buffer
+    while( curElement != NULL )
+    {
+        // Store the next element before removing the current one
+        nextElement = curElement->Next;
+        LoRaMacCommandsRemoveCmd( curElement );
+        curElement = nextElement;
+    }
+
+    // Fetch the effective size of the mac commands
+    LoRaMacCommandsGetSizeSerializedCmds( effectiveSize );
 
     return LORAMAC_COMMANDS_SUCCESS;
 }

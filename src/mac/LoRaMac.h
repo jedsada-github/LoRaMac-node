@@ -121,6 +121,11 @@
 #ifndef __LORAMAC_H__
 #define __LORAMAC_H__
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "utilities.h"
@@ -1040,18 +1045,6 @@ typedef enum eMlme
 typedef struct sMlmeReqJoin
 {
     /*!
-     * Globally unique end-device identifier
-     *
-     * LoRaWAN Specification V1.1.0, chapter 6.1.1.2
-     */
-    uint8_t* DevEui;
-    /*!
-     * Join Sever identifier
-     *
-     * LoRaWAN Specification V1.1.0, chapter 6.1.1.1
-     */
-    uint8_t* JoinEui;
-    /*!
      * Datarate used for join request.
      */
     uint8_t Datarate;
@@ -1222,6 +1215,8 @@ typedef struct sMlmeIndication
  * ----------------------------------------------| :-: | :-:
  * \ref MIB_DEVICE_CLASS                         | YES | YES
  * \ref MIB_NETWORK_ACTIVATION                   | YES | YES
+ * \ref MIB_DEV_EUI                              | YES | YES
+ * \ref MIB_JOIN_EUI                             | YES | YES
  * \ref MIB_ADR                                  | YES | YES
  * \ref MIB_NET_ID                               | YES | YES
  * \ref MIB_DEV_ADDR                             | YES | YES
@@ -1307,6 +1302,18 @@ typedef enum eMib
      * LoRaWAN Specification V1.0.2
      */
     MIB_NETWORK_ACTIVATION,
+    /*!
+     * LoRaWAN device EUI
+     *
+     * LoRaWAN Specification V1.0.2
+     */
+    MIB_DEV_EUI,
+    /*!
+     * LoRaWAN join EUI
+     *
+     * LoRaWAN Specification V1.0.2
+     */
+    MIB_JOIN_EUI,
     /*!
      * Adaptive data rate
      *
@@ -1603,7 +1610,7 @@ typedef enum eMib
      * The antenna gain is used to calculate the TX power of the node.
      * The formula is:
      * radioTxPower = ( int8_t )floor( maxEirp - antennaGain )
-     * 
+     *
      * \remark The antenna gain value is referenced to the isotropic antenna.
      *         The value is in dBi.
      *         MIB_ANTENNA_GAIN[dBi] = measuredAntennaGain[dBd] + 2.15
@@ -1614,7 +1621,7 @@ typedef enum eMib
      * The antenna gain is used to calculate the TX power of the node.
      * The formula is:
      * radioTxPower = ( int8_t )floor( maxEirp - antennaGain )
-     * 
+     *
      * \remark The antenna gain value is referenced to the isotropic antenna.
      *         The value is in dBi.
      *         MIB_DEFAULT_ANTENNA_GAIN[dBi] = measuredAntennaGain[dBd] + 2.15
@@ -1705,6 +1712,18 @@ typedef union uMibParam
      * Related MIB type: \ref MIB_NETWORK_ACTIVATION
      */
     ActivationType_t NetworkActivation;
+    /*!
+     * LoRaWAN device class
+     *
+     * Related MIB type: \ref MIB_DEV_EUI
+     */
+    uint8_t* DevEui;
+    /*!
+     * LoRaWAN device class
+     *
+     * Related MIB type: \ref MIB_JOIN_EUI
+     */
+    uint8_t* JoinEui;
     /*!
      * Activation state of ADR
      *
@@ -2621,32 +2640,15 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t* mibSet );
  *
  * \details The Mac layer management entity handles management services. The
  *          following code-snippet shows how to use the API to perform a
- *          network join request.
+ *          network join request. Please note that for a join request, the
+ *          DevEUI and the JoinEUI must be set previously via the MIB. Please
+ *          also refer to the sample implementations.
  *
  * \code
- * static uint8_t DevEui[] =
- * {
- *   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
- * };
- * static uint8_t JoinEui[] =
- * {
- *   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
- * };
- * static uint8_t NwkKey[] =
- * {
- *   0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
- *   0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
- * };
- * static uint8_t AppKey[] =
- * {
- *   0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
- *   0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
- * };
  *
  * MlmeReq_t mlmeReq;
  * mlmeReq.Type = MLME_JOIN;
- * mlmeReq.Req.Join.DevEui = DevEui;
- * mlmeReq.Req.Join.JoinEui = JoinEui;
+ * mlmeReq.Req.Join.Datarate = LORAWAN_DEFAULT_DATARATE;
  *
  * if( LoRaMacMlmeRequest( &mlmeReq ) == LORAMAC_STATUS_OK )
  * {
@@ -2707,5 +2709,9 @@ LoRaMacStatus_t LoRaMacMcpsRequest( McpsReq_t* mcpsRequest );
 #include "region/Region.h"
 
 /*! \} defgroup LORAMAC */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __LORAMAC_H__
