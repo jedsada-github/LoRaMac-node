@@ -10,7 +10,7 @@
         //     Linux   : /usr
         //     OSX     : /usr/local
         // It is required to uncomment and to fill the following line.
-        "TOOLCHAIN_PREFIX":"C:/PROGRA~2/GNUTOO~1/72018-~1",
+        "TOOLCHAIN_PREFIX":"C:/PROGRA~2/GNUTOO~1/82019-~1",
 
         // In case your OpenOCD is not installed under the default path:
         //     Windows : C:/openocd/bin/openocd.exe
@@ -89,6 +89,7 @@
         "stm32l1xx.h": "c",
         "stm32l151xba.h": "c",
         "uart.h": "c",
-        "gps.h": "c"
+        "gps.h": "c",
+        "eeprom-board.h": "c"
     }
 }

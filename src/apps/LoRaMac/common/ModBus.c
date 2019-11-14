@@ -836,8 +836,8 @@ void ProcessModbusSlave(void)
  */
 void InitModbusSlave(unsigned char SlaveAddress)
 {
-    if(SlaveAddress<=0 && SlaveAddress>255)
-        SlaveAddress=1;
+    if(SlaveAddress > 255)
+        SlaveAddress = 1;
 
     SLAVE_ADDRESS   =SlaveAddress;
 //    ModBusSlave_UART_Initialise();
