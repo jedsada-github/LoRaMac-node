@@ -21,6 +21,7 @@
 
 /*! \file periodic-uplink/NAMote72/main.c */
 
+#include <stdio.h>
 #include "utilities.h"
 #include "board-config.h"
 #include "board.h"
@@ -255,7 +256,14 @@ int main( void )
                     &appVersion,
                     &gitHubVersion );
 
-    LmHandlerInit( &LmHandlerCallbacks, &LmHandlerParams );
+    if ( LmHandlerInit( &LmHandlerCallbacks, &LmHandlerParams ) != LORAMAC_HANDLER_SUCCESS )
+    {
+        printf( "LoRaMac wasn't properly initialized" );
+        // Fatal error, endless loop.
+        while ( 1 )
+        {
+        }
+    }
 
     // The LoRa-Alliance Compliance protocol package should always be
     // initialized and activated.
