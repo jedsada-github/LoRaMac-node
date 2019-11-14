@@ -35,6 +35,7 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
+#include "gps-board.h"
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -49,9 +50,12 @@
 #if ( USE_POTENTIOMETER == 0 )
 Gpio_t Led1;
 #endif
+Gpio_t Led1;
 Gpio_t Led2;
 Gpio_t Led3;
 Gpio_t Led4;
+
+Gpio_t USR1;
 
 /*
  * MCU objects
@@ -59,7 +63,7 @@ Gpio_t Led4;
 Adc_t Adc;
 I2c_t I2c;
 Uart_t Uart1;
-
+Wdt_t Wdt;
 /*!
  * Initializes the unused GPIO to a know status
  */
@@ -79,6 +83,11 @@ static void CalibrateSystemWakeupTime( void );
  * System Clock Re-Configuration when waking up from STOP mode
  */
 static void SystemClockReConfig( void );
+
+/*!
+ * System Clock Re-Configuration when STOP mode with RTC
+ */
+static void SystemClockMCU_STOP_wRTC( void ) ;
 
 /*!
  * Timer used at first boot to calibrate the SystemWakeupTime
@@ -126,7 +135,10 @@ void BoardCriticalSectionEnd( uint32_t *mask )
 
 void BoardInitPeriph( void )
 {
-
+#if defined(USE_ENCODER)
+    //Encoder initialized
+        EncoderUpdateStatus();
+#endif
 }
 
 void BoardInitMcu( void )
@@ -139,27 +151,29 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 #endif
-        GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
         SystemClockConfig( );
 
+#if defined ( USE_USB_CDC )
+        UartInit( &Uart1, UART_USB_CDC, USB_DP, USB_DM );
+#else
         FifoInit( &Uart1.FifoTx, Uart1TxBuffer, UART1_FIFO_TX_SIZE );
         FifoInit( &Uart1.FifoRx, Uart1RxBuffer, UART1_FIFO_RX_SIZE );
         // Configure your terminal for 8 Bits data (7 data bit + 1 parity bit), no parity and no flow ctrl
         UartInit( &Uart1, UART_1, UART_TX, UART_RX );
-        UartConfig( &Uart1, RX_TX, 921600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
-
+        UartConfig( &Uart1, RX_TX, 115200, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
+#endif
         RtcInit( );
 
         // Switch LED 1, 2, 3, 4 OFF
 #if ( USE_POTENTIOMETER == 0 )
         GpioWrite( &Led1, 0 );
 #endif
-        GpioWrite( &Led2, 0 );
-        GpioWrite( &Led3, 0 );
-        GpioWrite( &Led4, 0 );
+        GpioInit( &USR1, USER_BUTTON, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
+        GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
@@ -178,6 +192,14 @@ void BoardInitMcu( void )
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX1272IoInit( );
 
+#if (USE_ENCODER == 1)
+    //Encoder initialized
+    EncoderInit(&Encoder, TIM_2, PULSE, DIR, TAMPERING, ALARM);
+    GpioWrite( &Led2, 0 );
+    GpioWrite( &Led3, 0 );
+    GpioWrite( &Led4, 0 );
+#endif
+
     if( McuInitialized == false )
     {
         McuInitialized = true;
@@ -187,7 +209,10 @@ void BoardInitMcu( void )
         {
             CalibrateSystemWakeupTime( );
         }
+
     }
+    //Watchdog initialize
+    WdtInit( &Wdt, WDT_IWDG);
 }
 
 void BoardResetMcu( void )
@@ -207,11 +232,19 @@ void BoardDeInitMcu( void )
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
 
+#if (USE_ENCODER == 1)
+    // // EncoderDeInit( &Encoder );
+    // GpioInit( &ioPin, LED_2, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    // GpioInit( &ioPin, LED_3, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    // GpioInit( &ioPin, LED_4, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+#endif
+
     GpioInit( &ioPin, OSC_HSE_IN, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioInit( &ioPin, OSC_HSE_OUT, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
     GpioInit( &ioPin, OSC_LSE_IN, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 1 );
     GpioInit( &ioPin, OSC_LSE_OUT, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 1 );
+
 }
 
 uint32_t BoardGetRandomSeed( void )
@@ -237,13 +270,19 @@ void BoardGetUniqueId( uint8_t *id )
 #define POTI_MAX_LEVEL 900
 #define POTI_MIN_LEVEL 10
 
+#if (USE_ENCODER == 1)
+uint16_t BoardGetPotiLevel( void )
+#else
 uint8_t BoardGetPotiLevel( void )
+#endif
 {
     uint8_t potiLevel = 0;
     uint16_t vpoti = 0;
 
     // Read the current potentiometer setting
-    vpoti = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
+
+    if (config.analog_alarm > 0)
+        vpoti = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
 
     // check the limits
     if( vpoti >= POTI_MAX_LEVEL )
@@ -259,7 +298,11 @@ uint8_t BoardGetPotiLevel( void )
         // if the value is in the area, calculate the percentage value
         potiLevel = ( ( vpoti - POTI_MIN_LEVEL ) * 100 ) / POTI_MAX_LEVEL;
     }
+#if (USE_ENCODER == 1)
+    return vpoti;
+#else
     return potiLevel;
+#endif
 }
 
 /*!
@@ -270,13 +313,16 @@ uint8_t BoardGetPotiLevel( void )
 /*!
  * VREF calibration value
  */
-#define VREFINT_CAL                                 ( *( uint16_t* )0x1FF800F8U )
+#define VREFINT_CAL                                 ( *( uint16_t* )0x1FF80078U )
 
 /*!
  * ADC maximum value
  */
+#if !defined (USE_ENCODER)
 #define ADC_MAX_VALUE                               4095
-
+#else
+#define ADC_MAX_VALUE                               1023
+#endif
 /*!
  * VREF bandgap value
  */
@@ -358,10 +404,14 @@ static void BoardUnusedIoInit( void )
     HAL_DBGMCU_EnableDBGSleepMode( );
     HAL_DBGMCU_EnableDBGStopMode( );
     HAL_DBGMCU_EnableDBGStandbyMode( );
+    __HAL_DBGMCU_FREEZE_WWDG();
+    __HAL_DBGMCU_FREEZE_IWDG();
 #else
     HAL_DBGMCU_DisableDBGSleepMode( );
     HAL_DBGMCU_DisableDBGStopMode( );
     HAL_DBGMCU_DisableDBGStandbyMode( );
+     __HAL_DBGMCU_UNFREEZE_WWDG();
+    __HAL_DBGMCU_UNFREEZE_IWDG();
 
     GpioInit( &ioPin, JTAG_TMS, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     GpioInit( &ioPin, JTAG_TCK, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
@@ -381,9 +431,15 @@ void SystemClockConfig( void )
 
     __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
 
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE;
+    /* Wait Until the Voltage Regulator is ready */
+    while (__HAL_PWR_GET_FLAG(PWR_FLAG_VOS) != RESET);
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE ;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
+    // RCC_OscInitStruct.HSIState       = RCC_HSI_ON;
+    // RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.LSEState       = RCC_LSE_ON;
+    // RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL6;
@@ -436,31 +492,90 @@ void CalibrateSystemWakeupTime( void )
 void SystemClockReConfig( void )
 {
     __HAL_RCC_PWR_CLK_ENABLE( );
-    __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
+    __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE2 );
+
+    /* Wait Until the Voltage Regulator is ready */
+    while (__HAL_PWR_GET_FLAG(PWR_FLAG_VOS) != RESET);
 
     // Enable HSE
     __HAL_RCC_HSE_CONFIG( RCC_HSE_ON );
 
     // Wait till HSE is ready
-    while( __HAL_RCC_GET_FLAG( RCC_FLAG_HSERDY ) == RESET )
-    {
-    }
+    while( __HAL_RCC_GET_FLAG( RCC_FLAG_HSERDY ) == RESET );
+
+    // __HAL_RCC_HSI_ENABLE();
+    // __HAL_RCC_LSI_ENABLE();
+//    __HAL_FLASH_ACC64_ENABLE();
+//    __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
+//    __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_1);
+//     __HAL_FLASH_SLEEP_POWERDOWN_DISABLE();
 
     // Enable PLL
+    __HAL_RCC_PLL_CONFIG(RCC_PLLSOURCE_HSE, RCC_PLL_MUL6, RCC_PLL_DIV3);
     __HAL_RCC_PLL_ENABLE( );
 
     // Wait till PLL is ready
-    while( __HAL_RCC_GET_FLAG( RCC_FLAG_PLLRDY ) == RESET )
-    {
-    }
+    while( __HAL_RCC_GET_FLAG( RCC_FLAG_PLLRDY ) == RESET );
 
     // Select PLL as system clock source
     __HAL_RCC_SYSCLK_CONFIG ( RCC_SYSCLKSOURCE_PLLCLK );
 
     // Wait till PLL is used as system clock source
-    while( __HAL_RCC_GET_SYSCLK_SOURCE( ) != RCC_SYSCLKSOURCE_STATUS_PLLCLK )
-    {
-    }
+    while( __HAL_RCC_GET_SYSCLK_SOURCE( ) != RCC_SYSCLKSOURCE_STATUS_PLLCLK );
+
+    // __HAL_RCC_MSI_DISABLE();
+}
+
+void SystemClockMCU_STOP_wRTC( void )
+{
+    /* RCC system reset */
+     HAL_RCC_DeInit();
+
+//   /* Flash no latency*/
+   __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_0);
+
+//   /* Disable Prefetch Buffer */
+   __HAL_FLASH_PREFETCH_BUFFER_DISABLE();
+
+//   /* Disable 64-bit access */
+   __HAL_FLASH_ACC64_DISABLE();
+
+//   /* Disable FLASH during SLeep  */
+   __HAL_FLASH_SLEEP_POWERDOWN_ENABLE();
+
+  /* Enable the PWR APB1 Clock */
+//   RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
+    __HAL_RCC_PWR_CLK_ENABLE();
+
+  /* Select the Voltage Range 3 (1.2V) */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+
+  /* Wait Until the Voltage Regulator is ready */
+  while (__HAL_PWR_GET_FLAG(PWR_FLAG_VOS) != RESET);
+
+  /* Configure the MSI frequency */
+  __HAL_RCC_MSI_RANGE_CONFIG(RCC_MSIRANGE_0);
+
+  /* Select MSI as system clock source */
+  __HAL_RCC_SYSCLK_CONFIG(RCC_SYSCLKSOURCE_MSI);
+
+  /* Wait until MSI is used as system clock source */
+  while (__HAL_RCC_GET_SYSCLK_SOURCE() != RCC_SYSCLKSOURCE_STATUS_MSI);
+
+  MODIFY_REG(RCC->CFGR, RCC_CFGR_HPRE, RCC_SYSCLK_DIV2);
+
+  __HAL_RCC_HSI_DISABLE();
+
+  /* Disable HSE clock */
+  __HAL_RCC_HSE_CONFIG( RCC_HSE_OFF );
+
+//   /* Disable LSE clock */
+//   if (! With_RTC)
+//     RCC_LSEConfig(RCC_LSE_OFF);
+//    __HAL_RCC_LSE_CONFIG(RCC_LSE_ON);
+
+  /* Disable LSI clock */
+  __HAL_RCC_LSI_DISABLE();
 }
 
 void SysTick_Handler( void )
@@ -481,6 +596,7 @@ uint8_t GetBoardPowerSource( void )
   */
 void LpmEnterStopMode( void)
 {
+
     CRITICAL_SECTION_BEGIN( );
 
     BoardDeInitMcu( );
@@ -496,6 +612,10 @@ void LpmEnterStopMode( void)
 
     // Enable the fast wake up from Ultra low power mode
     HAL_PWREx_EnableFastWakeUp( );
+
+    // HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+
+    // SystemClockMCU_STOP_wRTC();
 
     CRITICAL_SECTION_END( );
 
@@ -531,13 +651,62 @@ void BoardLowPowerHandler( void )
 {
     __disable_irq( );
     /*!
-     * If an interrupt has occurred after __disable_irq( ), it is kept pending 
+     * If an interrupt has occurred after __disable_irq( ), it is kept pending
      * and cortex will not enter low power anyway
      */
 
     LpmEnterLowPower( );
 
     __enable_irq( );
+}
+
+void BoardSetADCAlarmLVL(uint32_t lower_threshold) 
+{
+    AdcSetWatchdogLVL(&Adc, ADC_CHANNEL_3, lower_threshold );
+}
+/**
+  * @brief This function configures the source of the time base.
+  * @brief  don't enable systick
+  * @param TickPriority: Tick interrupt priority.
+  * @retval HAL status
+  */
+
+// HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
+// {
+//    /* Return function status */
+//   return HAL_OK;
+// }
+
+/**
+  * @brief This function provides delay (in ms)
+  * @param Delay: specifies the delay time length, in milliseconds.
+  * @retval None
+  */
+void HAL_Delay(__IO uint32_t Delay)
+{
+  RtcDelayMs( Delay ); /* based on RTC */
+}
+
+/**
+  * @brief  Initializes the MSP.
+  * @retval None
+  */
+void HAL_MspInit(void)
+{
+   __HAL_RCC_PWR_CLK_ENABLE();
+
+  /* Disable the Power Voltage Detector */
+  HAL_PWR_DisablePVD( );
+
+  /* Set MCU in ULP (Ultra Low Power) */
+  HAL_PWREx_EnableUltraLowPower( );
+
+  /*Disable fast wakeUp*/
+  HAL_PWREx_EnableFastWakeUp( );
+}
+
+void Error_Handler(void) {
+    assert_param( FAIL );
 }
 
 #if !defined ( __CC_ARM )

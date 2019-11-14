@@ -24,6 +24,8 @@
 #include "utilities.h"
 #include "board.h"
 #include "uart-board.h"
+#include "uart-usb-board.h"
+#include "usb_device.h"
 
 /*!
  * Number of times the UartPutBuffer will try to send the buffer before
@@ -32,6 +34,7 @@
 #define TX_BUFFER_RETRY_COUNT                       10
 
 static UART_HandleTypeDef UartHandle;
+static DMA_HandleTypeDef hdma_usart1_tx;
 uint8_t RxData = 0;
 uint8_t TxData = 0;
 
@@ -40,12 +43,11 @@ extern Uart_t Uart1;
 void UartMcuInit( Uart_t *obj, UartId_t uartId, PinNames tx, PinNames rx )
 {
     obj->UartId = uartId;
-
     if( uartId == UART_USB_CDC )
     {
-#if defined( USE_USB_CDC )
-        UartUsbInit( obj, uartId, NC, NC );
-#endif
+// #if defined( USE_USB_CDC )
+        UartUsbInit( obj, uartId, tx, rx );
+// #endif
     }
     else
     {
@@ -53,8 +55,29 @@ void UartMcuInit( Uart_t *obj, UartId_t uartId, PinNames tx, PinNames rx )
         __HAL_RCC_USART1_RELEASE_RESET( );
         __HAL_RCC_USART1_CLK_ENABLE( );
 
+
         GpioInit( &obj->Tx, tx, PIN_ALTERNATE_FCT, PIN_PUSH_PULL, PIN_PULL_UP, GPIO_AF7_USART1 );
         GpioInit( &obj->Rx, rx, PIN_ALTERNATE_FCT, PIN_PUSH_PULL, PIN_PULL_UP, GPIO_AF7_USART1 );
+
+        /* USART1 DMA Init */
+        /* USART1_TX Init */
+        /* DMA controller clock enable */
+        
+        __DMA1_CLK_ENABLE();
+
+        hdma_usart1_tx.Instance = DMA1_Channel4;
+        hdma_usart1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+        hdma_usart1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_usart1_tx.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_usart1_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+        hdma_usart1_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+        hdma_usart1_tx.Init.Mode = DMA_NORMAL;
+        hdma_usart1_tx.Init.Priority = DMA_PRIORITY_LOW;
+        if (HAL_DMA_Init(&hdma_usart1_tx) != HAL_OK)
+        {
+        }
+
+        __HAL_LINKDMA(&UartHandle, hdmatx, hdma_usart1_tx);
     }
 }
 
@@ -160,8 +183,12 @@ void UartMcuConfig( Uart_t *obj, UartMode_t mode, uint32_t baudrate, WordLength_
         HAL_NVIC_SetPriority( USART1_IRQn, 1, 0 );
         HAL_NVIC_EnableIRQ( USART1_IRQn );
 
+        HAL_NVIC_SetPriority( DMA1_Channel4_IRQn, 1, 0 );
+        HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn );
+
         /* Enable the UART Data Register not empty Interrupt */
         HAL_UART_Receive_IT( &UartHandle, &RxData, 1 );
+
     }
 }
 
@@ -178,6 +205,8 @@ void UartMcuDeInit( Uart_t *obj )
         __HAL_RCC_USART1_FORCE_RESET( );
         __HAL_RCC_USART1_RELEASE_RESET( );
         __HAL_RCC_USART1_CLK_DISABLE( );
+
+        __DMA1_CLK_DISABLE();
 
         GpioInit( &obj->Tx, obj->Tx.pin, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &obj->Rx, obj->Rx.pin, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
@@ -202,11 +231,11 @@ uint8_t UartMcuPutChar( Uart_t *obj, uint8_t data )
         if( IsFifoFull( &obj->FifoTx ) == false )
         {
             FifoPush( &obj->FifoTx, TxData );
+            CRITICAL_SECTION_END( );
 
             // Trig UART Tx interrupt to start sending the FIFO contents.
             __HAL_UART_ENABLE_IT( &UartHandle, UART_IT_TC );
 
-            CRITICAL_SECTION_END( );
             return 0; // OK
         }
         CRITICAL_SECTION_END( );
@@ -254,6 +283,7 @@ uint8_t UartMcuPutBuffer( Uart_t *obj, uint8_t *buffer, uint16_t size )
         uint8_t retryCount;
         uint16_t i;
 
+        
         for( i = 0; i < size; i++ )
         {
             retryCount = 0;
@@ -299,13 +329,16 @@ uint8_t UartMcuGetBuffer( Uart_t *obj, uint8_t *buffer, uint16_t size, uint16_t 
 
 void HAL_UART_TxCpltCallback( UART_HandleTypeDef *handle )
 {
+     CRITICAL_SECTION_BEGIN( );
     if( IsFifoEmpty( &Uart1.FifoTx ) == false )
     {
         TxData = FifoPop( &Uart1.FifoTx );
+        CRITICAL_SECTION_END( );
         //  Write one byte to the transmit data register
-        HAL_UART_Transmit_IT( &UartHandle, &TxData, 1 );
+        // HAL_UART_Transmit_IT( &UartHandle, &TxData, 1 );
+        HAL_UART_Transmit_DMA(&UartHandle, &TxData, 1);
     }
-
+    CRITICAL_SECTION_END( );
     if( Uart1.IrqNotify != NULL )
     {
         Uart1.IrqNotify( UART_NOTIFY_TX );
@@ -314,11 +347,13 @@ void HAL_UART_TxCpltCallback( UART_HandleTypeDef *handle )
 
 void HAL_UART_RxCpltCallback( UART_HandleTypeDef *handle )
 {
+    CRITICAL_SECTION_BEGIN( );
     if( IsFifoFull( &Uart1.FifoRx ) == false )
     {
         // Read one byte from the receive data register
         FifoPush( &Uart1.FifoRx, RxData );
     }
+    CRITICAL_SECTION_END( );
 
     if( Uart1.IrqNotify != NULL )
     {
@@ -337,3 +372,18 @@ void USART1_IRQHandler( void )
 {
     HAL_UART_IRQHandler( &UartHandle );
 }
+
+/**
+  * @brief This function handles DMA1 channel4 global interrupt.
+  */
+void DMA1_Channel4_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel4_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel4_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart1_tx);
+  /* USER CODE BEGIN DMA1_Channel4_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel4_IRQn 1 */
+}
+

@@ -79,6 +79,7 @@ void GpioMcuInit( Gpio_t *obj, PinNames pin, PinModes mode, PinConfigs config, P
         if( mode == PIN_INPUT )
         {
             GPIO_InitStructure.Mode = GPIO_MODE_INPUT;
+            GPIO_InitStructure.Speed = value;
         }
         else if( mode == PIN_ANALOGIC )
         {
