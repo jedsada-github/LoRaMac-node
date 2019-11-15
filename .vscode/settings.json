@@ -10,8 +10,7 @@
         //     Linux   : /usr
         //     OSX     : /usr/local
         // It is required to uncomment and to fill the following line.
-        "TOOLCHAIN_PREFIX":"C:/PROGRA~2/GNUTOO~1/72018-~1",
-        // "TOOLCHAIN_PREFIX":"C:/PROGRA~2/GNUTOO~1/82018-~1",
+        "TOOLCHAIN_PREFIX":"C:/PROGRA~2/GNUTOO~1/82019-~1",
 
         // In case your OpenOCD is not installed under the default path:
         //     Windows : C:/openocd/bin/openocd.exe
@@ -28,8 +27,8 @@
         "APPLICATION":"LoRaMac",
 
         // Select LoRaMac sub project. You can choose between:
-        // classA, classB or classC, periodic-uplink-lpp, fuota-test-01, encoder.
-        "SUB_PROJECT":"encoder",
+        // classA, classB or classC, periodic-uplink-lpp, fuota-test-01, encoder, gpio-control.
+        "SUB_PROJECT":"gpio-control",
 
         // Switch for Class B support of LoRaMac:
         "CLASSB_ENABLED":"OFF",
@@ -66,8 +65,8 @@
         "REGION_IN865":"OFF",
         "REGION_RU864":"OFF",
 
-        "USE_USB_CDC":"ON",
-        "USE_ENCODER":"ON"
+        "USE_USB_CDC":"OFF",
+        "USE_ENCODER":"OFF"
     },
     "files.associations": {
         "nvmctxmgmt.h": "c",

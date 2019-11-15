@@ -45,9 +45,9 @@ void UartMcuInit( Uart_t *obj, UartId_t uartId, PinNames tx, PinNames rx )
     obj->UartId = uartId;
     if( uartId == UART_USB_CDC )
     {
-// #if defined( USE_USB_CDC )
+#if ( USE_USB_CDC == 1)
         UartUsbInit( obj, uartId, tx, rx );
-// #endif
+#endif
     }
     else
     {

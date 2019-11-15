@@ -35,7 +35,9 @@
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
+#if (USE_GPS == 1)
 #include "gps-board.h"
+#endif
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -50,12 +52,15 @@
 #if ( USE_POTENTIOMETER == 0 )
 Gpio_t Led1;
 #endif
-Gpio_t Led1;
 Gpio_t Led2;
 Gpio_t Led3;
 Gpio_t Led4;
 
 Gpio_t USR1;
+
+Gpio_t Silen;
+Gpio_t WarningLed;
+Gpio_t CriticalLed;
 
 /*
  * MCU objects
@@ -135,7 +140,7 @@ void BoardCriticalSectionEnd( uint32_t *mask )
 
 void BoardInitPeriph( void )
 {
-#if defined(USE_ENCODER)
+#if (USE_ENCODER == 1)
     //Encoder initialized
         EncoderUpdateStatus();
 #endif
@@ -169,11 +174,16 @@ void BoardInitMcu( void )
 #if ( USE_POTENTIOMETER == 0 )
         GpioWrite( &Led1, 0 );
 #endif
-        GpioInit( &USR1, USER_BUTTON, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
-        GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+#if (USE_ENCODER == 1)
+        // GpioInit( &USR1, USER_BUTTON, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
+        // GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        // GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        // GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        // GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+#endif
+        GpioInit( &Silen, SILEN, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &WarningLed, WARNING_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &CriticalLed, CRITICAL_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
@@ -199,6 +209,9 @@ void BoardInitMcu( void )
     GpioWrite( &Led3, 0 );
     GpioWrite( &Led4, 0 );
 #endif
+    GpioWrite( &Silen, 0 );
+    GpioWrite( &WarningLed, 0 );
+    GpioWrite( &CriticalLed, 0 );
 
     if( McuInitialized == false )
     {
@@ -318,7 +331,7 @@ uint8_t BoardGetPotiLevel( void )
 /*!
  * ADC maximum value
  */
-#if !defined (USE_ENCODER)
+#if (USE_ENCODER == 1)
 #define ADC_MAX_VALUE                               4095
 #else
 #define ADC_MAX_VALUE                               1023

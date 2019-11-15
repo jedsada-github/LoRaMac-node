@@ -55,7 +55,7 @@ void AdcMcuDeInit( Adc_t *obj )
 void AdcMcuConfig( void )
 {
     // Configure ADC
-#if defined (USE_ENCODER)
+#if (USE_ENCODER == 1)
     AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV2;
     AdcHandle.Init.Resolution            = ADC_RESOLUTION_10B;
 #else

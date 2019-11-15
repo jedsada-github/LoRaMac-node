@@ -1,7 +1,7 @@
 /*!
  * \file      main.c
  *
- * \brief     LoRaMac classA device implementation
+ * \brief     LoRaMac classC device implementation
  *
  * \copyright Revised BSD License, see section \ref LICENSE.
  *
@@ -23,17 +23,15 @@
  * \author    Andreas Pella (IMST GmbH)
  */
 
-/*! \file classA/SKiM980A/main.c */
+/*! \file classC/SKiM980A/main.c */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include "utilities.h"
 #include "board.h"
 #include "gpio.h"
 #include "LoRaMac.h"
 #include "Commissioning.h"
 #include "NvmCtxMgmt.h"
-#include "UserNvmCtxMgmt.h"
 
 #ifndef ACTIVE_REGION
 
@@ -44,9 +42,9 @@
 #endif
 
 /*!
- * Defines the application data transmission duty cycle. 5s, value in [ms].
+ * Defines the application data transmission duty cycle. 15s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            1000 * 60 // 1 min 
+#define APP_TX_DUTYCYCLE                            15000
 
 /*!
  * Defines a random delay for application data transmission duty cycle. 1s,
@@ -57,12 +55,12 @@
 /*!
  * Default datarate
  */
-#define LORAWAN_DEFAULT_DATARATE                    DR_5
+#define LORAWAN_DEFAULT_DATARATE                    DR_2
 
 /*!
  * LoRaWAN confirmed messages
  */
-#define LORAWAN_CONFIRMED_MSG_ON                    true
+#define LORAWAN_CONFIRMED_MSG_ON                    false
 
 /*!
  * LoRaWAN Adaptive Data Rate
@@ -89,8 +87,6 @@
  */
 #define LORAWAN_APP_PORT                            3
 
-static uint8_t DevEui[] = LORAWAN_DEVICE_EUI;
-static uint8_t JoinEui[] = LORAWAN_JOIN_EUI;
 #if( ABP_ACTIVATION_LRWAN_VERSION == ABP_ACTIVATION_LRWAN_VERSION_V10x )
 static uint8_t GenAppKey[] = LORAWAN_GEN_APP_KEY;
 #else
@@ -120,8 +116,8 @@ static uint8_t AppPort = LORAWAN_APP_PORT;
 /*!
  * User application data size
  */
-static uint8_t AppDataSize = 11;
-static uint8_t AppDataSizeBackup = 11;
+static uint8_t AppDataSize = 4;
+static uint8_t AppDataSizeBackup = 4;
 
 /*!
  * User application data buffer size
@@ -131,7 +127,7 @@ static uint8_t AppDataSizeBackup = 11;
 /*!
  * User application data
  */
-static uint8_t AppDataBuffer[LORAWAN_APP_DATA_MAX_SIZE] = { 0 };
+static uint8_t AppDataBuffer[LORAWAN_APP_DATA_MAX_SIZE];
 
 /*!
  * Indicates if the node is sending confirmed or unconfirmed messages
@@ -154,38 +150,41 @@ static TimerEvent_t TxNextPacketTimer;
 static bool AppLedStateOn = false;
 
 /*!
- * Timer to handle the state of LED4 GREEN
+ * Specifies the state of the application Silen
+ */
+static bool SilenStateOn = false;
+/*!
+ * Specifies the state of the application Warning LED
+ */
+static bool WarningLedStateOn = false;
+/*!
+ * Specifies the state of the application Critical LED
+ */
+static bool CriticalLedStateOn = false;
+
+/*!
+ * Timer to handle the state of Silen
+ */
+static TimerEvent_t SilenTimer;
+/*!
+ * Timer to handle the state of Warning
+ */
+static TimerEvent_t WarningLedTimer;
+/*!
+ * Timer to handle the state of Critical
+ */
+static TimerEvent_t CriticalLedTimer;
+
+/*!
+ * Timer to handle the state of LED4
  */
 static TimerEvent_t Led4Timer;
 
 /*!
- * Timer to handle the state of LED3 RED
- */
-static TimerEvent_t Led3Timer;
-
-/*!
- * Timer to handle the state of LED2 BLUE
+ * Timer to handle the state of LED2
  */
 static TimerEvent_t Led2Timer;
 
-/*!
- * Timer to handle the state of LED2 BLUE
- */
-//static TimerEvent_t Led1Timer;
-
-/*!
- * Timer to handle the passive device sleep 2 houre
- */
-// static TimerEvent_t passive_sleep_timer = { 0 };
-static uint32_t passive_sleep_time = 2U * 60U * 60U * 1000U;
-// static void OnPassiveSleepTimer(void* context);
-
-/*!
- * Timer to handle the iwdg
- */
-static TimerEvent_t WdtTimer;
-static void OnWdtTimerEvent( void* context );
-extern Wdt_t Wdt;
 /*!
  * Indicates if a new packet can be sent
  */
@@ -193,12 +192,11 @@ static bool NextTx = true;
 
 /*!
  * Indicates if LoRaMacProcess call is pending.
- *
+ * 
  * \warning If variable is equal to 0 then the MCU can be set in low power mode
  */
 static uint8_t IsMacProcessPending = 0;
 
-static int rssi = 0;
 /*!
  * Device states
  */
@@ -210,7 +208,7 @@ static enum eDeviceState
     DEVICE_STATE_SEND,
     DEVICE_STATE_CYCLE,
     DEVICE_STATE_SLEEP
-} DeviceState;
+}DeviceState;
 
 /*!
  * LoRaWAN compliance tests support data
@@ -236,7 +234,7 @@ typedef enum
 {
     LORAMAC_HANDLER_UNCONFIRMED_MSG = 0,
     LORAMAC_HANDLER_CONFIRMED_MSG = !LORAMAC_HANDLER_UNCONFIRMED_MSG
-} LoRaMacHandlerMsgTypes_t;
+}LoRaMacHandlerMsgTypes_t;
 
 /*!
  * Application data structure
@@ -262,9 +260,11 @@ LoRaMacHandlerAppData_t AppData =
  */
 extern Gpio_t Led4; // Tx
 extern Gpio_t Led2; // Rx
-extern Gpio_t Led3; // App red
+extern Gpio_t Led3; // App
 
-extern Gpio_t Led1; // Heart beat
+extern Gpio_t Silen; // Silen
+extern Gpio_t WarningLed; // Warning
+extern Gpio_t CriticalLed; // Critical
 /*!
  * MAC status strings
  */
@@ -300,7 +300,7 @@ const char* MacStatusStrings[] =
  * MAC event info status strings.
  */
 const char* EventInfoStatusStrings[] =
-{
+{ 
     "OK",                            // LORAMAC_EVENT_INFO_STATUS_OK
     "Error",                         // LORAMAC_EVENT_INFO_STATUS_ERROR
     "Tx timeout",                    // LORAMAC_EVENT_INFO_STATUS_TX_TIMEOUT
@@ -322,7 +322,7 @@ const char* EventInfoStatusStrings[] =
 
 /*!
  * Prints the provided buffer in HEX
- *
+ * 
  * \param buffer Buffer to be printed
  * \param size   Buffer size to be printed
  */
@@ -356,8 +356,6 @@ static void JoinNetwork( void )
     LoRaMacStatus_t status;
     MlmeReq_t mlmeReq;
     mlmeReq.Type = MLME_JOIN;
-    mlmeReq.Req.Join.DevEui = DevEui;
-    mlmeReq.Req.Join.JoinEui = JoinEui;
     mlmeReq.Req.Join.Datarate = LORAWAN_DEFAULT_DATARATE;
 
     // Starts the join procedure
@@ -385,41 +383,24 @@ static void PrepareTxFrame( uint8_t port )
     {
     case 3:
         {
-            uint16_t potiPercentage = 0;
+            uint8_t potiPercentage = 0;
             uint16_t vdd = 0;
 
             // Read the current potentiometer setting in percent
-
-#if ( USE_ENCODER == 1)
-            memset1(AppDataBuffer, 0x0, LORAWAN_APP_DATA_MAX_SIZE);
             potiPercentage = BoardGetPotiLevel( );
-            vdd = BoardGetBatteryLevel( );
-            AppDataSizeBackup = AppDataSize = 11;
-            AppDataBuffer[0] = (flow.fwd_cnt >> 16) & 0xff;
-            AppDataBuffer[1] = (flow.fwd_cnt >> 8) & 0xff;
-            AppDataBuffer[2] = (flow.fwd_cnt) & 0xff;
-            AppDataBuffer[3] = (flow.rev_cnt >> 16) & 0xff;
-            AppDataBuffer[4] = (flow.rev_cnt >> 8) & 0xff;
-            AppDataBuffer[5] = (flow.rev_cnt) & 0xff;
-            AppDataBuffer[6] = (flow.rate == 0) ? (uint8_t)(flow.rate & 0xff) : ((uint8_t)(((float) flow.rate / (float) config.sampling) / 10.0f) & 0xff);
-            AppDataBuffer[7] = ((flow.status << 4)  & 0xf0) | ((potiPercentage >> 8) & 0x0f);
-            AppDataBuffer[8] = potiPercentage & 0xff;
-            AppDataBuffer[9] = vdd & 0xff;
-            AppDataBuffer[10] = rssi;
 
-            flow.rate = 0;
-#else
-            potiPercentage = BoardGetPotiLevel( );
             // Read the current voltage level
             BoardGetBatteryLevel( ); // Updates the value returned by BoardGetBatteryVoltage( ) function.
             vdd = BoardGetBatteryVoltage( );
 
             AppDataSizeBackup = AppDataSize = 4;
             AppDataBuffer[0] = AppLedStateOn;
+            AppDataBuffer[0] |= SilenStateOn << 1;
+            AppDataBuffer[0] |= WarningLedStateOn << 2;
+            AppDataBuffer[0] |= CriticalLedStateOn << 3;
             AppDataBuffer[1] = potiPercentage;
             AppDataBuffer[2] = ( vdd >> 8 ) & 0xFF;
             AppDataBuffer[3] = vdd & 0xFF;
-#endif
         }
         break;
     case 224:
@@ -538,6 +519,32 @@ static void OnTxNextPacketTimerEvent( void* context )
 }
 
 /*!
+ * \brief Function executed on Silen Timeout event
+ */
+static void OnSilenTimerEvent( void* context )
+{
+    TimerStop( &SilenTimer );
+    // Switch Silen OFF
+    GpioWrite( &Silen, 0 );
+}/*!
+ * \brief Function executed on Warning LED Timeout event
+ */
+static void OnWarningTimerEvent( void* context )
+{
+    TimerStop( &WarningLedTimer );
+    // Switch Warning Led OFF
+    GpioWrite( &WarningLed, 0 );
+}/*!
+ * \brief Function executed on Critical LED Timeout event
+ */
+static void OnCriticalLedTimerEvent( void* context )
+{
+    TimerStop( &CriticalLedTimer );
+    // Switch Critical LED OFF
+    GpioWrite( &CriticalLed, 0 );
+}
+
+/*!
  * \brief Function executed on Led 4 Timeout event
  */
 static void OnLed4TimerEvent( void* context )
@@ -550,98 +557,11 @@ static void OnLed4TimerEvent( void* context )
 /*!
  * \brief Function executed on Led 2 Timeout event
  */
-static void OnLed3TimerEvent( void* context )
-{
-    TimerStop( &Led3Timer );
-    // Switch LED 2 OFF
-    GpioWrite( &Led3, 0 );
-}
-
-/*!
- * \brief Function executed on Led 2 Timeout event
- */
 static void OnLed2TimerEvent( void* context )
 {
     TimerStop( &Led2Timer );
     // Switch LED 2 OFF
     GpioWrite( &Led2, 0 );
-}
-
-/*!
- * \brief Function executed on Led 1 Timeout event
- */
-//static void OnLed1TimerEvent( void* context )
-//{
-//    TimerStop( &Led1Timer );
-//    // Switch LED 1 Toggle
-//    GpioToggle( &Led1 );
-//    WdtRefresh(&Wdt);
-//    TimerStart( &Led1Timer );
-//}
-
-/*!
- * \brief Function executed on Led 4 Green Toggle event
- */
-// static void OnLed4Toggle( void )
-// {
-//     // Switch LED 4 Toggle
-//     // GpioToggle( &Led4 );
-//     GpioWrite( &Led4, 1 );
-//     TimerStart( &Led4Timer );
-// }
-
-/*!
- * \brief Function executed on Led 3 Red Toggle event
- */
-static void OnLed3Toggle( void )
-{
-     // Switch LED 3 Toggle
-    // GpioToggle( &Led3 );
-    GpioWrite( &Led3, 1 );
-    TimerStart( &Led3Timer );
-}
-
-/*!
- * \brief Function executed on Led 2 Blue Toggle event
- */
-// static void OnLed2Toggle( void )
-// {
-//      // Switch LED 2 Toggle
-//     // GpioToggle( &Led2 );
-//     GpioWrite( &Led2, 1 );
-//     TimerStart( &Led2Timer );
-// }
-
-/*!
- * \brief Function executed on Led 1 Blue Toggle event
- */
-//static void OnLed1Toggle( void )
-//{
-//     // Switch LED 1 Toggle
-//    GpioToggle( &Led1 );
-//}
-
-// static void OnPassiveSleepTimer(void* context)
-// {
-//     TimerStop( &passive_sleep_timer );
-//     Encoder.ConfigData->isActiveMode = 1;
-//     return;
-// }
-
-/*!
- * \brief Function executed on TxOneshotPacket  event
- */
-static void OnTxOneShotPacketEvent( )
-{
-    OnTxNextPacketTimerEvent(NULL);
-}
-
-static void OnWdtTimerEvent( void* context )
-{
-    TimerStop(&WdtTimer);
-    WdtRefresh(&Wdt);
-    GpioToggle( &Led1 );
-    TimerStart(&WdtTimer);
 }
 
 /*!
@@ -672,7 +592,7 @@ static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
                 // Check Datarate
                 // Check TxPower
                 // Check AckReceived
-                // Check NbTrials
+                // Check NbTrans
                 break;
             }
             case MCPS_PROPRIETARY:
@@ -728,17 +648,16 @@ static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
     mibGet.Type  = MIB_CHANNELS_MASK;
     if( LoRaMacMibGetRequestConfirm( &mibGet ) == LORAMAC_STATUS_OK )
     {
-        uint8_t i = 0;
         printf("CHANNEL MASK: ");
 #if defined( REGION_AS923 ) || defined( REGION_CN779 ) || \
     defined( REGION_EU868 ) || defined( REGION_IN865 ) || \
     defined( REGION_KR920 ) || defined( REGION_RU864 )
 
-        for(i = 0; i < 1; i++)
+        for( uint8_t i = 0; i < 1; i++)
 
 #elif defined( REGION_AU915 ) || defined( REGION_US915 )
 
-        for(i = 0; i < 5; i++)
+        for( uint8_t i = 0; i < 5; i++)
 #else
 
 #error "Please define a region in the compiler options."
@@ -821,47 +740,17 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
             {
                 AppLedStateOn = mcpsIndication->Buffer[0] & 0x01;
                 GpioWrite( &Led3, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
+                SilenStateOn = mcpsIndication->Buffer[0] & 0x02;
+                WarningLedStateOn = mcpsIndication->Buffer[0] & 0x04;
+                CriticalLedStateOn = mcpsIndication->Buffer[0] & 0x08;
+                GpioWrite( &Silen,  ( ( SilenStateOn & 0x01 ) != 0 ) ? 1 : 0  );
+                GpioWrite( &WarningLed,  ( ( WarningLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
+                GpioWrite( &CriticalLed,  ( ( CriticalLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
+                TimerStart( &SilenTimer );
+                TimerStart( &WarningLedTimer );
+                TimerStart( &CriticalLedTimer );
             }
             break;
-        case 3:
-#if USE_ENCODER == 1
-            // Downlink encoder configuration
-            if (mcpsIndication->BufferSize == 3) {
-                config.analog_alarm = (((uint16_t)mcpsIndication->Buffer[2] << 8) | (uint16_t) mcpsIndication->Buffer[1]);
-                config.digital_alarm = (mcpsIndication->Buffer[0] >> 7) & 0x01;
-                config.sampling = (mcpsIndication->Buffer[0] & 0x0f);
-
-                if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-                {
-                    printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
-                    printf( "Fwd cnt : %08lX\r\n", flow.fwd_cnt );
-                    printf( "Rev cnt : %08lX\r\n", flow.rev_cnt );
-                    printf( "Sampling : %02X\r\n", config.sampling );
-                    printf( "Digital alarm enable : %02X\r\n", config.digital_alarm );
-                    printf( "Analog alarm lvl. : %04X\r\n\r\n", config.analog_alarm );
-                    
-                    if (config.analog_alarm > 0)
-                    {
-                        BoardSetADCAlarmLVL(config.analog_alarm);
-                    }                    
-                }
-                // OnTxNextPacketTimerEvent(NULL);
-            }
-#endif
-            break;
-        // case 4:
-        //     //TODO:  Control  GPIO Output
-        //     if (mcpsIndication->BufferSize == 1){
-        //         AppLedStateOn = mcpsIndication->Buffer[0] & 0x01;
-        //         GpioWrite( &Silen, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
-        //         GpioWrite( &CriticalLed, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
-        //         GpioWrite( &WarningLed, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
-            
-        //     }
-        // break;
-        case 99: //Reboot
-            BoardResetMcu();
-        break;
         case 224:
             if( ComplianceTest.Running == false )
             {
@@ -987,6 +876,17 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                         ComplianceTest.State = 1;
                     }
                     break;
+                case 8: // Send DeviceTimeReq
+                    {
+                        MlmeReq_t mlmeReq;
+
+                        mlmeReq.Type = MLME_DEVICE_TIME;
+
+                        LoRaMacStatus_t status = LoRaMacMlmeRequest( &mlmeReq );
+                        printf( "\r\n###### ===== MLME-Request - MLME_DEVICE_TIME ==== ######\r\n" );
+                        printf( "STATUS      : %s\r\n", MacStatusStrings[status] );
+                    }
+                    break;
                 default:
                     break;
                 }
@@ -1006,7 +906,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
     printf( "\r\n###### ===== DOWNLINK FRAME %lu ==== ######\r\n", mcpsIndication->DownLinkCounter );
 
     printf( "RX WINDOW   : %s\r\n", slotStrings[mcpsIndication->RxSlot] );
-
+    
     printf( "RX PORT     : %d\r\n", mcpsIndication->Port );
 
     if( mcpsIndication->BufferSize != 0 )
@@ -1017,7 +917,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
 
     printf( "\r\n" );
     printf( "DATA RATE   : DR_%d\r\n", mcpsIndication->RxDatarate );
-    printf( "RX RSSI     : %d\r\n", mcpsIndication->Rssi ); rssi = abs(mcpsIndication->Rssi);
+    printf( "RX RSSI     : %d\r\n", mcpsIndication->Rssi );
     printf( "RX SNR      : %d\r\n", mcpsIndication->Snr );
 
     printf( "\r\n" );
@@ -1115,45 +1015,6 @@ static void MlmeIndication( MlmeIndication_t *mlmeIndication )
 void OnMacProcessNotify( void )
 {
     IsMacProcessPending = 1;
-    Encoder.OnSendOneshot = NULL;
-}
-
-void RestoreUserSetting( void )
-{
-    if( UserNvmCtxMgmtRestore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-    {
-        printf( "\r\n###### ===== User setting CTXS RESTORED ==== ######\r\n\r\n" );
-        if (config.sampling == 0)
-        {
-            config.sampling = 1;
-        }
-        
-        printf( "Fwd cnt : %08lX\r\n", flow.fwd_cnt );
-        printf( "Rev cnt : %08lX\r\n", flow.rev_cnt );
-        printf( "Sampling : %02X\r\n", config.sampling );
-        printf( "Digital alarm enable : %02X\r\n", config.digital_alarm );
-        printf( "Analog alarm lvl. : %04X\r\n", config.analog_alarm );
-        printf( "Active mode : %01X\r\n\r\n", config.isActiveMode );
-    }
-
-}
-
-uint32_t ParseDutyCycleRate(uint8_t rate)
-{
-    switch (rate)
-    {
-    case RATE_15_MIN: // 15 min
-        return 15 * APP_TX_DUTYCYCLE;
-    case RATE_30_MIN: // 30 min
-        return 30 * APP_TX_DUTYCYCLE;
-    case RATE_60_MIN: // 60 min
-        return 60 * APP_TX_DUTYCYCLE;
-    case RATE_90_MIN: // 90 min
-        return 90 * APP_TX_DUTYCYCLE;
-    case RATE_01_MIN: // 1 min
-    default:
-        return APP_TX_DUTYCYCLE;
-    }
 }
 
 /**
@@ -1165,11 +1026,11 @@ int main( void )
     LoRaMacCallback_t macCallbacks;
     MibRequestConfirm_t mibReq;
     LoRaMacStatus_t status;
+    uint8_t devEui[] = LORAWAN_DEVICE_EUI;
+    uint8_t joinEui[] = LORAWAN_JOIN_EUI;
 
     BoardInitMcu( );
     BoardInitPeriph( );
-
-    RestoreUserSetting();
 
     macPrimitives.MacMcpsConfirm = McpsConfirm;
     macPrimitives.MacMcpsIndication = McpsIndication;
@@ -1180,15 +1041,19 @@ int main( void )
     macCallbacks.NvmContextChange = NvmCtxMgmtEvent;
     macCallbacks.MacProcessNotify = OnMacProcessNotify;
 
-    LoRaMacInitialization( &macPrimitives, &macCallbacks, ACTIVE_REGION );
-
-    // Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
-    Encoder.OnShowPulseDetect = OnLed3Toggle;
-    Encoder.ConfigData->isActiveMode = 1;
+    status = LoRaMacInitialization( &macPrimitives, &macCallbacks, ACTIVE_REGION );
+    if ( status != LORAMAC_STATUS_OK )
+    {
+        printf( "LoRaMac wasn't properly initialized, error: %s", MacStatusStrings[status] );
+        // Fatal error, endless loop.
+        while ( 1 )
+        {
+        }
+    }
 
     DeviceState = DEVICE_STATE_RESTORE;
 
-    printf( "###### ===== ClassA demo application v1.0.RC1 ==== ######\r\n\r\n" );
+    printf( "###### ===== ClassC demo application v1.0.RC1 ==== ######\r\n\r\n" );
 
     while( 1 )
     {
@@ -1204,7 +1069,6 @@ int main( void )
         {
             case DEVICE_STATE_RESTORE:
             {
-
                 // Try to restore from NVM and query the mac if possible.
                 if( NvmCtxMgmtRestore( ) == NVMCTXMGMT_STATUS_SUCCESS )
                 {
@@ -1234,13 +1098,21 @@ int main( void )
                     LoRaMacMibSetRequestConfirm( &mibReq );
 
                     // Initialize LoRaMac device unique ID if not already defined in Commissioning.h
-                    if( ( DevEui[0] == 0 ) && ( DevEui[1] == 0 ) &&
-                        ( DevEui[2] == 0 ) && ( DevEui[3] == 0 ) &&
-                        ( DevEui[4] == 0 ) && ( DevEui[5] == 0 ) &&
-                        ( DevEui[6] == 0 ) && ( DevEui[7] == 0 ) )
+                    if( ( devEui[0] == 0 ) && ( devEui[1] == 0 ) &&
+                        ( devEui[2] == 0 ) && ( devEui[3] == 0 ) &&
+                        ( devEui[4] == 0 ) && ( devEui[5] == 0 ) &&
+                        ( devEui[6] == 0 ) && ( devEui[7] == 0 ) )
                     {
-                        BoardGetUniqueId( DevEui );
+                        BoardGetUniqueId( devEui );
                     }
+
+                    mibReq.Type = MIB_DEV_EUI;
+                    mibReq.Param.DevEui = devEui;
+                    LoRaMacMibSetRequestConfirm( &mibReq );
+
+                    mibReq.Type = MIB_JOIN_EUI;
+                    mibReq.Param.JoinEui = joinEui;
+                    LoRaMacMibSetRequestConfirm( &mibReq );
 
 #if( OVER_THE_AIR_ACTIVATION == 0 )
                     // Choose a random device address if not already defined in Commissioning.h
@@ -1285,23 +1157,19 @@ int main( void )
             case DEVICE_STATE_START:
             {
                 TimerInit( &TxNextPacketTimer, OnTxNextPacketTimerEvent );
-
+                
+                TimerInit( &SilenTimer, OnSilenTimerEvent );
+                TimerSetValue( &SilenTimer, 15 * 1000 );
+                TimerInit( &WarningLedTimer,  OnWarningTimerEvent );
+                TimerSetValue( &WarningLedTimer, 15 * 1000 );
+                TimerInit( &CriticalLedTimer, OnCriticalLedTimerEvent );
+                TimerSetValue( &CriticalLedTimer, 15 * 1000 );
+                
                 TimerInit( &Led4Timer, OnLed4TimerEvent );
                 TimerSetValue( &Led4Timer, 25 );
 
-                TimerInit( &Led3Timer, OnLed3TimerEvent );
-                TimerSetValue( &Led3Timer, 1 );
-
                 TimerInit( &Led2Timer, OnLed2TimerEvent );
                 TimerSetValue( &Led2Timer, 25 );
-
-//                TimerInit( &Led1Timer, OnLed1TimerEvent );
-//                TimerSetValue( &Led1Timer, 500 );
-//                TimerStart(&Led1Timer);
-
-                TimerInit( &WdtTimer, OnWdtTimerEvent );
-                TimerSetValue( &WdtTimer, 500 );
-                TimerStart(&WdtTimer);
 
                 mibReq.Type = MIB_PUBLIC_NETWORK;
                 mibReq.Param.EnablePublicNetwork = LORAWAN_PUBLIC_NETWORK;
@@ -1339,16 +1207,20 @@ int main( void )
             }
             case DEVICE_STATE_JOIN:
             {
-                printf( "DevEui      : %02X", DevEui[0] );
+                mibReq.Type = MIB_DEV_EUI;
+                LoRaMacMibGetRequestConfirm( &mibReq );
+                printf( "DevEui      : %02X", mibReq.Param.DevEui[0] );
                 for( int i = 1; i < 8; i++ )
                 {
-                    printf( "-%02X", DevEui[i] );
+                    printf( "-%02X", mibReq.Param.DevEui[i] );
                 }
                 printf( "\r\n" );
-                printf( "AppEui      : %02X", JoinEui[0] );
+                mibReq.Type = MIB_JOIN_EUI;
+                LoRaMacMibGetRequestConfirm( &mibReq );
+                printf( "AppEui      : %02X", mibReq.Param.JoinEui[0] );
                 for( int i = 1; i < 8; i++ )
                 {
-                    printf( "-%02X", JoinEui[i] );
+                    printf( "-%02X", mibReq.Param.JoinEui[i] );
                 }
                 printf( "\r\n" );
                 printf( "AppKey      : %02X", NwkKey[0] );
@@ -1388,16 +1260,19 @@ int main( void )
             {
                 if( NextTx == true )
                 {
-                    if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
+                    mibReq.Type = MIB_DEVICE_CLASS;
+                    LoRaMacMibGetRequestConfirm( &mibReq );
+
+                    if( mibReq.Param.Class!= CLASS_C )
                     {
-                        printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
+                        mibReq.Param.Class = CLASS_C;
+                        LoRaMacMibSetRequestConfirm( &mibReq );
                     }
 
                     PrepareTxFrame( AppPort );
 
                     NextTx = SendFrame( );
                 }
-
                 DeviceState = DEVICE_STATE_CYCLE;
                 break;
             }
@@ -1407,28 +1282,12 @@ int main( void )
                 if( ComplianceTest.Running == true )
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime = 5000; // 5000 ms
+                    TxDutyCycleTime = 15000; // 5000 ms
                 }
                 else
                 {
                     // Schedule next packet transmission
-                    if ((last_flow.fwd_cnt == flow.fwd_cnt) && (last_flow.rev_cnt == flow.rev_cnt))
-                    {
-                        TxDutyCycleTime =  passive_sleep_time; //duty cycle 2 hours for passive mode
-                        Encoder.ConfigData->isActiveMode = 0;
-                         printf( "\r\n###### ===== Passive mode ==== ######\r\n\r\n" );
-                    } else {
-                        TxDutyCycleTime = ParseDutyCycleRate(config.sampling);
-                        Encoder.ConfigData->isActiveMode = 1;
-                        last_flow = flow;
-                        printf( "\r\n###### ===== Active mode ==== ######\r\n\r\n" );
-                    }
-                    TxDutyCycleTime += randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
-                }
-
-                if( UserNvmCtxMgmtStore( ) == USER_NVMCTXMGMT_STATUS_SUCCESS )
-                {
-                    printf( "\r\n###### ===== User setting CTXS STORED ==== ######\r\n\r\n" );
+                    TxDutyCycleTime = APP_TX_DUTYCYCLE + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
                 }
 
                 // Schedule next packet transmission
@@ -1451,7 +1310,6 @@ int main( void )
                 }
                 else
                 {
-                    Encoder.OnSendOneshot = OnTxOneShotPacketEvent;
                     // The MCU wakes up through events
                     BoardLowPowerHandler( );
                 }

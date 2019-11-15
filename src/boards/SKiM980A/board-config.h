@@ -54,9 +54,9 @@ extern "C"
  */
 #define USE_POTENTIOMETER                           1
 #define USE_SPI                                     0
-#define USE_ENCODER                                 1
-#define USE_GPS                                     1
-#define USE_USB_CDC                                 1
+#define USE_ENCODER                                 0
+#define USE_GPS                                     0
+#define USE_USB_CDC                                 0
 /*!
  * Board MCU pins definitions
  */
@@ -104,7 +104,7 @@ extern "C"
 #else
 #define LED_1                                       PA_3
 #endif
-#if ( USE_ENCODER )
+#if ( USE_ENCODER == 1)
 #define PULSE                                       PA_0
 #define DIR                                         PA_1
 #define TAMPERING                                   PA_8
@@ -118,6 +118,9 @@ extern "C"
 #define LED_2                                       PA_0
 #define LED_3                                       PA_1
 #define LED_4                                       PA_8
+#define SILEN                                       PB_12
+#define WARNING_LED                                 PB_13
+#define CRITICAL_LED                                PB_14
 #endif
 
 #if (USE_GPS == 1)
