@@ -3170,7 +3170,7 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t* primitives, LoRaMacC
     MacCtx.AckTimeoutRetriesCounter = 1;
     MacCtx.AckTimeoutRetries = 1;
     MacCtx.NvmCtx->Region = region;
-    MacCtx.NvmCtx->DeviceClass = CLASS_A;
+    MacCtx.NvmCtx->DeviceClass = CLASS_C;
     MacCtx.NvmCtx->RepeaterSupport = false;
 
     Version_t lrWanVersion;

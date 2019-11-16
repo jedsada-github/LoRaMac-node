@@ -82,13 +82,13 @@ extern "C"
 /*!
  * Default datarate used by the node
  */
-#define AS923_DEFAULT_DATARATE                      DR_2
+#define AS923_DEFAULT_DATARATE                      DR_0
 
 /*!
  * The minimum datarate which is used when the
  * dwell time is limited.
  */
-#define AS923_DWELL_LIMIT_DATARATE                  DR_2
+#define AS923_DWELL_LIMIT_DATARATE                  DR_0
 
 /*!
  * Minimal Rx1 receive datarate offset
@@ -123,12 +123,12 @@ extern "C"
 /*!
  * Default uplink dwell time configuration
  */
-#define AS923_DEFAULT_UPLINK_DWELL_TIME             1
+#define AS923_DEFAULT_UPLINK_DWELL_TIME             0
 
 /*!
  * Default downlink dwell time configuration
  */
-#define AS923_DEFAULT_DOWNLINK_DWELL_TIME           1
+#define AS923_DEFAULT_DOWNLINK_DWELL_TIME           0
 
 /*!
  * Default Max EIRP

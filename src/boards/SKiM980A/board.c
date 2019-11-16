@@ -61,6 +61,7 @@ Gpio_t USR1;
 Gpio_t Silen;
 Gpio_t WarningLed;
 Gpio_t CriticalLed;
+Gpio_t SafeLed;
 
 /*
  * MCU objects
@@ -159,7 +160,7 @@ void BoardInitMcu( void )
 
         SystemClockConfig( );
 
-#if defined ( USE_USB_CDC )
+#if ( USE_USB_CDC == 1)
         UartInit( &Uart1, UART_USB_CDC, USB_DP, USB_DM );
 #else
         FifoInit( &Uart1.FifoTx, Uart1TxBuffer, UART1_FIFO_TX_SIZE );
@@ -175,16 +176,23 @@ void BoardInitMcu( void )
         GpioWrite( &Led1, 0 );
 #endif
 #if (USE_ENCODER == 1)
-        // GpioInit( &USR1, USER_BUTTON, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
-        // GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        // GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        // GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-        // GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &USR1, USER_BUTTON, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
+        GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 #endif
+#if (USE_GPIO_ACTIVE_HIGH == 1)
         GpioInit( &Silen, SILEN, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &WarningLed, WARNING_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &CriticalLed, CRITICAL_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-
+        GpioInit( &SafeLed, SAFE_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+#else
+        GpioInit( &Silen, SILEN, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+        GpioInit( &WarningLed, WARNING_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+        GpioInit( &CriticalLed, CRITICAL_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+        GpioInit( &SafeLed, SAFE_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+#endif
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
         {
@@ -209,9 +217,10 @@ void BoardInitMcu( void )
     GpioWrite( &Led3, 0 );
     GpioWrite( &Led4, 0 );
 #endif
-    GpioWrite( &Silen, 0 );
-    GpioWrite( &WarningLed, 0 );
-    GpioWrite( &CriticalLed, 0 );
+    // GpioWrite( &Silen, 0 );
+    // GpioWrite( &WarningLed, 0 );
+    // GpioWrite( &CriticalLed, 0 );
+    // GpioWrite( &SafeLed, 0 );
 
     if( McuInitialized == false )
     {

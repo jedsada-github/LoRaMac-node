@@ -37,10 +37,14 @@
 
 #warning "No active region defined, LORAMAC_REGION_EU868 will be used as default."
 
-#define ACTIVE_REGION LORAMAC_REGION_EU868
+#define ACTIVE_REGION LORAMAC_REGION_AS923
 
 #endif
 
+/*!
+ * LoRaWAN default end-device class
+ */
+#define LORAWAN_DEFAULT_CLASS                       CLASS_C
 /*!
  * Defines the application data transmission duty cycle. 15s, value in [ms].
  */
@@ -55,7 +59,7 @@
 /*!
  * Default datarate
  */
-#define LORAWAN_DEFAULT_DATARATE                    DR_2
+#define LORAWAN_DEFAULT_DATARATE                    DR_0
 
 /*!
  * LoRaWAN confirmed messages
@@ -166,19 +170,36 @@ static bool WarningLedStateOn = false;
  * Specifies the state of the application Critical LED
  */
 static bool CriticalLedStateOn = false;
+/*!
+ * Specifies the state of the application Safe LED
+ */
+static bool SafeLedStateOn = false;
 
 /*!
  * Timer to handle the state of Silen
  */
 static TimerEvent_t SilenTimer;
+static void OnSilenTimerEvent( void* context );
 /*!
  * Timer to handle the state of Warning
  */
 static TimerEvent_t WarningLedTimer;
+static void OnWarningLedTimerEvent( void* context );
 /*!
  * Timer to handle the state of Critical
  */
 static TimerEvent_t CriticalLedTimer;
+static void OnCriticalLedTimerEvent( void* context );
+/*!
+ * Timer to handle the state of Safe
+ */
+static TimerEvent_t SafeLedTimer;
+static void OnSafeLedTimerEvent( void* context );
+/*!
+ * Timer to handle the iwdg
+ */
+static TimerEvent_t WdtTimer;
+static void OnWdtTimerEvent( void* context );
 
 /*!
  * Timer to handle the state of LED4
@@ -270,6 +291,10 @@ extern Gpio_t Led3; // App
 extern Gpio_t Silen; // Silen
 extern Gpio_t WarningLed; // Warning
 extern Gpio_t CriticalLed; // Critical
+extern Gpio_t SafeLed; //Safe
+
+extern Wdt_t Wdt; //WDT
+
 /*!
  * MAC status strings
  */
@@ -398,14 +423,15 @@ static void PrepareTxFrame( uint8_t port )
             BoardGetBatteryLevel( ); // Updates the value returned by BoardGetBatteryVoltage( ) function.
             vdd = BoardGetBatteryVoltage( );
 
-            AppDataSizeBackup = AppDataSize = 4;
+            AppDataSizeBackup = AppDataSize = 5;
             AppDataBuffer[0] = AppLedStateOn;
-            AppDataBuffer[0] |= SilenStateOn << 1;
-            AppDataBuffer[0] |= WarningLedStateOn << 2;
-            AppDataBuffer[0] |= CriticalLedStateOn << 3;
-            AppDataBuffer[1] = potiPercentage;
-            AppDataBuffer[2] = ( vdd >> 8 ) & 0xFF;
-            AppDataBuffer[3] = vdd & 0xFF;
+            AppDataBuffer[1] = SilenStateOn << 0;
+            AppDataBuffer[1] |= WarningLedStateOn << 1;
+            AppDataBuffer[1] |= CriticalLedStateOn << 2;
+            AppDataBuffer[1] |= SafeLedStateOn << 3;
+            AppDataBuffer[2] = potiPercentage;
+            AppDataBuffer[3] = ( vdd >> 8 ) & 0xFF;
+            AppDataBuffer[4] = vdd & 0xFF;
         }
         break;
     case 224:
@@ -530,25 +556,55 @@ static void OnSilenTimerEvent( void* context )
 {
     TimerStop( &SilenTimer );
     // Switch Silen OFF
+#if (USE_GPIO_ACTIVE_HIGH == 1)
     GpioWrite( &Silen, 0 );
-}/*!
+#else
+    GpioWrite( &Silen, 1 );
+#endif
+    SilenStateOn = false;
+}
+/*!
  * \brief Function executed on Warning LED Timeout event
  */
-static void OnWarningTimerEvent( void* context )
+static void OnWarningLedTimerEvent( void* context )
 {
     TimerStop( &WarningLedTimer );
     // Switch Warning Led OFF
+#if (USE_GPIO_ACTIVE_HIGH == 1)
     GpioWrite( &WarningLed, 0 );
-}/*!
+#else
+    GpioWrite( &WarningLed, 1 );
+#endif
+    WarningLedStateOn = false;
+}
+/*!
  * \brief Function executed on Critical LED Timeout event
  */
 static void OnCriticalLedTimerEvent( void* context )
 {
     TimerStop( &CriticalLedTimer );
     // Switch Critical LED OFF
+#if (USE_GPIO_ACTIVE_HIGH == 1)
     GpioWrite( &CriticalLed, 0 );
+#else
+    GpioWrite( &CriticalLed, 1 );
+#endif
+    CriticalLedStateOn = false;
 }
-
+/*!
+ * \brief Function executed on Safe LED Timeout event
+ */
+static void OnSafeLedTimerEvent( void* context )
+{
+    TimerStop( &SafeLedTimer );
+    // Switch Critical LED OFF
+#if (USE_GPIO_ACTIVE_HIGH == 1)
+    GpioWrite( &SafeLed, 0 );
+#else
+    GpioWrite( &SafeLed, 1 );
+#endif
+    SafeLedStateOn = false;
+}
 /*!
  * \brief Function executed on Led 4 Timeout event
  */
@@ -569,6 +625,13 @@ static void OnLed2TimerEvent( void* context )
     GpioWrite( &Led2, 0 );
 }
 
+static void OnWdtTimerEvent( void* context )
+{
+    TimerStop(&WdtTimer);
+    WdtRefresh(&Wdt);
+    GpioToggle( &SafeLed );
+    TimerStart(&WdtTimer);
+}
 /*!
  * \brief   MCPS-Confirm event function
  *
@@ -748,9 +811,15 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                 SilenStateOn = mcpsIndication->Buffer[0] & 0x02;
                 WarningLedStateOn = mcpsIndication->Buffer[0] & 0x04;
                 CriticalLedStateOn = mcpsIndication->Buffer[0] & 0x08;
+#if (USE_GPIO_ACTIVE_HIGH == 1)              
                 GpioWrite( &Silen,  ( ( SilenStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &WarningLed,  ( ( WarningLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &CriticalLed,  ( ( CriticalLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
+#else
+                GpioWrite( &Silen,  ( ( SilenStateOn & 0x01 ) != 0 ) ? 0 : 1  );
+                GpioWrite( &WarningLed,  ( ( WarningLedStateOn & 0x01 ) != 0 ) ? 0 : 1  );
+                GpioWrite( &CriticalLed,  ( ( CriticalLedStateOn & 0x01 ) != 0 ) ? 0 : 1  );
+#endif
                 TimerReset( &SilenTimer );
                 TimerReset( &WarningLedTimer );
                 TimerReset( &CriticalLedTimer );
@@ -1189,16 +1258,26 @@ int main( void )
                 
                 TimerInit( &SilenTimer, OnSilenTimerEvent );
                 TimerSetValue( &SilenTimer, EventTimeOut );
-                TimerInit( &WarningLedTimer,  OnWarningTimerEvent );
+                TimerStart( &SilenTimer );
+                TimerInit( &WarningLedTimer,  OnWarningLedTimerEvent );
                 TimerSetValue( &WarningLedTimer, EventTimeOut );
+                TimerStart( &WarningLedTimer );
                 TimerInit( &CriticalLedTimer, OnCriticalLedTimerEvent );
                 TimerSetValue( &CriticalLedTimer, EventTimeOut );
-                
+                TimerStart( &CriticalLedTimer );
+                TimerInit( &SafeLedTimer, OnSafeLedTimerEvent );
+                TimerSetValue( &SafeLedTimer, EventTimeOut );
+                TimerStart( &SafeLedTimer );
+
                 TimerInit( &Led4Timer, OnLed4TimerEvent );
                 TimerSetValue( &Led4Timer, 25 );
 
                 TimerInit( &Led2Timer, OnLed2TimerEvent );
                 TimerSetValue( &Led2Timer, 25 );
+
+                TimerInit( &WdtTimer, OnWdtTimerEvent );
+                TimerSetValue( &WdtTimer, 500 );
+                TimerStart(&WdtTimer);
 
                 mibReq.Type = MIB_PUBLIC_NETWORK;
                 mibReq.Param.EnablePublicNetwork = LORAWAN_PUBLIC_NETWORK;
@@ -1206,6 +1285,10 @@ int main( void )
 
                 mibReq.Type = MIB_ADR;
                 mibReq.Param.AdrEnable = LORAWAN_ADR_ON;
+                LoRaMacMibSetRequestConfirm( &mibReq );
+
+                mibReq.Type = MIB_DEVICE_CLASS;
+                mibReq.Param.Class = LORAWAN_DEFAULT_CLASS;
                 LoRaMacMibSetRequestConfirm( &mibReq );
 
 #if defined( REGION_EU868 ) || defined( REGION_RU864 ) || defined( REGION_CN779 ) || defined( REGION_EU433 )

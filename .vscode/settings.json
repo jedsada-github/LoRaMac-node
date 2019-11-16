@@ -86,6 +86,7 @@
         "stm32l1xx_hal_conf.h": "c",
         "stm32l1xx_hal_pcd.h": "c",
         "stm32l1xx_hal_def.h": "c",
-        "stm32_hal_legacy.h": "c"
+        "stm32_hal_legacy.h": "c",
+        "regionas923.h": "c"
     }
 }
