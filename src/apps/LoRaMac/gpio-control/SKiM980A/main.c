@@ -137,7 +137,12 @@ static uint8_t IsTxConfirmed = LORAWAN_CONFIRMED_MSG_ON;
 /*!
  * Defines the application data transmission duty cycle
  */
-static uint32_t TxDutyCycleTime;
+static uint32_t TxDutyCycleTime = APP_TX_DUTYCYCLE;
+
+/*!
+ * Defines the application data transmission duty cycle
+ */
+static uint32_t EventTimeOut = 15000;
 
 /*!
  * Timer to handle the application data transmission duty cycle
@@ -746,11 +751,35 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                 GpioWrite( &Silen,  ( ( SilenStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &WarningLed,  ( ( WarningLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &CriticalLed,  ( ( CriticalLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
-                TimerStart( &SilenTimer );
-                TimerStart( &WarningLedTimer );
-                TimerStart( &CriticalLedTimer );
+                TimerReset( &SilenTimer );
+                TimerReset( &WarningLedTimer );
+                TimerReset( &CriticalLedTimer );
             }
             break;
+        case 3: // Change event time out
+        {
+            if( mcpsIndication->BufferSize == 1 && mcpsIndication->Buffer[0] > 0)
+            {
+                EventTimeOut = mcpsIndication->Buffer[0] * 1000;
+                TimerSetValue( &SilenTimer, EventTimeOut);
+                TimerSetValue( &WarningLedTimer, EventTimeOut);
+                TimerSetValue( &CriticalLedTimer, EventTimeOut);
+            }
+            break;
+        }    
+        case 4: // Change perior schedule TX
+        {
+            if( mcpsIndication->BufferSize == 1)
+            {
+                TxDutyCycleTime = APP_TX_DUTYCYCLE *  mcpsIndication->Buffer[0];
+            }
+            break;
+        }
+        case 99:
+        {
+            BoardResetMcu();
+            break;
+        }
         case 224:
             if( ComplianceTest.Running == false )
             {
@@ -1159,11 +1188,11 @@ int main( void )
                 TimerInit( &TxNextPacketTimer, OnTxNextPacketTimerEvent );
                 
                 TimerInit( &SilenTimer, OnSilenTimerEvent );
-                TimerSetValue( &SilenTimer, 15 * 1000 );
+                TimerSetValue( &SilenTimer, EventTimeOut );
                 TimerInit( &WarningLedTimer,  OnWarningTimerEvent );
-                TimerSetValue( &WarningLedTimer, 15 * 1000 );
+                TimerSetValue( &WarningLedTimer, EventTimeOut );
                 TimerInit( &CriticalLedTimer, OnCriticalLedTimerEvent );
-                TimerSetValue( &CriticalLedTimer, 15 * 1000 );
+                TimerSetValue( &CriticalLedTimer, EventTimeOut );
                 
                 TimerInit( &Led4Timer, OnLed4TimerEvent );
                 TimerSetValue( &Led4Timer, 25 );
@@ -1282,16 +1311,17 @@ int main( void )
                 if( ComplianceTest.Running == true )
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime = 15000; // 5000 ms
+                    // TxDutyCycleTime = 5000; // 5000 ms
+                    TimerSetValue( &TxNextPacketTimer, 5000);
                 }
                 else
                 {
                     // Schedule next packet transmission
-                    TxDutyCycleTime = APP_TX_DUTYCYCLE + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
+                    // TxDutyCycleTime += randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
+                    TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND ));
                 }
 
                 // Schedule next packet transmission
-                TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime );
                 TimerStart( &TxNextPacketTimer );
                 break;
             }

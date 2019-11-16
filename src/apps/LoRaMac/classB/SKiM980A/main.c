@@ -860,7 +860,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
 
                         mibReq.Type = MIB_DEVICE_CLASS;
                         // CLASS_A = 0, CLASS_B = 1, CLASS_C = 2
-                        mibReq.Param.Class = ( DeviceClass_t )mcpsIndication->Buffer[1];;
+                        mibReq.Param.Class = ( DeviceClass_t )mcpsIndication->Buffer[1];
                         LoRaMacMibSetRequestConfirm( &mibReq );
 
                         DeviceState = DEVICE_STATE_SEND;
