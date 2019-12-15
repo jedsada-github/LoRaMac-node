@@ -57,7 +57,7 @@ extern "C"
 #define USE_ENCODER                                 0
 #define USE_GPS                                     0
 #define USE_USB_CDC                                 0
-#define USE_GPIO_ACTIVE_HIGH                        0
+#define USE_GPIO_ACTIVE_HIGH                        1
 /*!
  * Board MCU pins definitions
  */
@@ -123,6 +123,8 @@ extern "C"
 #define WARNING_LED                                 PB_13
 #define CRITICAL_LED                                PB_14
 #define SAFE_LED                                    PB_15
+#define TEST_LED                                    I2C_SDA
+
 #endif
 
 #if (USE_GPS == 1)

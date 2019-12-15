@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include "utilities.h"
 #include "board.h"
+#include "board-config.h"
 #include "gpio.h"
 #include "LoRaMac.h"
 #include "Commissioning.h"
@@ -71,7 +72,7 @@
  *
  * \remark Please note that when ADR is enabled the end-device should be static
  */
-#define LORAWAN_ADR_ON                              1
+#define LORAWAN_ADR_ON                              0
 
 #if defined( REGION_EU868 ) || defined( REGION_RU864 ) || defined( REGION_CN779 ) || defined( REGION_EU433 )
 
@@ -195,6 +196,10 @@ static void OnCriticalLedTimerEvent( void* context );
  */
 static TimerEvent_t SafeLedTimer;
 static void OnSafeLedTimerEvent( void* context );
+
+static TimerEvent_t TestTimer;
+static void OnTestTimerEvent( void* context );
+
 /*!
  * Timer to handle the iwdg
  */
@@ -292,6 +297,7 @@ extern Gpio_t Silen; // Silen
 extern Gpio_t WarningLed; // Warning
 extern Gpio_t CriticalLed; // Critical
 extern Gpio_t SafeLed; //Safe
+extern Gpio_t TestLed; //Test
 
 extern Wdt_t Wdt; //WDT
 
@@ -552,6 +558,21 @@ static void OnTxNextPacketTimerEvent( void* context )
 /*!
  * \brief Function executed on Silen Timeout event
  */
+static void OnTestTimerEvent( void* context )
+{
+    TimerStop( &TestTimer );
+    // Switch Silen OFF
+#if (USE_GPIO_ACTIVE_HIGH == 1)
+    GpioWrite( &TestLed, 0 );
+#else
+    GpioWrite( &TestLed, 1 );
+#endif
+    AppLedStateOn = false;
+}
+
+/*!
+ * \brief Function executed on Silen Timeout event
+ */
 static void OnSilenTimerEvent( void* context )
 {
     TimerStop( &SilenTimer );
@@ -629,7 +650,7 @@ static void OnWdtTimerEvent( void* context )
 {
     TimerStop(&WdtTimer);
     WdtRefresh(&Wdt);
-    GpioToggle( &SafeLed );
+    // GpioToggle( &SafeLed );
     TimerStart(&WdtTimer);
 }
 /*!
@@ -806,46 +827,61 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
         case 2:
             if( mcpsIndication->BufferSize == 1 )
             {
-                AppLedStateOn = mcpsIndication->Buffer[0] & 0x01;
+                IsTxConfirmed = true;
+                AppLedStateOn = mcpsIndication->Buffer[0] & 0x10;
+                SafeLedStateOn = mcpsIndication->Buffer[0] & 0x01;
                 GpioWrite( &Led3, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
                 SilenStateOn = mcpsIndication->Buffer[0] & 0x02;
                 WarningLedStateOn = mcpsIndication->Buffer[0] & 0x04;
                 CriticalLedStateOn = mcpsIndication->Buffer[0] & 0x08;
 #if (USE_GPIO_ACTIVE_HIGH == 1)              
+                
+                GpioWrite( &SafeLed,  ( ( SafeLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &Silen,  ( ( SilenStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &WarningLed,  ( ( WarningLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &CriticalLed,  ( ( CriticalLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
+                GpioWrite( &TestLed,  ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
+                
 #else
+                GpioWrite( &SafeLed,  ( ( SafeLedStateOn & 0x01 ) != 0 ) ? 0 : 1  );
                 GpioWrite( &Silen,  ( ( SilenStateOn & 0x01 ) != 0 ) ? 0 : 1  );
                 GpioWrite( &WarningLed,  ( ( WarningLedStateOn & 0x01 ) != 0 ) ? 0 : 1  );
                 GpioWrite( &CriticalLed,  ( ( CriticalLedStateOn & 0x01 ) != 0 ) ? 0 : 1  );
+                GpioWrite( &TestLed,  ( ( AppLedStateOn & 0x01 ) != 0 ) ? 0 : 1  );
 #endif
+                TimerReset( &SafeLedTimer );
                 TimerReset( &SilenTimer );
                 TimerReset( &WarningLedTimer );
                 TimerReset( &CriticalLedTimer );
+                TimerReset( &TestTimer );
             }
             break;
         case 3: // Change event time out
         {
             if( mcpsIndication->BufferSize == 1 && mcpsIndication->Buffer[0] > 0)
             {
+                IsTxConfirmed = true;
                 EventTimeOut = mcpsIndication->Buffer[0] * 1000;
+                TimerSetValue( &SafeLedTimer, EventTimeOut);
                 TimerSetValue( &SilenTimer, EventTimeOut);
                 TimerSetValue( &WarningLedTimer, EventTimeOut);
                 TimerSetValue( &CriticalLedTimer, EventTimeOut);
+                TimerSetValue( &TestTimer, EventTimeOut);
             }
             break;
         }    
-        case 4: // Change perior schedule TX
+        case 4: // Change periord schedule TX
         {
             if( mcpsIndication->BufferSize == 1)
             {
+                IsTxConfirmed = true;
                 TxDutyCycleTime = APP_TX_DUTYCYCLE *  mcpsIndication->Buffer[0];
             }
             break;
         }
         case 99:
         {
+            IsTxConfirmed = true;
             BoardResetMcu();
             break;
         }
@@ -1268,6 +1304,9 @@ int main( void )
                 TimerInit( &SafeLedTimer, OnSafeLedTimerEvent );
                 TimerSetValue( &SafeLedTimer, EventTimeOut );
                 TimerStart( &SafeLedTimer );
+                TimerInit( &TestTimer, OnTestTimerEvent );
+                TimerSetValue( &TestTimer, EventTimeOut );
+                TimerStart( &TestTimer );
 
                 TimerInit( &Led4Timer, OnLed4TimerEvent );
                 TimerSetValue( &Led4Timer, 25 );
