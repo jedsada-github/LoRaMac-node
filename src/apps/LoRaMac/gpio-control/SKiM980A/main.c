@@ -298,6 +298,7 @@ extern Gpio_t WarningLed; // Warning
 extern Gpio_t CriticalLed; // Critical
 extern Gpio_t SafeLed; //Safe
 extern Gpio_t TestLed; //Test
+extern Gpio_t PowerRelay; //Power relay
 
 extern Wdt_t Wdt; //WDT
 
@@ -564,9 +565,12 @@ static void OnTestTimerEvent( void* context )
     // Switch Silen OFF
 #if (USE_GPIO_ACTIVE_HIGH == 1)
     GpioWrite( &TestLed, 0 );
+    GpioWrite( &PowerRelay, 0 );
 #else
     GpioWrite( &TestLed, 1 );
+    GpioWrite( &PowerRelay, 1 );
 #endif
+    
     AppLedStateOn = false;
 }
 
@@ -579,9 +583,12 @@ static void OnSilenTimerEvent( void* context )
     // Switch Silen OFF
 #if (USE_GPIO_ACTIVE_HIGH == 1)
     GpioWrite( &Silen, 0 );
+    GpioWrite( &PowerRelay, 0 );
 #else
     GpioWrite( &Silen, 1 );
+    GpioWrite( &PowerRelay, 1 );
 #endif
+    
     SilenStateOn = false;
 }
 /*!
@@ -593,9 +600,12 @@ static void OnWarningLedTimerEvent( void* context )
     // Switch Warning Led OFF
 #if (USE_GPIO_ACTIVE_HIGH == 1)
     GpioWrite( &WarningLed, 0 );
+    GpioWrite( &PowerRelay, 0 );
 #else
     GpioWrite( &WarningLed, 1 );
+    GpioWrite( &PowerRelay, 1 );
 #endif
+    
     WarningLedStateOn = false;
 }
 /*!
@@ -607,9 +617,12 @@ static void OnCriticalLedTimerEvent( void* context )
     // Switch Critical LED OFF
 #if (USE_GPIO_ACTIVE_HIGH == 1)
     GpioWrite( &CriticalLed, 0 );
+    GpioWrite( &PowerRelay, 0 );
 #else
     GpioWrite( &CriticalLed, 1 );
+    GpioWrite( &PowerRelay, 1 );
 #endif
+    
     CriticalLedStateOn = false;
 }
 /*!
@@ -835,7 +848,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                 WarningLedStateOn = mcpsIndication->Buffer[0] & 0x04;
                 CriticalLedStateOn = mcpsIndication->Buffer[0] & 0x08;
 #if (USE_GPIO_ACTIVE_HIGH == 1)              
-                
+                GpioWrite( &PowerRelay,  1);
                 GpioWrite( &SafeLed,  ( ( SafeLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &Silen,  ( ( SilenStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 GpioWrite( &WarningLed,  ( ( WarningLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
@@ -843,6 +856,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                 GpioWrite( &TestLed,  ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0  );
                 
 #else
+                GpioWrite( &PowerRelay,  0);
                 GpioWrite( &SafeLed,  ( ( SafeLedStateOn & 0x01 ) != 0 ) ? 0 : 1  );
                 GpioWrite( &Silen,  ( ( SilenStateOn & 0x01 ) != 0 ) ? 0 : 1  );
                 GpioWrite( &WarningLed,  ( ( WarningLedStateOn & 0x01 ) != 0 ) ? 0 : 1  );

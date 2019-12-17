@@ -63,6 +63,7 @@ Gpio_t WarningLed;
 Gpio_t CriticalLed;
 Gpio_t SafeLed;
 Gpio_t TestLed;
+Gpio_t PowerRelay;
 
 /*
  * MCU objects
@@ -185,16 +186,18 @@ void BoardInitMcu( void )
 #endif
 #if (USE_GPIO_ACTIVE_HIGH == 1)
         GpioInit( &Silen, SILEN, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-        GpioInit( &WarningLed, WARNING_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-        GpioInit( &CriticalLed, CRITICAL_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-        GpioInit( &SafeLed, SAFE_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-        GpioInit( &TestLed, TEST_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+        GpioInit( &WarningLed, WARNING_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0);
+        GpioInit( &CriticalLed, CRITICAL_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0);
+        GpioInit( &SafeLed, SAFE_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &TestLed, TEST_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+        GpioInit( &PowerRelay, POWER_RELAY, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 #else
         GpioInit( &Silen, SILEN, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &WarningLed, WARNING_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &CriticalLed, CRITICAL_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &SafeLed, SAFE_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &TestLed, TEST_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+        GpioInit( &PowerRelay, POWER_RELAY, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 #endif
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
@@ -343,11 +346,11 @@ uint8_t BoardGetPotiLevel( void )
 /*!
  * ADC maximum value
  */
-#if (USE_ENCODER == 1)
+// #if (USE_ENCODER == 1)
 #define ADC_MAX_VALUE                               4095
-#else
-#define ADC_MAX_VALUE                               1023
-#endif
+// #else
+// #define ADC_MAX_VALUE                               1023
+// #endif
 /*!
  * VREF bandgap value
  */

@@ -124,7 +124,7 @@ extern "C"
 #define CRITICAL_LED                                PB_14
 #define SAFE_LED                                    PB_15
 #define TEST_LED                                    I2C_SDA
-
+#define POWER_RELAY                                 I2C_SCL
 #endif
 
 #if (USE_GPS == 1)
