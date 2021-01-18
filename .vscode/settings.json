@@ -1,5 +1,11 @@
 // Place your settings in this file to overwrite default and user settings.
 {
+    "cmake.preferredGenerators": [
+        "MinGW Makefiles",
+        "Ninja",
+        "Unix Makefiles"
+    ],
+    "cmake.cmakePath": "c:/PROGRA~1/Cmake/bin/cmake.exe",    
     "cmake.configureSettings": {
 
         // In case your GNU ARM-Toolchain is not installed under the default
@@ -10,14 +16,14 @@
         //     Linux   : /usr
         //     OSX     : /usr/local
         // It is required to uncomment and to fill the following line.
-        "TOOLCHAIN_PREFIX":"C:/PROGRA~2/GNUTOO~1/82019-~1",
+        "TOOLCHAIN_PREFIX":"C:/PROGRA~2/GNUARM~1/92020-~1",
 
         // In case your OpenOCD is not installed under the default path:
         //     Windows : C:/openocd/bin/openocd.exe
         //     Linux   : /usr/bin/openocd
         //     OSX     : /usr/local/bin/openocd
         // Please uncomment the following line and fill it accordingly.
-        "OPENOCD_BIN":"C:/openocd/bin/openocd.exe",
+        "OPENOCD_BIN":"C:/OpenOCD/0.10.0-12-20190422-2015/bin/openocd.exe",
 
         // Specifies the path to the CMAKE toolchain file.
         "CMAKE_TOOLCHAIN_FILE":"cmake/toolchain-arm-none-eabi.cmake",
@@ -44,7 +50,7 @@
         "MODULATION":"LORA",
 
         // Target board, the following boards are supported:
-        // NAMote72, NucleoL073 (Default), NucleoL152, NucleoL476, SAML21, SKiM880B, SKiM980A, SKiM881AXL and B-L072Z-LRWAN1.
+        // NAMote72, NucleoL073 (Default), NucleoL152, NucleoL476, NucleoF746, SAML21, SKiM880B, SKiM980A, SKiM881AXL and B-L072Z-LRWAN1.
         "BOARD":"SKiM980A",
 
         // MBED Radio shield selection. (Applies only to Nucleo platforms)
@@ -86,7 +92,6 @@
         "stm32l1xx_hal_conf.h": "c",
         "stm32l1xx_hal_pcd.h": "c",
         "stm32l1xx_hal_def.h": "c",
-        "stm32_hal_legacy.h": "c",
-        "regionas923.h": "c"
-    }
+        "stm32_hal_legacy.h": "c"
+    },
 }

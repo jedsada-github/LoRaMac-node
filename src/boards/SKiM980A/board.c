@@ -58,13 +58,19 @@ Gpio_t Led4;
 
 Gpio_t USR1;
 
+#ifdef USE_LIGHTPOLE
+Gpio_t Lamp1;
+Gpio_t Lamp2;
+Gpio_t Lamp3;
+Gpio_t Lamp4;
+#else
 Gpio_t Silen;
 Gpio_t WarningLed;
 Gpio_t CriticalLed;
 Gpio_t SafeLed;
 Gpio_t TestLed;
 Gpio_t PowerRelay;
-
+#endif
 /*
  * MCU objects
  */
@@ -183,7 +189,14 @@ void BoardInitMcu( void )
         GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-#endif
+#elif defined ( USE_LIGHTPOLE )
+        GpioInit( &Lamp1, LAMP_1, PIN_OUTPUT, PIN_OPEN_DRAIN, PIN_NO_PULL, 0 );
+        GpioInit( &Lamp2, LAMP_2, PIN_OUTPUT, PIN_OPEN_DRAIN, PIN_NO_PULL, 0 );
+        GpioInit( &Lamp3, LAMP_3, PIN_OUTPUT, PIN_OPEN_DRAIN, PIN_NO_PULL, 0 );
+        GpioInit( &Lamp4, LAMP_4, PIN_OUTPUT, PIN_OPEN_DRAIN, PIN_NO_PULL, 0 );
+
+        I2cInit( &I2c, I2C_1, LIGHT_SCL, LIGHT_SDA );
+#else
 #if (USE_GPIO_ACTIVE_HIGH == 1)
         GpioInit( &Silen, SILEN, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &WarningLed, WARNING_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0);
@@ -191,6 +204,7 @@ void BoardInitMcu( void )
         GpioInit( &SafeLed, SAFE_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &TestLed, TEST_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &PowerRelay, POWER_RELAY, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+
 #else
         GpioInit( &Silen, SILEN, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &WarningLed, WARNING_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
@@ -198,7 +212,9 @@ void BoardInitMcu( void )
         GpioInit( &SafeLed, SAFE_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &TestLed, TEST_LED, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &PowerRelay, POWER_RELAY, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+#endif  
 #endif
+
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
         {
@@ -297,6 +313,22 @@ void BoardGetUniqueId( uint8_t *id )
  */
 #define POTI_MAX_LEVEL 900
 #define POTI_MIN_LEVEL 10
+
+uint32_t BoardGetLightIntensity ( void )
+{
+
+    //TODO: BoardGetLightIntensity
+    uint32_t intensity = 0;
+    uint8_t data[2] = {0};
+    I2cWrite( &I2c ,0x46, 0x01, 0); //Power on
+    HAL_Delay(20);
+    I2cWrite( &I2c ,0x46, 0x13, 0); //Continue
+    HAL_Delay(200);
+    I2cReadBuffer( &I2c, 0x46 | 0x01, 0x13, data, 2);
+    intensity = data[0] << 8;
+    intensity |= data[1];
+    return intensity;
+}
 
 #if (USE_ENCODER == 1)
 uint16_t BoardGetPotiLevel( void )

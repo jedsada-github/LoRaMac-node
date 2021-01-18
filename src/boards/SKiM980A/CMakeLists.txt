@@ -31,6 +31,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/encoder-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/gpio-board.c"
     # "${CMAKE_CURRENT_SOURCE_DIR}/gps-board.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/i2c-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/lpm-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/rtc-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/spi-board.c"

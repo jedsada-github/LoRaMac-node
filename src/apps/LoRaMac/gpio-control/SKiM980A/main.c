@@ -121,8 +121,13 @@ static uint8_t AppPort = LORAWAN_APP_PORT;
 /*!
  * User application data size
  */
+#if USE_LIGHTPOLE == 1
+static uint8_t AppDataSize = 9;
+static uint8_t AppDataSizeBackup = 9;
+#else
 static uint8_t AppDataSize = 4;
 static uint8_t AppDataSizeBackup = 4;
+#endif
 
 /*!
  * User application data buffer size
@@ -147,7 +152,7 @@ static uint32_t TxDutyCycleTime = APP_TX_DUTYCYCLE;
 /*!
  * Defines the application data transmission duty cycle
  */
-static uint32_t EventTimeOut = 15000;
+static uint32_t EventTimeOut = 60 * 1000; //1 min
 
 /*!
  * Timer to handle the application data transmission duty cycle
@@ -159,6 +164,45 @@ static TimerEvent_t TxNextPacketTimer;
  */
 static bool AppLedStateOn = false;
 
+#if (USE_LIGHTPOLE == 1)
+/*!
+ * Specifies the state of the application Lamp1
+ */
+static bool Lamp1StateOn = false;
+/*!
+ * Specifies the state of the application Lamp2
+ */
+static bool Lamp2StateOn = false;
+/*!
+ * Specifies the state of the application Lamp3
+ */
+static bool Lamp3StateOn = false;
+/*!
+ * Specifies the state of the application Lamp4
+ */
+static bool Lamp4StateOn = false;
+
+/*!
+ * Timer to handle the state of Lamp1
+ */
+static TimerEvent_t Lamp1Timer;
+static void OnLamp1TimerEvent( void* context );
+/*!
+ * Timer to handle the state of Lamp2
+ */
+static TimerEvent_t Lamp2Timer;
+static void OnLamp2TimerEvent( void* context );
+/*!
+ * Timer to handle the state of Lamp3
+ */
+static TimerEvent_t Lamp3Timer;
+static void OnLamp3TimerEvent( void* context );
+/*!
+ * Timer to handle the state of Lamp4
+ */
+static TimerEvent_t Lamp4Timer;
+static void OnLamp4TimerEvent( void* context );
+#else
 /*!
  * Specifies the state of the application Silen
  */
@@ -197,6 +241,10 @@ static void OnCriticalLedTimerEvent( void* context );
 static TimerEvent_t SafeLedTimer;
 static void OnSafeLedTimerEvent( void* context );
 
+#endif
+/*!
+ * Timer to handle the state of Test
+ */
 static TimerEvent_t TestTimer;
 static void OnTestTimerEvent( void* context );
 
@@ -292,14 +340,19 @@ LoRaMacHandlerAppData_t AppData =
 extern Gpio_t Led4; // Tx
 extern Gpio_t Led2; // Rx
 extern Gpio_t Led3; // App
-
+#if USE_LIGHTPOLE == 1
+extern Gpio_t Lamp1; // Lamp1
+extern Gpio_t Lamp2; // Lamp2
+extern Gpio_t Lamp3; // Lamp3
+extern Gpio_t Lamp4; // Lamp4
+#else
 extern Gpio_t Silen; // Silen
 extern Gpio_t WarningLed; // Warning
 extern Gpio_t CriticalLed; // Critical
 extern Gpio_t SafeLed; //Safe
 extern Gpio_t TestLed; //Test
 extern Gpio_t PowerRelay; //Power relay
-
+#endif
 extern Wdt_t Wdt; //WDT
 
 /*!
@@ -422,23 +475,41 @@ static void PrepareTxFrame( uint8_t port )
         {
             uint8_t potiPercentage = 0;
             uint16_t vdd = 0;
-
+#if (USE_LIGHTPOLE == 1)
+            uint32_t LightIntensity = 0;
+#endif
             // Read the current potentiometer setting in percent
             potiPercentage = BoardGetPotiLevel( );
 
             // Read the current voltage level
             BoardGetBatteryLevel( ); // Updates the value returned by BoardGetBatteryVoltage( ) function.
             vdd = BoardGetBatteryVoltage( );
-
-            AppDataSizeBackup = AppDataSize = 5;
+#if (USE_LIGHTPOLE == 1)
+            // Read LightIntensity
+            LightIntensity = BoardGetLightIntensity( );
+#endif
+            AppDataSizeBackup = AppDataSize = 9;
             AppDataBuffer[0] = AppLedStateOn;
+            #if (USE_LIGHTPOLE == 1)
+            AppDataBuffer[1] = Lamp1StateOn << 0;
+            AppDataBuffer[1] |= Lamp2StateOn << 1;
+            AppDataBuffer[1] |= Lamp3StateOn << 2;
+            AppDataBuffer[1] |= Lamp4StateOn << 3;
+            #else
             AppDataBuffer[1] = SilenStateOn << 0;
             AppDataBuffer[1] |= WarningLedStateOn << 1;
             AppDataBuffer[1] |= CriticalLedStateOn << 2;
             AppDataBuffer[1] |= SafeLedStateOn << 3;
+            #endif
             AppDataBuffer[2] = potiPercentage;
             AppDataBuffer[3] = ( vdd >> 8 ) & 0xFF;
             AppDataBuffer[4] = vdd & 0xFF;
+            #if (USE_LIGHTPOLE == 1)    
+            AppDataBuffer[5] = (LightIntensity >> 24) & 0xFF;
+            AppDataBuffer[6] = (LightIntensity >> 16) & 0xFF;
+            AppDataBuffer[7] = (LightIntensity >> 8) & 0xFF;
+            AppDataBuffer[8] = (LightIntensity >> 0) & 0xFF;
+            #endif
         }
         break;
     case 224:
@@ -562,6 +633,12 @@ static void OnTxNextPacketTimerEvent( void* context )
 static void OnTestTimerEvent( void* context )
 {
     TimerStop( &TestTimer );
+#if (USE_LIGHTPOLE == 1)
+    GpioWrite( &Lamp1, 0 );
+    GpioWrite( &Lamp2, 0 );
+    GpioWrite( &Lamp3, 0 );
+    GpioWrite( &Lamp4, 0 );
+#else
     // Switch Silen OFF
 #if (USE_GPIO_ACTIVE_HIGH == 1)
     GpioWrite( &TestLed, 0 );
@@ -570,10 +647,56 @@ static void OnTestTimerEvent( void* context )
     GpioWrite( &TestLed, 1 );
     GpioWrite( &PowerRelay, 1 );
 #endif
-    
+#endif
     AppLedStateOn = false;
 }
 
+#if USE_LIGHTPOLE == 1 
+/*!
+ * \brief Function executed on Lamp1 Timeout event
+ */
+static void OnLamp1TimerEvent( void* context )
+{
+    TimerStop( &Lamp1Timer );
+    // Switch Lamp1 OFF
+    GpioWrite( &Lamp1, Lamp1StateOn );
+    
+    // Lamp1StateOn = false;
+}
+/*!
+ * \brief Function executed on Lamp2 Timeout event
+ */
+static void OnLamp2TimerEvent( void* context )
+{
+    TimerStop( &Lamp2Timer );
+    // Switch Lamp2 OFF
+    GpioWrite( &Lamp2, Lamp2StateOn );
+    
+    // Lamp2StateOn = false;
+}
+/*!
+ * \brief Function executed on Lamp3 Timeout event
+ */
+static void OnLamp3TimerEvent( void* context )
+{
+    TimerStop( &Lamp3Timer );
+    // Switch Lamp1 OFF
+    GpioWrite( &Lamp3, Lamp3StateOn );
+    
+    // Lamp3StateOn = false;
+}
+/*!
+ * \brief Function executed on Lamp4 Timeout event
+ */
+static void OnLamp4TimerEvent( void* context )
+{
+    TimerStop( &Lamp4Timer );
+    // Switch Lamp4 OFF
+    GpioWrite( &Lamp4, Lamp4StateOn );
+    
+    // Lamp4StateOn = false;
+}
+#else
 /*!
  * \brief Function executed on Silen Timeout event
  */
@@ -639,6 +762,8 @@ static void OnSafeLedTimerEvent( void* context )
 #endif
     SafeLedStateOn = false;
 }
+#endif
+
 /*!
  * \brief Function executed on Led 4 Timeout event
  */
@@ -842,8 +967,24 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
             {
                 IsTxConfirmed = true;
                 AppLedStateOn = mcpsIndication->Buffer[0] & 0x10;
-                SafeLedStateOn = mcpsIndication->Buffer[0] & 0x01;
                 GpioWrite( &Led3, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
+
+#if USE_LIGHTPOLE == 1
+                Lamp1StateOn = mcpsIndication->Buffer[0] & 0x01;                
+                Lamp2StateOn = mcpsIndication->Buffer[0] & 0x02;
+                Lamp3StateOn = mcpsIndication->Buffer[0] & 0x04;
+                Lamp4StateOn = mcpsIndication->Buffer[0] & 0x08;
+                GpioWrite( &Lamp1, Lamp1StateOn );
+                GpioWrite( &Lamp2, Lamp2StateOn );
+                GpioWrite( &Lamp3, Lamp3StateOn );
+                GpioWrite( &Lamp4, Lamp4StateOn );
+                // TimerReset( &Lamp1Timer );
+                // TimerReset( &Lamp2Timer );
+                // TimerReset( &Lamp3Timer );
+                // TimerReset( &Lamp4Timer );
+#else
+                SafeLedStateOn = mcpsIndication->Buffer[0] & 0x01;
+                
                 SilenStateOn = mcpsIndication->Buffer[0] & 0x02;
                 WarningLedStateOn = mcpsIndication->Buffer[0] & 0x04;
                 CriticalLedStateOn = mcpsIndication->Buffer[0] & 0x08;
@@ -867,7 +1008,8 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
                 TimerReset( &SilenTimer );
                 TimerReset( &WarningLedTimer );
                 TimerReset( &CriticalLedTimer );
-                TimerReset( &TestTimer );
+#endif
+                // TimerReset( &TestTimer );
             }
             break;
         case 3: // Change event time out
@@ -876,11 +1018,18 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
             {
                 IsTxConfirmed = true;
                 EventTimeOut = mcpsIndication->Buffer[0] * 1000;
+                #if USE_LIGHTPOLE == 1
+                TimerSetValue( &Lamp1Timer, EventTimeOut);
+                TimerSetValue( &Lamp2Timer, EventTimeOut);
+                TimerSetValue( &Lamp3Timer, EventTimeOut);
+                TimerSetValue( &Lamp4Timer, EventTimeOut);
+                #else
                 TimerSetValue( &SafeLedTimer, EventTimeOut);
                 TimerSetValue( &SilenTimer, EventTimeOut);
                 TimerSetValue( &WarningLedTimer, EventTimeOut);
                 TimerSetValue( &CriticalLedTimer, EventTimeOut);
-                TimerSetValue( &TestTimer, EventTimeOut);
+                #endif
+                // TimerSetValue( &TestTimer, EventTimeOut);
             }
             break;
         }    
@@ -1305,7 +1454,20 @@ int main( void )
             case DEVICE_STATE_START:
             {
                 TimerInit( &TxNextPacketTimer, OnTxNextPacketTimerEvent );
-                
+#if USE_LIGHTPOLE == 1                
+                TimerInit( &Lamp1Timer, OnLamp1TimerEvent );
+                TimerSetValue( &Lamp1Timer, EventTimeOut );
+                TimerStart( &Lamp1Timer );
+                TimerInit( &Lamp2Timer,  OnLamp2TimerEvent );
+                TimerSetValue( &Lamp2Timer, EventTimeOut );
+                TimerStart( &Lamp2Timer );
+                TimerInit( &Lamp3Timer, OnLamp3TimerEvent );
+                TimerSetValue( &Lamp3Timer, EventTimeOut );
+                TimerStart( &Lamp3Timer );
+                TimerInit( &Lamp4Timer, OnLamp4TimerEvent );
+                TimerSetValue( &Lamp4Timer, EventTimeOut );
+                TimerStart( &Lamp4Timer );
+#else
                 TimerInit( &SilenTimer, OnSilenTimerEvent );
                 TimerSetValue( &SilenTimer, EventTimeOut );
                 TimerStart( &SilenTimer );
@@ -1318,9 +1480,10 @@ int main( void )
                 TimerInit( &SafeLedTimer, OnSafeLedTimerEvent );
                 TimerSetValue( &SafeLedTimer, EventTimeOut );
                 TimerStart( &SafeLedTimer );
-                TimerInit( &TestTimer, OnTestTimerEvent );
-                TimerSetValue( &TestTimer, EventTimeOut );
-                TimerStart( &TestTimer );
+#endif
+                // TimerInit( &TestTimer, OnTestTimerEvent );
+                // TimerSetValue( &TestTimer, EventTimeOut );
+                // TimerStart( &TestTimer );
 
                 TimerInit( &Led4Timer, OnLed4TimerEvent );
                 TimerSetValue( &Led4Timer, 25 );

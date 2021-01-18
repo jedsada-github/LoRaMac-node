@@ -55,6 +55,7 @@ extern "C"
 #define USE_POTENTIOMETER                           1
 #define USE_SPI                                     0
 #define USE_ENCODER                                 0
+#define USE_LIGHTPOLE                               1
 #define USE_GPS                                     0
 #define USE_USB_CDC                                 0
 #define USE_GPIO_ACTIVE_HIGH                        1
@@ -115,6 +116,13 @@ extern "C"
 #define LED_3                                       PB_13
 #define LED_4                                       PB_15
 #define USER_BUTTON                                 JTAG_TDI
+#elif defined ( USE_LIGHTPOLE )
+#define LAMP_1                                      PB_12
+#define LAMP_2                                      PB_13
+#define LAMP_3                                      PB_14
+#define LAMP_4                                      PB_15
+#define LIGHT_SDA                                   I2C_SDA
+#define LIGHT_SCL                                   I2C_SCL
 #else
 #define LED_2                                       PA_0
 #define LED_3                                       PA_1

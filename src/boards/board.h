@@ -122,4 +122,5 @@ Version_t BoardGetVersion( void );
 
 void BoardSetADCAlarmLVL(uint32_t lower_threshold);
 
+uint32_t BoardGetLightIntensity ( void );
 #endif // __BOARD_H__
