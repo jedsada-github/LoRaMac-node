@@ -23,10 +23,12 @@ Maintainer: Miguel Luis ( Semtech ), Daniel Jaeckle ( STACKFORCE ), Johannes Bru
 #include "LoRaMacCommands.h"
 #include "LoRaMacConfirmQueue.h"
 
+#ifndef NUM_OF_MAC_COMMANDS
 /*!
  * Number of MAC Command slots
  */
-#define NUM_OF_MAC_COMMANDS 15
+#define NUM_OF_MAC_COMMANDS 32
+#endif
 
 /*!
  * Size of the CID field of MAC commands
@@ -68,14 +70,9 @@ typedef struct sLoRaMacCommandsCtx
 } LoRaMacCommandsCtx_t;
 
 /*!
- * Callback function to notify the upper layer about context change
- */
-static LoRaMacCommandsNvmEvent CommandsNvmCtxChanged;
-
-/*!
  * Non-volatile module context.
  */
-static LoRaMacCommandsCtx_t NvmCtx;
+static LoRaMacCommandsCtx_t CommandsCtx;
 
 /* Memory management functions */
 
@@ -108,7 +105,7 @@ static MacCommand_t* MallocNewMacCommandSlot( void )
 {
     uint8_t itr = 0;
 
-    while( IsSlotFree( ( const MacCommand_t* )&NvmCtx.MacCommandSlots[itr] ) == false )
+    while( IsSlotFree( ( const MacCommand_t* )&CommandsCtx.MacCommandSlots[itr] ) == false )
     {
         itr++;
         if( itr == NUM_OF_MAC_COMMANDS )
@@ -117,7 +114,7 @@ static MacCommand_t* MallocNewMacCommandSlot( void )
         }
     }
 
-    return &NvmCtx.MacCommandSlots[itr];
+    return &CommandsCtx.MacCommandSlots[itr];
 }
 
 /*!
@@ -281,54 +278,22 @@ static bool IsSticky( uint8_t cid )
         case MOTE_MAC_DL_CHANNEL_ANS:
         case MOTE_MAC_RX_PARAM_SETUP_ANS:
         case MOTE_MAC_RX_TIMING_SETUP_ANS:
+        case MOTE_MAC_TX_PARAM_SETUP_ANS:
+        case MOTE_MAC_PING_SLOT_CHANNEL_ANS:
             return true;
         default:
             return false;
     }
 }
 
-/*
- * \brief Wrapper function for the NvmCtx
- */
-static void NvmCtxCallback( void )
-{
-    if( CommandsNvmCtxChanged != NULL )
-    {
-        CommandsNvmCtxChanged( );
-    }
-}
-
-LoRaMacCommandStatus_t LoRaMacCommandsInit( LoRaMacCommandsNvmEvent commandsNvmCtxChanged )
+LoRaMacCommandStatus_t LoRaMacCommandsInit( void )
 {
     // Initialize with default
-    memset1( ( uint8_t* )&NvmCtx, 0, sizeof( NvmCtx ) );
+    memset1( ( uint8_t* )&CommandsCtx, 0, sizeof( CommandsCtx ) );
 
-    LinkedListInit( &NvmCtx.MacCommandList );
-
-    // Assign callback
-    CommandsNvmCtxChanged = commandsNvmCtxChanged;
+    LinkedListInit( &CommandsCtx.MacCommandList );
 
     return LORAMAC_COMMANDS_SUCCESS;
-}
-
-LoRaMacCommandStatus_t LoRaMacCommandsRestoreNvmCtx( void* commandsNvmCtx )
-{
-    // Restore module context
-    if( commandsNvmCtx != NULL )
-    {
-        memcpy1( ( uint8_t* )&NvmCtx, ( uint8_t* )commandsNvmCtx, sizeof( NvmCtx ) );
-        return LORAMAC_COMMANDS_SUCCESS;
-    }
-    else
-    {
-        return LORAMAC_COMMANDS_ERROR_NPE;
-    }
-}
-
-void* LoRaMacCommandsGetNvmCtx( size_t* commandsNvmCtxSize )
-{
-    *commandsNvmCtxSize = sizeof( NvmCtx );
-    return &NvmCtx;
 }
 
 LoRaMacCommandStatus_t LoRaMacCommandsAddCmd( uint8_t cid, uint8_t* payload, size_t payloadSize )
@@ -342,13 +307,13 @@ LoRaMacCommandStatus_t LoRaMacCommandsAddCmd( uint8_t cid, uint8_t* payload, siz
     // Allocate a memory slot
     newCmd = MallocNewMacCommandSlot( );
 
-    if( newCmd == 0 )
+    if( newCmd == NULL )
     {
         return LORAMAC_COMMANDS_ERROR_MEMORY;
     }
 
     // Add it to the list of Mac commands
-    if( LinkedListAdd( &NvmCtx.MacCommandList, newCmd ) == false )
+    if( LinkedListAdd( &CommandsCtx.MacCommandList, newCmd ) == false )
     {
         return LORAMAC_COMMANDS_ERROR;
     }
@@ -359,9 +324,7 @@ LoRaMacCommandStatus_t LoRaMacCommandsAddCmd( uint8_t cid, uint8_t* payload, siz
     memcpy1( ( uint8_t* )newCmd->Payload, payload, payloadSize );
     newCmd->IsSticky = IsSticky( cid );
 
-    NvmCtx.SerializedCmdsSize += ( CID_FIELD_SIZE + payloadSize );
-
-    NvmCtxCallback( );
+    CommandsCtx.SerializedCmdsSize += ( CID_FIELD_SIZE + payloadSize );
 
     return LORAMAC_COMMANDS_SUCCESS;
 }
@@ -374,20 +337,18 @@ LoRaMacCommandStatus_t LoRaMacCommandsRemoveCmd( MacCommand_t* macCmd )
     }
 
     // Remove the Mac command element from MacCommandList
-    if( LinkedListRemove( &NvmCtx.MacCommandList, macCmd ) == false )
+    if( LinkedListRemove( &CommandsCtx.MacCommandList, macCmd ) == false )
     {
         return LORAMAC_COMMANDS_ERROR_CMD_NOT_FOUND;
     }
 
-    NvmCtx.SerializedCmdsSize -= ( CID_FIELD_SIZE + macCmd->PayloadSize );
+    CommandsCtx.SerializedCmdsSize -= ( CID_FIELD_SIZE + macCmd->PayloadSize );
 
     // Free the MacCommand Slot
     if( FreeMacCommandSlot( macCmd ) == false )
     {
         return LORAMAC_COMMANDS_ERROR;
     }
-
-    NvmCtxCallback( );
 
     return LORAMAC_COMMANDS_SUCCESS;
 }
@@ -397,7 +358,7 @@ LoRaMacCommandStatus_t LoRaMacCommandsGetCmd( uint8_t cid, MacCommand_t** macCmd
     MacCommand_t* curElement;
 
     // Start at the head of the list
-    curElement = NvmCtx.MacCommandList.First;
+    curElement = CommandsCtx.MacCommandList.First;
 
     // Loop through all elements until we find the element with the given CID
     while( ( curElement != NULL ) && ( curElement->CID != cid ) )
@@ -422,7 +383,7 @@ LoRaMacCommandStatus_t LoRaMacCommandsRemoveNoneStickyCmds( void )
     MacCommand_t* nexElement;
 
     // Start at the head of the list
-    curElement = NvmCtx.MacCommandList.First;
+    curElement = CommandsCtx.MacCommandList.First;
 
     // Loop through all elements
     while( curElement != NULL )
@@ -439,8 +400,6 @@ LoRaMacCommandStatus_t LoRaMacCommandsRemoveNoneStickyCmds( void )
         }
     }
 
-    NvmCtxCallback( );
-
     return LORAMAC_COMMANDS_SUCCESS;
 }
 
@@ -450,7 +409,7 @@ LoRaMacCommandStatus_t LoRaMacCommandsRemoveStickyAnsCmds( void )
     MacCommand_t* nexElement;
 
     // Start at the head of the list
-    curElement = NvmCtx.MacCommandList.First;
+    curElement = CommandsCtx.MacCommandList.First;
 
     // Loop through all elements
     while( curElement != NULL )
@@ -463,8 +422,6 @@ LoRaMacCommandStatus_t LoRaMacCommandsRemoveStickyAnsCmds( void )
         curElement = nexElement;
     }
 
-    NvmCtxCallback( );
-
     return LORAMAC_COMMANDS_SUCCESS;
 }
 
@@ -474,13 +431,13 @@ LoRaMacCommandStatus_t LoRaMacCommandsGetSizeSerializedCmds( size_t* size )
     {
         return LORAMAC_COMMANDS_ERROR_NPE;
     }
-    *size = NvmCtx.SerializedCmdsSize;
+    *size = CommandsCtx.SerializedCmdsSize;
     return LORAMAC_COMMANDS_SUCCESS;
 }
 
 LoRaMacCommandStatus_t LoRaMacCommandsSerializeCmds( size_t availableSize, size_t* effectiveSize, uint8_t* buffer )
 {
-    MacCommand_t* curElement = NvmCtx.MacCommandList.First;
+    MacCommand_t* curElement = CommandsCtx.MacCommandList.First;
     MacCommand_t* nextElement;
     uint8_t itr = 0;
 
@@ -528,7 +485,7 @@ LoRaMacCommandStatus_t LoRaMacCommandsStickyCmdsPending( bool* cmdsPending )
         return LORAMAC_COMMANDS_ERROR_NPE;
     }
     MacCommand_t* curElement;
-    curElement = NvmCtx.MacCommandList.First;
+    curElement = CommandsCtx.MacCommandList.First;
 
     *cmdsPending = false;
 
@@ -545,4 +502,140 @@ LoRaMacCommandStatus_t LoRaMacCommandsStickyCmdsPending( bool* cmdsPending )
     }
 
     return LORAMAC_COMMANDS_SUCCESS;
+}
+
+uint8_t LoRaMacCommandsGetCmdSize( uint8_t cid )
+{
+    uint8_t cidSize = 0;
+
+    // Decode Frame MAC commands
+    switch( cid )
+    {
+        case SRV_MAC_RESET_CONF:
+        {
+            // cid + Serv_LoRaWAN_version
+            cidSize = 2;
+            break;
+        }
+        case SRV_MAC_LINK_CHECK_ANS:
+        {
+            // cid + Margin + GwCnt
+            cidSize = 3;
+            break;
+        }
+        case SRV_MAC_LINK_ADR_REQ:
+        {
+            // cid + DataRate_TXPower + ChMask (2) + Redundancy
+            cidSize = 5;
+            break;
+        }
+        case SRV_MAC_DUTY_CYCLE_REQ:
+        {
+            // cid + DutyCyclePL
+            cidSize = 2;
+            break;
+        }
+        case SRV_MAC_RX_PARAM_SETUP_REQ:
+        {
+            // cid + DLsettings + Frequency (3)
+            cidSize = 5;
+            break;
+        }
+        case SRV_MAC_DEV_STATUS_REQ:
+        {
+            // cid
+            cidSize = 1;
+            break;
+        }
+        case SRV_MAC_NEW_CHANNEL_REQ:
+        {
+            // cid + ChIndex + Frequency (3) + DrRange
+            cidSize = 6;
+            break;
+        }
+        case SRV_MAC_RX_TIMING_SETUP_REQ:
+        {
+            // cid + Settings
+            cidSize = 2;
+            break;
+        }
+        case SRV_MAC_TX_PARAM_SETUP_REQ:
+        {
+            // cid + EIRP_DwellTime
+            cidSize = 2;
+            break;
+        }
+        case SRV_MAC_DL_CHANNEL_REQ:
+        {
+            // cid + ChIndex + Frequency (3)
+            cidSize = 5;
+            break;
+        }
+        case SRV_MAC_REKEY_CONF:
+        {
+            // cid + Serv_LoRaWAN_version
+            cidSize = 2;
+            break;
+        }
+        case SRV_MAC_ADR_PARAM_SETUP_REQ:
+        {
+            // cid + ADRparam
+            cidSize = 2;
+            break;
+        }
+        case SRV_MAC_FORCE_REJOIN_REQ:
+        {
+            // cid + Payload (2)
+            cidSize = 3;
+            break;
+        }
+        case SRV_MAC_REJOIN_PARAM_REQ:
+        {
+            // cid + Payload (1)
+            cidSize = 2;
+            break;
+        }
+        case SRV_MAC_DEVICE_MODE_CONF:
+        {
+            // cid + Class
+            cidSize = 2;
+            break;
+        }
+        case SRV_MAC_DEVICE_TIME_ANS:
+        {
+            // cid + Seconds (4) + Fractional seconds (1)
+            cidSize = 6;
+            break;
+        }
+        case SRV_MAC_PING_SLOT_INFO_ANS:
+        {
+            // cid
+            cidSize = 1;
+            break;
+        }
+        case SRV_MAC_PING_SLOT_CHANNEL_REQ:
+        {
+            // cid + Frequency (3) + DR
+            cidSize = 5;
+            break;
+        }
+        case SRV_MAC_BEACON_TIMING_ANS:
+        {
+            // cid + TimingDelay (2) + Channel
+            cidSize = 4;
+            break;
+        }
+        case SRV_MAC_BEACON_FREQ_REQ:
+        {
+            // cid + Frequency (3)
+            cidSize = 4;
+            break;
+        }
+        default:
+        {
+            // Unknown command. ABORT MAC commands processing
+            break;
+        }
+    }
+    return cidSize;
 }

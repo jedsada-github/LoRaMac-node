@@ -119,30 +119,9 @@ typedef void ( *LoRaMacCommandsNvmEvent )( void );
 /*!
  * \brief Initialization of LoRaMac MAC commands module
  *
- * \param[IN]    commandsNvmCtxChanged - Callback function which will be called when the
- *                                      non-volatile context needs to be saved.
- *
  * \retval                            - Status of the operation
  */
-LoRaMacCommandStatus_t LoRaMacCommandsInit( LoRaMacCommandsNvmEvent commandsNvmCtxChanged );
-
-/*!
- * Restores the internal non-volatile context from passed pointer.
- *
- * \param[IN]     commandsNvmCtx     - Pointer to non-volatile MAC commands module context to be restored.
- *
- * \retval                     - Status of the operation
- */
-LoRaMacCommandStatus_t LoRaMacCommandsRestoreNvmCtx( void* commandsNvmCtx );
-
-/*!
- * Returns a pointer to the internal non-volatile context.
- *
- * \param[IN]     commandsNvmCtxSize - Size of the module non-volatile context
- *
- * \retval                    - Points to a structure where the module store its non-volatile context
- */
-void* LoRaMacCommandsGetNvmCtx( size_t* commandsNvmCtxSize );
+LoRaMacCommandStatus_t LoRaMacCommandsInit( void );
 
 /*!
  * \brief Adds a new MAC command to be sent.
@@ -216,6 +195,15 @@ LoRaMacCommandStatus_t LoRaMacCommandsSerializeCmds( size_t availableSize, size_
  * \retval                     - Status of the operation
  */
 LoRaMacCommandStatus_t LoRaMacCommandsStickyCmdsPending( bool* cmdsPending );
+
+/*!
+ * \brief Get the MAC command size with corresponding CID.
+ *
+ * \param[IN]   cid                - MAC command identifier
+ *
+ * \retval Size of the command.
+ */
+uint8_t LoRaMacCommandsGetCmdSize( uint8_t cid );
 
 /*! \} addtogroup LORAMAC */
 

@@ -35,6 +35,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/rtc-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/spi-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/sx1272-board.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sysIrqHandlers.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/uart-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/uart-usb-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/usb_device.c"

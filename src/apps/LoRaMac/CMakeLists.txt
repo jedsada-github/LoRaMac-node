@@ -23,8 +23,13 @@ cmake_minimum_required(VERSION 3.6)
 #---------------------------------------------------------------------------------------
 
 # Allow switching of sub projects
+<<<<<<< HEAD
 set(SUB_PROJECT_LIST classA classB classC periodic-uplink-lpp fuota-test-01 encoder)
 set(SUB_PROJECT classA CACHE STRING "Default sub project is Class A")
+=======
+set(SUB_PROJECT_LIST periodic-uplink-lpp fuota-test-01)
+set(SUB_PROJECT periodic-uplink-lpp CACHE STRING "Default sub project is periodic-uplink-lpp")
+>>>>>>> 235330fb5591b4c0448a49dc60a7895711f3bf7a
 set_property(CACHE SUB_PROJECT PROPERTY STRINGS ${SUB_PROJECT_LIST})
 
 # Allow switching of active region
@@ -35,9 +40,12 @@ set(ACTIVE_REGION_LIST   LORAMAC_REGION_EU868 LORAMAC_REGION_US915 LORAMAC_REGIO
 set(ACTIVE_REGION LORAMAC_REGION_EU868 CACHE STRING "Default active region is EU868")
 set_property(CACHE ACTIVE_REGION PROPERTY STRINGS ${ACTIVE_REGION_LIST})
 
-if((SUB_PROJECT STREQUAL classB OR SUB_PROJECT STREQUAL periodic-uplink-lpp OR SUB_PROJECT STREQUAL fuota-test-01) AND NOT CLASSB_ENABLED )
-    message(FATAL_ERROR "Please turn on Class B support of LoRaMac ( CLASSB_ENABLED=ON ) to use Class B, periodic-uplink-lpp, fuota-test-01 sub projects")
+if((SUB_PROJECT STREQUAL periodic-uplink-lpp OR SUB_PROJECT STREQUAL fuota-test-01) AND NOT CLASSB_ENABLED )
+    message(FATAL_ERROR "Please turn on Class B support of LoRaMac ( CLASSB_ENABLED=ON ) to use periodic-uplink-lpp, fuota-test-01 sub projects")
 endif()
+
+# Allow selection of secure-element provisioning method
+option(SECURE_ELEMENT_PRE_PROVISIONED "Secure-element pre-provisioning" ON)
 
 if(SUB_PROJECT STREQUAL periodic-uplink-lpp)
 
@@ -46,8 +54,9 @@ if(SUB_PROJECT STREQUAL periodic-uplink-lpp)
     #---------------------------------------------------------------------------------------
     list(APPEND ${PROJECT_NAME}_COMMON
         "${CMAKE_CURRENT_LIST_DIR}/common/CayenneLpp.c"
+        "${CMAKE_CURRENT_LIST_DIR}/common/cli.c"
         "${CMAKE_CURRENT_LIST_DIR}/common/LmHandlerMsgDisplay.c"
-        "${CMAKE_CURRENT_LIST_DIR}/common/NvmCtxMgmt.c"
+        "${CMAKE_CURRENT_LIST_DIR}/common/NvmDataMgmt.c"
     )
 
     #---------------------------------------------------------------------------------------
@@ -74,8 +83,9 @@ elseif(SUB_PROJECT STREQUAL fuota-test-01)
     # Application common features handling
     #---------------------------------------------------------------------------------------
     list(APPEND ${PROJECT_NAME}_COMMON
+        "${CMAKE_CURRENT_LIST_DIR}/common/cli.c"
         "${CMAKE_CURRENT_LIST_DIR}/common/LmHandlerMsgDisplay.c"
-        "${CMAKE_CURRENT_LIST_DIR}/common/NvmCtxMgmt.c"
+        "${CMAKE_CURRENT_LIST_DIR}/common/NvmDataMgmt.c"
     )
 
     #---------------------------------------------------------------------------------------
@@ -96,6 +106,7 @@ elseif(SUB_PROJECT STREQUAL fuota-test-01)
         "${CMAKE_CURRENT_LIST_DIR}/common/LmHandler/packages/LmhpRemoteMcastSetup.c"
     )
 
+<<<<<<< HEAD
 else() #if(SUB_PROJECT STREQUAL classA OR SUB_PROJECT STREQUAL classB OR SUB_PROJECT STREQUAL classC)
 
     #---------------------------------------------------------------------------------------
@@ -118,6 +129,10 @@ else() #if(SUB_PROJECT STREQUAL classA OR SUB_PROJECT STREQUAL classB OR SUB_PRO
     list(APPEND ${PROJECT_NAME}_LMHP
     )
 
+=======
+else()
+    message(FATAL_ERROR "Unknown SUB_PROJECT")
+>>>>>>> 235330fb5591b4c0448a49dc60a7895711f3bf7a
 endif()
 
 #---------------------------------------------------------------------------------------
@@ -139,7 +154,12 @@ add_executable(${PROJECT_NAME}-${SUB_PROJECT}
 
 target_compile_definitions(${PROJECT_NAME}-${SUB_PROJECT} PRIVATE $<$<BOOL:${CLASSB_ENABLED}>:LORAMAC_CLASSB_ENABLED>)
 target_compile_definitions(${PROJECT_NAME}-${SUB_PROJECT} PRIVATE ACTIVE_REGION=${ACTIVE_REGION})
-
+if(${SECURE_ELEMENT_PRE_PROVISIONED} MATCHES ON)
+    target_compile_definitions(${PROJECT_NAME}-${SUB_PROJECT} PRIVATE -DSECURE_ELEMENT_PRE_PROVISIONED)
+endif()
+if(${SECURE_ELEMENT} MATCHES SOFT_SE)
+    target_compile_definitions(${PROJECT_NAME}-${SUB_PROJECT} PRIVATE -DSOFT_SE)
+endif()
 target_compile_definitions(${PROJECT_NAME}-${SUB_PROJECT}  PUBLIC
     $<BUILD_INTERFACE:$<TARGET_PROPERTY:mac,INTERFACE_COMPILE_DEFINITIONS>>
 )
