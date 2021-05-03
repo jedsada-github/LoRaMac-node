@@ -72,7 +72,7 @@
  *
  * \remark Please note that when ADR is enabled the end-device should be static
  */
-#define LORAWAN_ADR_ON                              0
+#define LORAWAN_ADR_ON                              1
 
 #if defined( REGION_EU868 ) || defined( REGION_RU864 ) || defined( REGION_CN779 ) || defined( REGION_EU433 )
 
@@ -965,7 +965,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
         case 2:
             if( mcpsIndication->BufferSize == 1 )
             {
-                IsTxConfirmed = true;
+                // IsTxConfirmed = true;
                 AppLedStateOn = mcpsIndication->Buffer[0] & 0x10;
                 GpioWrite( &Led3, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
 
@@ -1016,7 +1016,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
         {
             if( mcpsIndication->BufferSize == 1 && mcpsIndication->Buffer[0] > 0)
             {
-                IsTxConfirmed = true;
+                // IsTxConfirmed = true;
                 EventTimeOut = mcpsIndication->Buffer[0] * 1000;
                 #if USE_LIGHTPOLE == 1
                 TimerSetValue( &Lamp1Timer, EventTimeOut);
@@ -1037,14 +1037,14 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
         {
             if( mcpsIndication->BufferSize == 1)
             {
-                IsTxConfirmed = true;
+                // IsTxConfirmed = true;
                 TxDutyCycleTime = APP_TX_DUTYCYCLE *  mcpsIndication->Buffer[0];
             }
             break;
         }
         case 99:
         {
-            IsTxConfirmed = true;
+            // IsTxConfirmed = true;
             BoardResetMcu();
             break;
         }
@@ -1610,16 +1610,16 @@ int main( void )
                 if( ComplianceTest.Running == true )
                 {
                     // Schedule next packet transmission
-                    // TxDutyCycleTime = 5000; // 5000 ms
-                    TimerSetValue( &TxNextPacketTimer, 5000);
+                    TxDutyCycleTime = 5000;  // 5000 ms
+                    
                 }
                 else
                 {
                     // Schedule next packet transmission
-                    // TxDutyCycleTime += randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
-                    TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND ));
+                    TxDutyCycleTime = APP_TX_DUTYCYCLE + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
                 }
-
+                
+                TimerSetValue( &TxNextPacketTimer, TxDutyCycleTime);
                 // Schedule next packet transmission
                 TimerStart( &TxNextPacketTimer );
                 break;
