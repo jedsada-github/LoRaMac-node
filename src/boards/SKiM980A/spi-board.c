@@ -41,7 +41,7 @@ void SpiInit( Spi_t *obj, SpiId_t spiId, PinNames mosi, PinNames miso, PinNames 
         __HAL_RCC_SPI1_CLK_ENABLE( );
 
         SpiHandle[spiId].Instance = ( SPI_TypeDef* )SPI1_BASE;
-
+        
         GpioInit( &obj->Mosi, mosi, PIN_ALTERNATE_FCT, PIN_PUSH_PULL, PIN_PULL_DOWN, GPIO_AF5_SPI1 );
         GpioInit( &obj->Miso, miso, PIN_ALTERNATE_FCT, PIN_PUSH_PULL, PIN_PULL_DOWN, GPIO_AF5_SPI1 );
         GpioInit( &obj->Sclk, sclk, PIN_ALTERNATE_FCT, PIN_PUSH_PULL, PIN_PULL_DOWN, GPIO_AF5_SPI1 );
@@ -70,6 +70,13 @@ void SpiInit( Spi_t *obj, SpiId_t spiId, PinNames mosi, PinNames miso, PinNames 
     {
         SpiFormat( obj, SPI_DATASIZE_8BIT, SPI_POLARITY_LOW, SPI_PHASE_1EDGE, 1 );
     }
+
+    if ( miso == NC )
+    {
+        SpiHandle[spiId].Init.Direction = SPI_DIRECTION_1LINE;
+        // SPI_1LINE_TX(&SpiHandle[spiId]);
+    }
+
     SpiFrequency( obj, 10000000 );
 
     HAL_SPI_Init( &SpiHandle[spiId] );
@@ -163,3 +170,16 @@ uint16_t SpiInOut( Spi_t *obj, uint16_t outData )
     return( rxData );
 }
 
+uint16_t SpiOut( Spi_t *obj, uint16_t outData )
+{
+    if( ( obj == NULL ) || ( SpiHandle[obj->SpiId].Instance ) == NULL )
+    {
+        assert_param( FAIL );
+    }
+
+    CRITICAL_SECTION_BEGIN( );
+
+    HAL_SPI_Transmit(&SpiHandle[obj->SpiId], (uint8_t *) &outData, 1, 500);
+
+    CRITICAL_SECTION_END( );
+}

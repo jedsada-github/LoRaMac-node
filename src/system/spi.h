@@ -102,6 +102,16 @@ void SpiFrequency( Spi_t *obj, uint32_t hz );
  */
 uint16_t SpiInOut( Spi_t *obj, uint16_t outData );
 
+/*!
+ * \brief Sends outData
+ *
+ * \param [IN] obj     SPI object
+ * \param [IN] outData Byte to be sent
+ * \retval status     Send status.
+ */
+uint16_t SpiOut( Spi_t *obj, uint16_t outData );
+
+
 #ifdef __cplusplus
 }
 #endif

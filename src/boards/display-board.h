@@ -35,6 +35,11 @@ extern "C"
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include "GUI_Paint.h"
+#include "ImageData.h"
+#include "oled_sh1107.h"
+
 
 /*!
  * \brief Display colors enumeration
@@ -295,6 +300,16 @@ void DisplayPrint( const char *string );
  */
 void DisplayPrintf( const char *format, ... );
 
+/*!
+ * \brief Draws bitmap at coordinates (x,y) with given width and height
+ *
+ * \param x     X coordinate
+ * \param y     Y coordinate
+ * \param pBmp  Bitmap pointer
+ * \param w     Line width
+ * \param h     Line height
+  */
+void DisplayDrawBitmap( int16_t x, int16_t y, uint8_t*pBmp, int16_t w, int16_t h);
 #ifdef __cplusplus
 }
 #endif

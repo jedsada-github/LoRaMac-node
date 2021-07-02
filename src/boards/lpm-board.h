@@ -44,6 +44,7 @@ typedef enum
     LPM_GPS_ID     =                                ( 1 << 3 ),
     LPM_UART_RX_ID =                                ( 1 << 4 ),
     LPM_UART_TX_ID =                                ( 1 << 5 ),
+    LPM_DISPLAY_ID =                                ( 1 << 6 ),
 } LpmId_t;
 
 /*!

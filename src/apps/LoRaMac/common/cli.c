@@ -25,7 +25,6 @@
 void CliProcess( Uart_t* uart )
 {
     uint8_t data = 0;
-
     if( UartGetChar( uart, &data ) == 0 )
     {
         if( data == '\x1B' )

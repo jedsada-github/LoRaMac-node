@@ -30,6 +30,8 @@ extern "C"
 
 #include <stdint.h>
 #include "utilities.h"
+#include "board-config.h"
+
 /*!
  * Possible power sources
  */
@@ -117,6 +119,13 @@ uint8_t GetBoardPowerSource( void );
  * \retval value  Version
  */
 Version_t BoardGetVersion( void );
+
+
+/*!
+ * \brief Show the board display
+ *
+ */
+void BoardDisplayShow( void );
 
 #ifdef __cplusplus
 }

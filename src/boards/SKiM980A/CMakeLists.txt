@@ -27,8 +27,11 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/adc-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/delay-board.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/display-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/eeprom-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/gpio-board.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/gps-board.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/i2c-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/lpm-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/rtc-board.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/spi-board.c"
@@ -56,6 +59,14 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../mcu/stm32/STM32L1xx_HAL_Driver/Src/stm32l1xx_hal_spi.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/../mcu/stm32/STM32L1xx_HAL_Driver/Src/stm32l1xx_hal_spi_ex.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/../mcu/stm32/STM32L1xx_HAL_Driver/Src/stm32l1xx_hal_uart.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font8.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font12.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font16.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font20.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font24.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../display/GUI/GUI_Paint.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../display/GUI/ImageData.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../display/sh1107/oled_sh1107.c"
 )
 
 add_library(${PROJECT_NAME} OBJECT EXCLUDE_FROM_ALL ${${PROJECT_NAME}_SOURCES})
@@ -78,6 +89,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<TARGET_PROPERTY:system,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:radio,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:peripherals,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:display,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)

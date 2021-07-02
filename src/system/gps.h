@@ -53,6 +53,7 @@ typedef struct
     char NmeaDate[8];
 }NmeaGpsData_t;
 
+extern NmeaGpsData_t NmeaGpsData;
 /*!
  * \brief Initializes the handling of the GPS receiver
  */

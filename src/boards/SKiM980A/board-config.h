@@ -52,8 +52,9 @@ extern "C"
  *         Remove the original jumpers for that.
  *         On SKiM980A X5 is the 20 pin header close to the DIP SW and Buttons
  */
-#define USE_POTENTIOMETER                           1
-
+#define USE_POTENTIOMETER                           0
+#define USE_GPS                                     1
+#define USE_OLED                                    1
 
 /*!
  * Board MCU pins definitions
@@ -82,8 +83,10 @@ extern "C"
 #define OSC_HSE_IN                                  PH_0
 #define OSC_HSE_OUT                                 PH_1
 
+#if ( USE_OLED == 0 )
 #define USB_DM                                      PA_11
 #define USB_DP                                      PA_12
+#endif
 
 #define JTAG_TMS                                    PA_13
 #define JTAG_TCK                                    PA_14
@@ -94,17 +97,43 @@ extern "C"
 #define I2C_SCL                                     PB_8
 #define I2C_SDA                                     PB_9
 
+#if ( USE_GPS == 1 )
+
+#define GPS_UART_TX                                 PA_9
+#define GPS_UART_RX                                 PA_10
+#else
 #define UART_TX                                     PA_9
 #define UART_RX                                     PA_10
+#endif
 
 #if ( USE_POTENTIOMETER == 1 )
 #define POTI                                        PA_3
+#elif ( USE_GPS == 1)
+#define GPS_3DFIX                                   PA_3
 #else
 #define LED_1                                       PA_3
 #endif
+
+#if ( USE_OLED == 1 )
+#define OLED_NRST                                   PA_11
+#define OLED_CS                                     PB_12
+#define OLED_SCK                                    PB_15
+#define OLED_DI                                     PB_13
+#define OLED_DC                                     PB_14
+#define OLED_SCL                                    PB_8
+#define OLED_SDA                                    PB_9
+#define OLED_KEY1                                   PA_0
+#define OLED_KEY2                                   PA_12
+#endif
+
+#if ( USE_GPS == 1 )
+#define GPS_POWER_ON                                PA_8
+#define GPS_PPS                                     PA_1
+#else
 #define LED_2                                       PA_0
 #define LED_3                                       PA_1
 #define LED_4                                       PA_8
+#endif
 
 // Debug pins definition.
 #define RADIO_DBG_PIN_TX                            NC

@@ -31,11 +31,38 @@
 #include "uart.h"
 #include "timer.h"
 #include "sysIrqHandlers.h"
-#include "board-config.h"
 #include "lpm-board.h"
 #include "rtc-board.h"
 #include "sx1272-board.h"
 #include "board.h"
+#if ( USE_GPS == 1 )
+#include "gps.h"
+#endif
+#if ( USE_OLED == 1 )
+#include <stdlib.h>
+#include "display-board.h"
+PAINT_TIME sPaint_time = { 
+    .Year = 2021,  //0000
+    .Month = 1, //1 - 12
+    .Day = 30,   //1 - 30
+    .Hour = 23,  //0 - 23
+    .Min = 59,   //0 - 59
+    .Sec = 59   //0 - 59 
+};
+PAINT_GPS sPaint_gps = {
+    .lat = 13.797923575153222 * 1000, 
+    .lon = 100.60764708923249 * 1000,
+    .alt = 21,
+    .fix = true
+};
+PAINT_LoRa sPaint_lora = {
+    .rssi = -100,
+    .lsnr = -10,
+    .dr = 2,   //SF5~SF12
+    .len = 8,  //1 - 254
+    .airtime = 1000000000 //ms
+};
+#endif
 
 /*!
  * Unique Devices IDs register set ( STM32L1xxx )
@@ -47,18 +74,21 @@
 /*!
  * LED GPIO pins objects
  */
-#if ( USE_POTENTIOMETER == 0 )
+#if ( USE_POTENTIOMETER == 0  && USE_GPS == 0)
 Gpio_t Led1;
 #endif
+#if ( USE_GPS == 0 )
 Gpio_t Led2;
 Gpio_t Led3;
 Gpio_t Led4;
+#endif
 
 /*
  * MCU objects
  */
 Adc_t Adc;
 I2c_t I2c;
+Spi_t Spi;
 Uart_t Uart1;
 
 /*!
@@ -91,6 +121,7 @@ static TimerEvent_t CalibrateSystemWakeupTimeTimer;
  */
 static bool McuInitialized = false;
 
+#if ( USE_GPS == 0 )
 /*!
  * UART2 FIFO buffers size
  */
@@ -99,6 +130,7 @@ static bool McuInitialized = false;
 
 uint8_t Uart1TxBuffer[UART1_FIFO_TX_SIZE];
 uint8_t Uart1RxBuffer[UART1_FIFO_RX_SIZE];
+#endif
 
 /*!
  * Flag to indicate if the SystemWakeupTime is Calibrated
@@ -128,6 +160,31 @@ void BoardCriticalSectionEnd( uint32_t *mask )
 void BoardInitPeriph( void )
 {
 
+#if ( USE_GPS == 1 )
+    // Init GPS
+    GpsInit( );
+#endif
+
+#if ( USE_OLED == 1 )
+
+    DisplayInit();
+
+    DisplayClear();
+
+    RtcDelayMs(20);
+
+    for(int X = 1; X <= OLED_WIDTH; X += 8)
+    {
+        Paint_DrawString_EN(10, 1, "EmOne", &Font20, BLACK, WHITE);
+        Paint_DrawString_EN(10, 22, "LoRaWAN Survey", &Font12, BLACK, WHITE);
+        Paint_DrawString_EN(10, 38, "Field test purpose", &Font8, BLACK, WHITE);
+        Paint_DrawString_EN(10, 48, "Ver 0.1.0", &Font12, BLACK, WHITE);
+        Paint_DrawLine(1,62, X, 62, WHITE, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
+        DisplayUpdate();
+        HAL_Delay(500);
+    }
+    
+#endif
 }
 
 void BoardInitMcu( void )
@@ -136,32 +193,36 @@ void BoardInitMcu( void )
     {
         HAL_Init( );
 
-        // LEDs
+#if ( USE_OLED == 0)        // LEDs
 #if ( USE_POTENTIOMETER == 0 )
         GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 #endif
         GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led3, LED_3, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
         GpioInit( &Led4, LED_4, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-
+#endif
         SystemClockConfig( );
 
+#if ( USE_GPS == 0 )
         FifoInit( &Uart1.FifoTx, Uart1TxBuffer, UART1_FIFO_TX_SIZE );
         FifoInit( &Uart1.FifoRx, Uart1RxBuffer, UART1_FIFO_RX_SIZE );
         // Configure your terminal for 8 Bits data (7 data bit + 1 parity bit), no parity and no flow ctrl
         UartInit( &Uart1, UART_1, UART_TX, UART_RX );
         UartConfig( &Uart1, RX_TX, 921600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
 
+#endif
+
         RtcInit( );
 
         // Switch LED 1, 2, 3, 4 OFF
-#if ( USE_POTENTIOMETER == 0 )
+#if ( USE_POTENTIOMETER == 0 && USE_GPS == 0)
         GpioWrite( &Led1, 0 );
 #endif
+#if ( USE_GPS == 0)
         GpioWrite( &Led2, 0 );
         GpioWrite( &Led3, 0 );
         GpioWrite( &Led4, 0 );
-
+#endif
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
         {
@@ -174,7 +235,9 @@ void BoardInitMcu( void )
         SystemClockReConfig( );
     }
 
+#if ( USE_GPS == 0 )
     AdcInit( &Adc, POTI );
+#endif
 
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
     SX1272IoInit( );
@@ -202,9 +265,9 @@ void BoardResetMcu( void )
 void BoardDeInitMcu( void )
 {
     Gpio_t ioPin;
-
+#if ( USE_GPS == 0 )
     AdcDeInit( &Adc );
-
+#endif
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
 
@@ -231,6 +294,21 @@ void BoardGetUniqueId( uint8_t *id )
     id[1] = ( ( *( uint32_t* )ID2 ) ) >> 8;
     id[0] = ( ( *( uint32_t* )ID2 ) );
 }
+
+#if ( USE_OLED == 1 )
+void BoardDisplayShow( void )
+{
+    DisplayClear();
+    //paint LoRa information
+    Paint_DrawGps(5, 1, &sPaint_gps, &Font8, WHITE, BLACK);
+    //gps infomation
+    Paint_DrawLoRa(5, 25, &sPaint_lora, &Font8, WHITE, BLACK);
+    // gps time utc
+    Paint_DrawTime(52, 52, &sPaint_time, &Font16, BLACK, WHITE);
+
+    DisplayUpdate();
+}
+#endif
 
 /*!
  * Potentiometer max and min levels definition
@@ -347,6 +425,7 @@ uint8_t BoardGetBatteryLevel( void )
 
 static void BoardUnusedIoInit( void )
 {
+#if ( USE_OLED == 0 )
     Gpio_t ioPin;
 
     if( GetBoardPowerSource( ) == BATTERY_POWER )
@@ -354,6 +433,7 @@ static void BoardUnusedIoInit( void )
         GpioInit( &ioPin, USB_DM, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
         GpioInit( &ioPin, USB_DP, PIN_ANALOGIC, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     }
+#endif
 
 #if defined( USE_DEBUGGER )
     HAL_DBGMCU_EnableDBGSleepMode( );
@@ -543,6 +623,7 @@ void BoardLowPowerHandler( void )
 
 #if !defined ( __CC_ARM )
 
+#if ( USE_GPS == 0 )
 /*
  * Function to be used by stdout for printf etc
  */
@@ -563,7 +644,7 @@ int _read( int fd, const void *buf, size_t count )
     while( UartPutBuffer( &Uart1, ( uint8_t* )buf, ( uint16_t )bytesRead ) != 0 ){ };
     return bytesRead;
 }
-
+#endif /* USE_GPS */
 #else
 
 #include <stdio.h>

@@ -28,6 +28,7 @@
 #include "board.h"
 #include "gpio.h"
 #include "uart.h"
+#include "gps.h"
 #include "RegionCommon.h"
 
 #include "cli.h"
@@ -147,6 +148,11 @@ static TimerEvent_t Led2Timer;
  */
 static TimerEvent_t LedBeaconTimer;
 
+/*!
+ * Timer to handle the state of Display indicator
+ */
+static TimerEvent_t DisplayTimer;
+
 static void OnMacProcessNotify( void );
 static void OnNvmDataChange( LmHandlerNvmContextStates_t state, uint16_t size );
 static void OnNetworkParametersChange( CommissioningParams_t* params );
@@ -165,6 +171,7 @@ static void OnSysTimeUpdate( void );
 static void PrepareTxFrame( void );
 static void StartTxProcess( LmHandlerTxEvents_t txEvent );
 static void UplinkProcess( void );
+static void DisplayProcess( void );
 
 static void OnTxPeriodicityChanged( uint32_t periodicity );
 static void OnTxFrameCtrlChanged( LmHandlerMsgTypes_t isTxConfirmed );
@@ -189,6 +196,11 @@ static void OnLed2TimerEvent( void* context );
  * \brief Function executed on Beacon timer Timeout event
  */
 static void OnLedBeaconTimerEvent( void* context );
+
+/*!
+ * Function executed on Display event
+ */
+static void OnDisplayEvent( void* context );
 
 static LmHandlerCallbacks_t LmHandlerCallbacks =
 {
@@ -240,12 +252,14 @@ static volatile uint8_t IsTxFramePending = 0;
 
 static volatile uint32_t TxPeriodicity = 0;
 
+#if ( USER_OLED == 0 )
 /*!
  * LED GPIO pins objects
  */
 extern Gpio_t Led4; // Tx
 extern Gpio_t Led2; // Rx and blinks every 5 seconds when beacon is acquired
 extern Gpio_t Led3; // App
+#endif
 
 /*!
  * UART object used for command line interface handling
@@ -268,6 +282,9 @@ int main( void )
 
     TimerInit( &LedBeaconTimer, OnLedBeaconTimerEvent );
     TimerSetValue( &LedBeaconTimer, 5000 );
+
+    TimerInit( &DisplayTimer, OnDisplayEvent );
+    TimerSetValue( &DisplayTimer, 1000 );
 
     // Initialize transmission periodicity variable
     TxPeriodicity = APP_TX_DUTYCYCLE + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
@@ -298,11 +315,15 @@ int main( void )
 
     StartTxProcess( LORAMAC_HANDLER_TX_ON_TIMER );
 
+#if ( USE_OLED == 1)
+    DisplayProcess();
+#endif
     while( 1 )
     {
+#if ( USE_GPS == 0)        
         // Process characters sent over the command line interface
         CliProcess( &Uart1 );
-
+#endif
         // Processes the LoRaMac events
         LmHandlerProcess( );
 
@@ -377,15 +398,21 @@ static void OnRxData( LmHandlerAppData_t* appData, LmHandlerRxParams_t* params )
     case LORAWAN_APP_PORT:
         {
             AppLedStateOn = appData->Buffer[0] & 0x01;
+#if ( USE_OLED == 0)
             GpioWrite( &Led3, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 1 : 0 );
+#else
+    //Display
+#endif
         }
         break;
     default:
         break;
     }
-
+#if ( USE_OLED == 0)
     // Switch LED 2 ON for each received downlink
     GpioWrite( &Led2, 1 );
+#else
+#endif
     TimerStart( &Led2Timer );
 }
 
@@ -475,8 +502,12 @@ static void PrepareTxFrame( void )
 
     if( LmHandlerSend( &AppData, LmHandlerParams.IsTxConfirmed ) == LORAMAC_HANDLER_SUCCESS )
     {
-        // Switch LED 4 ON
-        GpioWrite( &Led4, 1 );
+#if ( USE_OLED == 0)
+    // Switch LED 4 OFF
+    GpioWrite( &Led4, 1 );
+#else
+   //Display
+#endif
         TimerStart( &Led4Timer );
     }
 }
@@ -497,6 +528,7 @@ static void StartTxProcess( LmHandlerTxEvents_t txEvent )
         break;
     case LORAMAC_HANDLER_TX_ON_EVENT:
         {
+            //Display button click
         }
         break;
     }
@@ -513,6 +545,13 @@ static void UplinkProcess( void )
     {
         PrepareTxFrame( );
     }
+}
+
+static void DisplayProcess( void )
+{
+    TimerStop( &DisplayTimer );
+    BoardDisplayShow();
+    TimerStart(&DisplayTimer);
 }
 
 static void OnTxPeriodicityChanged( uint32_t periodicity )
@@ -555,8 +594,14 @@ static void OnTxTimerEvent( void* context )
 static void OnLed4TimerEvent( void* context )
 {
     TimerStop( &Led4Timer );
+#if ( USE_OLED == 1)
+    //Display
+    DisplayProcess();
+#else
     // Switch LED 4 OFF
     GpioWrite( &Led4, 0 );
+#endif
+    
 }
 
 /*!
@@ -565,8 +610,14 @@ static void OnLed4TimerEvent( void* context )
 static void OnLed2TimerEvent( void* context )
 {
     TimerStop( &Led2Timer );
+    
+#if ( USE_OLED == 1)
+    //Display
+    DisplayProcess();
+#else
     // Switch LED 2 OFF
     GpioWrite( &Led2, 0 );
+#endif
 }
 
 /*!
@@ -574,8 +625,24 @@ static void OnLed2TimerEvent( void* context )
  */
 static void OnLedBeaconTimerEvent( void* context )
 {
+#if ( USE_OLED == 1)
+    //Display
+    DisplayProcess();
+#else
     GpioWrite( &Led2, 1 );
+#endif
     TimerStart( &Led2Timer );
 
     TimerStart( &LedBeaconTimer );
+}
+
+/*!
+ * \brief Function executed on Display event
+ */
+static void OnDisplayEvent( void* context )
+{
+#if ( USE_OLED == 1)
+    //Display
+    DisplayProcess();
+#endif
 }

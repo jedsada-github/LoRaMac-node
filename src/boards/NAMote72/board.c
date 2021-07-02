@@ -444,6 +444,14 @@ Version_t BoardGetVersion( void )
     return boardVersion;
 }
 
+#if ( USE_OLED == 1 )
+void BoardDisplayShow( void )
+{
+    DisplayUpdate();
+}
+
+#endif
+
 void SystemClockConfig( void )
 {
     RCC_OscInitTypeDef RCC_OscInitStruct;

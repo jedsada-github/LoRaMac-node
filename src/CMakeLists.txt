@@ -199,6 +199,8 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/mac)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/peripherals)
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/display)
+
 #---------------------------------------------------------------------------------------
 # Applications
 #---------------------------------------------------------------------------------------
