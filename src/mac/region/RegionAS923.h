@@ -30,6 +30,8 @@
  *
  * \author    Johannes Bruder ( STACKFORCE )
  *
+ * \author    Anol P. (EmOne) AS923 Thailand
+ * 
  * \defgroup  REGIONAS923 Region AS923
  *            Implementation according to LoRaWAN Specification v1.0.2.
  * \{
@@ -86,6 +88,18 @@ extern "C"
  * AS923_FREQ_OFFSET = 0
  */
 #define CHANNEL_PLAN_GROUP_AS923_1_JP               4
+
+/*!
+ * Channel plan group AS923-1 for Thailand
+ * AS923_FREQ_OFFSET = 0
+ */
+#define CHANNEL_PLAN_GROUP_AS923_1_TH               5
+
+/*!
+ * Channel plan group AS923-1 for Thailand
+ * AS923_FREQ_OFFSET = 0
+ */
+#define CHANNEL_PLAN_GROUP_AS923_2_TH               6
 
 /*!
  * LoRaMac maximum number of channels

@@ -94,6 +94,62 @@
 #undef AS923_DEFAULT_MAX_EIRP
 #define AS923_DEFAULT_MAX_EIRP            13.0f
 
+#elif ( REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_1_TH )
+
+// Channel plan CHANNEL_PLAN_GROUP_AS923_1_TH
+
+#define REGION_AS923_FREQ_OFFSET          0
+
+/*!
+ * Restrict AS923 frequencies to channels 22 to 38
+ * Center frequencies 920.2 MHz to 923.4 MHz @ 200 kHz max bandwidth
+ */
+#define AS923_MIN_RF_FREQUENCY            920200000
+#define AS923_MAX_RF_FREQUENCY            923400000
+
+/*!
+ * Specifies the reception bandwidth to be used while executing the LBT
+ * Max channel bandwidth is 200 kHz
+ */
+#define AS923_LBT_RX_BANDWIDTH            200000
+
+#undef AS923_TX_MAX_DATARATE
+#define AS923_TX_MAX_DATARATE             DR_5
+
+#undef AS923_RX_MAX_DATARATE
+#define AS923_RX_MAX_DATARATE             DR_5
+
+#undef AS923_DEFAULT_MAX_EIRP
+#define AS923_DEFAULT_MAX_EIRP            20.0f
+
+#elif ( REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_2_TH )
+
+// Channel plan CHANNEL_PLAN_GROUP_AS923_1_TH
+
+#define REGION_AS923_FREQ_OFFSET          0
+
+/*!
+ * Restrict AS923 frequencies to channels 37 to 44
+ * Center frequencies 923.2 MHz to 924.8 MHz @ 200 kHz max bandwidth
+ */
+#define AS923_MIN_RF_FREQUENCY            923200000
+#define AS923_MAX_RF_FREQUENCY            924800000
+
+/*!
+ * Specifies the reception bandwidth to be used while executing the LBT
+ * Max channel bandwidth is 200 kHz
+ */
+#define AS923_LBT_RX_BANDWIDTH            200000
+
+#undef AS923_TX_MAX_DATARATE
+#define AS923_TX_MAX_DATARATE             DR_5
+
+#undef AS923_RX_MAX_DATARATE
+#define AS923_RX_MAX_DATARATE             DR_5
+
+#undef AS923_DEFAULT_MAX_EIRP
+#define AS923_DEFAULT_MAX_EIRP            20.0f
+
 #endif
 
 /*
@@ -906,8 +962,10 @@ LoRaMacStatus_t RegionAS923NextChannel( NextChanParams_t* nextChanParams, uint8_
 
     if( status == LORAMAC_STATUS_OK )
     {
-#if ( REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_1_JP )
-        // Executes the LBT algorithm when operating in Japan
+#if ( REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_1_JP || \
+        REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_1_TH || \
+        REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_2_TH)
+        // Executes the LBT algorithm when operating in Japan or Thailand
         uint8_t channelNext = 0;
 
         for( uint8_t  i = 0, j = randr( 0, nbEnabledChannels - 1 ); i < AS923_MAX_NB_CHANNELS; i++ )
