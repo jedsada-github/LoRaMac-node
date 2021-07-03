@@ -27,6 +27,8 @@
  * \author    Gregory Cristian ( Semtech )
  *
  * \author    Daniel Jaeckle ( STACKFORCE )
+ * 
+ * \maintain  Anol P. (EmOne) Thailand
 */
 #include "radio.h"
 #include "RegionCommon.h"
@@ -124,7 +126,7 @@
 
 #elif ( REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_2_TH )
 
-// Channel plan CHANNEL_PLAN_GROUP_AS923_1_TH
+// Channel plan CHANNEL_PLAN_GROUP_AS923_2_TH
 
 #define REGION_AS923_FREQ_OFFSET          0
 
