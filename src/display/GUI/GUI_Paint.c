@@ -768,10 +768,8 @@ void Paint_DrawLoRa(uint32_t Xstart, uint32_t Ystart, PAINT_LoRa *pLoRa, sFONT* 
     //Write data into the cache
     sprintf(buf, "RS:%d dBm LS:%d dB", pLoRa->rssi, pLoRa->lsnr);
     Paint_DrawString_EN(Xstart, Ystart, buf, Font, Color_Background, Color_Foreground);    
-    sprintf(buf, "DR:%d LEN:%d", pLoRa->dr, pLoRa->len);
-    Paint_DrawString_EN(Xstart, Ystart + dy, buf, Font, Color_Background, Color_Foreground);    
-    sprintf(buf, "AR:%d ms", pLoRa->airtime);
-    Paint_DrawString_EN(Xstart, Ystart + dy * 2, buf, Font, Color_Background, Color_Foreground);    
+    sprintf(buf, "DR:%d LEN:%d P:%d", pLoRa->dr, pLoRa->len, pLoRa->port);
+    Paint_DrawString_EN(Xstart, Ystart + dy, buf, Font, Color_Background, Color_Foreground);
 }
 
 void Paint_DrawImage(const unsigned char *image, uint32_t xStart, uint32_t yStart, uint32_t W_Image, uint32_t H_Image) 

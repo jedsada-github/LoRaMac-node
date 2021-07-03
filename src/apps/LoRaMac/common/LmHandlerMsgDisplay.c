@@ -27,6 +27,7 @@
 #include "timer.h"
 
 #include "LmHandlerMsgDisplay.h"
+#include "display-board.h"
 
 /*!
  * MAC status strings
@@ -372,8 +373,14 @@ void DisplayRxUpdate( LmHandlerAppData_t *appData, LmHandlerRxParams_t *params )
     printf( "DATA RATE   : DR_%d\n", params->Datarate );
     printf( "RX RSSI     : %d\n", params->Rssi );
     printf( "RX SNR      : %d\n", params->Snr );
-
+    
     printf( "\n" );
+
+    sPaint_lora.rssi = params->Rssi;
+    sPaint_lora.lsnr = params->Snr;
+    sPaint_lora.dr = params->Datarate;
+    sPaint_lora.len = appData->BufferSize;
+    sPaint_lora.port = appData->Port;
 }
 
 void DisplayBeaconUpdate( LoRaMacHandlerBeaconParams_t *params )

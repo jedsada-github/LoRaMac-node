@@ -120,8 +120,8 @@ extern PAINT_TIME sPaint_time;
  * Custom structure of a time attribute
 **/
 typedef struct {
-    uint32_t lat;  //decimal degree
-    uint32_t lon; //decimal degree
+    int32_t lat;  //decimal degree
+    int32_t lon; //decimal degree
     uint16_t alt;   //m
     bool fix;  //0: not fix, 1: fixed
 } PAINT_GPS;
@@ -135,7 +135,7 @@ typedef struct {
     int8_t lsnr; //1 -20
     uint8_t dr;   //SF5~SF12
     uint8_t len;  //1 - 254
-    uint32_t airtime; //ms
+    uint8_t port;  //0 - 254
 } PAINT_LoRa;
 extern PAINT_LoRa sPaint_lora;
 

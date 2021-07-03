@@ -60,7 +60,7 @@ PAINT_LoRa sPaint_lora = {
     .lsnr = -10,
     .dr = 2,   //SF5~SF12
     .len = 8,  //1 - 254
-    .airtime = 1000000000 //ms
+    .port = 0 //ms
 };
 #endif
 
@@ -300,6 +300,10 @@ void BoardDisplayShow( void )
 {
     DisplayClear();
     //paint LoRa information
+    sPaint_gps.alt = GpsGetLatestGpsAltitude();
+    sPaint_gps.fix = GpsHasFix();
+    GpsGetLatestGpsPositionBinary(&sPaint_gps.lat, &sPaint_gps.lon);
+    
     Paint_DrawGps(5, 1, &sPaint_gps, &Font8, WHITE, BLACK);
     //gps infomation
     Paint_DrawLoRa(5, 25, &sPaint_lora, &Font8, WHITE, BLACK);

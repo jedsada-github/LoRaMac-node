@@ -111,6 +111,7 @@ void GpsMcuStart( void )
     // if( GpsPowerEnInverted == true )
     // {
         GpioWrite( &GpsPowerEn, 0 );    // power up the GPS
+        RtcDelayMs(100);
     // }
     // else
     // {
@@ -123,6 +124,7 @@ void GpsMcuStop( void )
     // if( GpsPowerEnInverted == true )
     // {
         GpioWrite( &GpsPowerEn, 1 );    // power down the GPS
+        RtcDelayMs(100);
     // }
     // else
     // {
