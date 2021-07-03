@@ -40,6 +40,7 @@ uint8_t m_seg_offset = 0;
 #define Imagesize  1024 //(((OLED_WIDTH%8==0)? (OLED_WIDTH/8): (OLED_WIDTH/8+1)) * OLED_HEIGHT)
 uint8_t BlackImage[Imagesize];
 extern PAINT Paint;
+static bool wkup = 0;
 /********************************************************************************
 function:   
             reverse a byte data
@@ -55,16 +56,31 @@ static uint8_t reverse(uint8_t temp)
 void DisplayMcuOnKey1Signal( void* context )
 {
     // Wake up
-    LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
-    NvmDataMgmtFactoryReset( );
-    BoardResetMcu();
+    if(wkup == 0) {
+        LpmSetStopMode( LPM_DISPLAY_ID , LPM_ENABLE );
+        DisplayOff();
+        wkup = 1;
+        /*Suspend Tick increment to prevent wakeup by Systick interrupt. 
+        Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base)*/
+        // HAL_SuspendTick();
+
+        // LpmEnterStopMode();
+    } else {
+        LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
+        wkup = 0;
+        /* Resume Tick interrupt if disabled prior to SLEEP mode entry */
+        // HAL_ResumeTick();
+        DisplayInitReg();
+        DisplayOn();
+    }
 }
 
 void DisplayMcuOnKey2Signal( void* context )
 {
     // Reactivation
     LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
-
+    NvmDataMgmtFactoryReset( );
+    BoardResetMcu();
 }
 
 void DisplaySendData_8Bit(uint8_t val)

@@ -97,6 +97,7 @@
         "commissioning.h": "c",
         "se-identity.h": "c",
         "timer.h": "c",
-        "sysirqhandlers.h": "c"
+        "sysirqhandlers.h": "c",
+        "board-config.h": "c"
     }
 }
