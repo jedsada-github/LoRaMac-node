@@ -40,6 +40,7 @@
 #endif
 #if ( USE_OLED == 1 )
 #include <stdlib.h>
+#include "systime.h"
 #include "display-board.h"
 PAINT_TIME sPaint_time = { 
     .Year = 2021,  //0000
@@ -56,10 +57,10 @@ PAINT_GPS sPaint_gps = {
     .fix = true
 };
 PAINT_LoRa sPaint_lora = {
-    .rssi = -100,
-    .lsnr = -10,
+    .rssi = 0,
+    .lsnr = 0,
     .dr = 2,   //SF5~SF12
-    .len = 8,  //1 - 254
+    .len = 0,  //1 - 254
     .port = 0 //ms
 };
 #endif
@@ -297,7 +298,7 @@ void BoardGetUniqueId( uint8_t *id )
 
 #if ( USE_OLED == 1 )
 void BoardDisplayShow( void )
-{
+{    
     DisplayClear();
     //paint LoRa information
     sPaint_gps.alt = GpsGetLatestGpsAltitude();
@@ -305,9 +306,21 @@ void BoardDisplayShow( void )
     GpsGetLatestGpsPositionBinary(&sPaint_gps.lat, &sPaint_gps.lon);
     
     Paint_DrawGps(5, 1, &sPaint_gps, &Font8, WHITE, BLACK);
+    
     //gps infomation
     Paint_DrawLoRa(5, 25, &sPaint_lora, &Font8, WHITE, BLACK);
-    // gps time utc
+
+    // local time utc
+    uint32_t calendarvalue = RtcGetCalendarTime(NULL);
+    struct tm localtime; 
+    SysTimeLocalTime(calendarvalue, &localtime );
+    sPaint_time.Hour = localtime.tm_hour;
+    sPaint_time.Min = localtime.tm_min;
+    sPaint_time.Sec = localtime.tm_sec;
+    sPaint_time.Year = localtime.tm_year;
+    sPaint_time.Month = localtime.tm_mon;
+    sPaint_time.Day = localtime.tm_mday;
+    
     Paint_DrawTime(52, 52, &sPaint_time, &Font16, BLACK, WHITE);
 
     DisplayUpdate();
