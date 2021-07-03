@@ -341,6 +341,14 @@ void DisplayTxUpdate( LmHandlerTxParams_t *params )
     }
 
     printf( "\n" );
+    sPaint_lora.pwr = params->TxPower;
+    sPaint_lora.ulFcnt = params->UplinkCounter;
+    // sPaint_lora.ch =  mibGet.Param.ChannelsMask[0];
+    sPaint_lora.class =  "ABC"[LmHandlerGetCurrentClass( )];
+    sPaint_lora.dr = params->Datarate;
+    sPaint_lora.len = params->AppData.BufferSize;
+    sPaint_lora.port = params->AppData.Port;
+    sPaint_lora.status = EventInfoStatusStrings[params->Status];
 }
 
 void DisplayRxUpdate( LmHandlerAppData_t *appData, LmHandlerRxParams_t *params )
@@ -378,9 +386,11 @@ void DisplayRxUpdate( LmHandlerAppData_t *appData, LmHandlerRxParams_t *params )
 
     sPaint_lora.rssi = params->Rssi;
     sPaint_lora.lsnr = params->Snr;
+    sPaint_lora.dlFcnt = params->DownlinkCounter;
     sPaint_lora.dr = params->Datarate;
     sPaint_lora.len = appData->BufferSize;
     sPaint_lora.port = appData->Port;
+    sPaint_lora.status = EventInfoStatusStrings[params->Status];
 }
 
 void DisplayBeaconUpdate( LoRaMacHandlerBeaconParams_t *params )

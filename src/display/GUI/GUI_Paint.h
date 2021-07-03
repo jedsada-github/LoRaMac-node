@@ -131,11 +131,17 @@ extern PAINT_GPS sPaint_gps;
  * Custom structure of a time attribute
 **/
 typedef struct {
+    uint8_t pwr;
+    uint32_t ulFcnt;
+    // uint16_t ch;
+    char class;
+    uint32_t dlFcnt;
     int16_t rssi;  //-137
     int8_t lsnr; //1 -20
     uint8_t dr;   //SF5~SF12
     uint8_t len;  //1 - 254
     uint8_t port;  //0 - 254
+    char *status;
 } PAINT_LoRa;
 extern PAINT_LoRa sPaint_lora;
 

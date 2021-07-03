@@ -54,7 +54,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            5000
+#define APP_TX_DUTYCYCLE                            15000
 
 /*!
  * Defines a random delay for application data transmission duty cycle. 1s,
@@ -74,12 +74,12 @@
  *
  * \remark Please note that LORAWAN_DEFAULT_DATARATE is used only when ADR is disabled 
  */
-#define LORAWAN_DEFAULT_DATARATE                    DR_0
+#define LORAWAN_DEFAULT_DATARATE                    DR_2
 
 /*!
  * LoRaWAN confirmed messages
  */
-#define LORAWAN_DEFAULT_CONFIRMED_MSG_STATE         LORAMAC_HANDLER_UNCONFIRMED_MSG
+#define LORAWAN_DEFAULT_CONFIRMED_MSG_STATE         LORAMAC_HANDLER_CONFIRMED_MSG
 
 /*!
  * User application data buffer size
@@ -596,7 +596,7 @@ static void OnLed4TimerEvent( void* context )
     TimerStop( &Led4Timer );
 #if ( USE_OLED == 1)
     //Display
-    DisplayProcess();
+    // DisplayProcess();
 #else
     // Switch LED 4 OFF
     GpioWrite( &Led4, 0 );
@@ -613,7 +613,7 @@ static void OnLed2TimerEvent( void* context )
     
 #if ( USE_OLED == 1)
     //Display
-    DisplayProcess();
+    // DisplayProcess();
 #else
     // Switch LED 2 OFF
     GpioWrite( &Led2, 0 );
@@ -627,7 +627,7 @@ static void OnLedBeaconTimerEvent( void* context )
 {
 #if ( USE_OLED == 1)
     //Display
-    DisplayProcess();
+    // DisplayProcess();
 #else
     GpioWrite( &Led2, 1 );
 #endif

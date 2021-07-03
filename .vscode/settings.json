@@ -56,8 +56,8 @@
         // SOFT_SE(Default), LR1110_SE, ATECC608A_TNGLORA_SE
         "SECURE_ELEMENT":"SOFT_SE",
 
-        // Secure element is pre-provisioned
-        "SECURE_ELEMENT_PRE_PROVISIONED":"ON",
+        // Secure element is pre-provisioned for OFF:SOFT_SE/ON:LR1110_SE
+        "SECURE_ELEMENT_PRE_PROVISIONED":"OFF",
 
         // Region support activation, Select the ones you want to support.
         // By default only REGION_EU868 support is enabled.
@@ -95,6 +95,8 @@
         "fonts.h": "c",
         "lmhandler.h": "c",
         "commissioning.h": "c",
-        "se-identity.h": "c"
+        "se-identity.h": "c",
+        "timer.h": "c",
+        "sysirqhandlers.h": "c"
     }
 }

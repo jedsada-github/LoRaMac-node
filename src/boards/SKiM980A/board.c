@@ -57,9 +57,13 @@ PAINT_GPS sPaint_gps = {
     .fix = true
 };
 PAINT_LoRa sPaint_lora = {
+    .pwr = 16,
+    .ulFcnt = 0,
+    .class = 'A',
+    .dlFcnt = 0,
     .rssi = 0,
     .lsnr = 0,
-    .dr = 2,   //SF5~SF12
+    .dr = 2,   //DR5~DR0
     .len = 0,  //1 - 254
     .port = 0 //ms
 };
@@ -174,7 +178,7 @@ void BoardInitPeriph( void )
 
     RtcDelayMs(20);
 
-    for(int X = 1; X <= OLED_WIDTH; X += 8)
+    for(int X = 1; X <= OLED_WIDTH; X += 16)
     {
         Paint_DrawString_EN(10, 1, "EmOne", &Font20, BLACK, WHITE);
         Paint_DrawString_EN(10, 22, "LoRaWAN Survey", &Font12, BLACK, WHITE);
@@ -238,6 +242,8 @@ void BoardInitMcu( void )
 
 #if ( USE_GPS == 0 )
     AdcInit( &Adc, POTI );
+#else
+        AdcInit( &Adc, NC ); // VREF
 #endif
 
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
@@ -308,7 +314,7 @@ void BoardDisplayShow( void )
     Paint_DrawGps(5, 1, &sPaint_gps, &Font8, WHITE, BLACK);
     
     //gps infomation
-    Paint_DrawLoRa(5, 25, &sPaint_lora, &Font8, WHITE, BLACK);
+    Paint_DrawLoRa(5, 20, &sPaint_lora, &Font8, WHITE, BLACK);
 
     // local time utc
     uint32_t calendarvalue = RtcGetCalendarTime(NULL);
@@ -316,11 +322,7 @@ void BoardDisplayShow( void )
     SysTimeLocalTime(calendarvalue, &localtime );
     sPaint_time.Hour = localtime.tm_hour;
     sPaint_time.Min = localtime.tm_min;
-    sPaint_time.Sec = localtime.tm_sec;
-    sPaint_time.Year = localtime.tm_year;
-    sPaint_time.Month = localtime.tm_mon;
-    sPaint_time.Day = localtime.tm_mday;
-    
+    sPaint_time.Sec = localtime.tm_sec; 
     Paint_DrawTime(52, 52, &sPaint_time, &Font16, BLACK, WHITE);
 
     DisplayUpdate();
@@ -337,10 +339,12 @@ uint8_t BoardGetPotiLevel( void )
 {
     uint8_t potiLevel = 0;
     uint16_t vpoti = 0;
-
+#if ( USE_GPS == 1)
+    vpoti = AdcReadChannel( &Adc , ADC_CHANNEL_TEMPSENSOR );
+#else
     // Read the current potentiometer setting
     vpoti = AdcReadChannel( &Adc , ADC_CHANNEL_3 );
-
+#endif
     // check the limits
     if( vpoti >= POTI_MAX_LEVEL )
     {
