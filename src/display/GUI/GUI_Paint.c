@@ -456,7 +456,7 @@ parameter:
     Color_Background : Select the background color
 ******************************************************************************/
 void Paint_DrawChar(uint32_t Xpoint, uint32_t Ypoint, const char Acsii_Char,
-                    sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background)
+                    const sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background)
 {
     uint32_t Page, Column;
 
@@ -505,7 +505,7 @@ parameter:
     Color_Background : Select the background color
 ******************************************************************************/
 void Paint_DrawString_EN(uint32_t Xstart, uint32_t Ystart, const char * pString,
-                         sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background)
+                         const sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background)
 {
     uint32_t Xpoint = Xstart;
     uint32_t Ypoint = Ystart;
@@ -549,7 +549,7 @@ parameter:
     Color_Foreground : Select the foreground color
     Color_Background : Select the background color
 ******************************************************************************/
-void Paint_DrawString_CN(uint32_t Xstart, uint32_t Ystart, const char * pString, cFONT* font,
+void Paint_DrawString_CN(uint32_t Xstart, uint32_t Ystart, const char * pString, const cFONT* font,
                         uint32_t Color_Foreground, uint32_t Color_Background)
 {
     const char* p_text = pString;
@@ -695,89 +695,98 @@ void Paint_DrawNum(uint32_t Xpoint, uint32_t Ypoint, double Nummber,
     Paint_DrawString_EN(Xpoint, Ypoint, (const char*)pStr, Font, Color_Background, Color_Foreground);
 }
 
-/******************************************************************************
-function:	Display time
-parameter:
-    Xstart           ：X coordinate
-    Ystart           : Y coordinate
-    pTime            : Time-related structures
-    Font             ：A structure pointer that displays a character size
-    Color_Foreground : Select the foreground color
-    Color_Background : Select the background color
-******************************************************************************/
-void Paint_DrawTime(uint32_t Xstart, uint32_t Ystart, PAINT_TIME *pTime, sFONT* Font,
-                    uint32_t Color_Foreground, uint32_t Color_Background)
-{
-    uint8_t value[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+// /******************************************************************************
+// function:	Display time
+// parameter:
+//     Xstart           ：X coordinate
+//     Ystart           : Y coordinate
+//     pTime            : Time-related structures
+//     Font             ：A structure pointer that displays a character size
+//     Color_Foreground : Select the foreground color
+//     Color_Background : Select the background color
+// ******************************************************************************/
+// void Paint_DrawTime(uint32_t Xstart, uint32_t Ystart, const PAINT_TIME *pTime, const sFONT* Font,
+//                     uint32_t Color_Foreground, uint32_t Color_Background)
+// {
+//     // uint8_t value[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
-    uint32_t Dx = Font->Width;
+//     // uint32_t Dx = Font->Width;
 
-    //Write data into the cache
-    Paint_DrawChar(Xstart                           , Ystart, value[pTime->Hour / 10], Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + Dx                      , Ystart, value[pTime->Hour % 10], Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + Dx  + Dx / 4 + Dx / 2   , Ystart, ':'                    , Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + Dx * 2 + Dx / 2         , Ystart, value[pTime->Min / 10] , Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + Dx * 3 + Dx / 2         , Ystart, value[pTime->Min % 10] , Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + Dx * 4 + Dx / 2 - Dx / 4, Ystart, ':'                    , Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + Dx * 5                  , Ystart, value[pTime->Sec / 10] , Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + Dx * 6                  , Ystart, value[pTime->Sec % 10] , Font, Color_Background, Color_Foreground);
+//     char buf[22];
+//     sprintf(buf,"%02d:%02d:%02dUTC-%02d/%02d/%02d", pTime->Hour, pTime->Min, pTime->Sec, pTime->Day, pTime->Month, (int) pTime->Year);
+//     Paint_DrawString_EN(Xstart , Ystart, buf, Font, Color_Background, Color_Foreground);
+//     //Write data into the cache
+//     // Paint_DrawChar(Xstart                           , Ystart, value[pTime->Hour / 10], Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx                      , Ystart, value[pTime->Hour % 10], Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx  + Dx / 4 + Dx / 2   , Ystart, ':'                    , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 2 + Dx / 2         , Ystart, value[pTime->Min / 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 3 + Dx / 2         , Ystart, value[pTime->Min % 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 4 + Dx / 2 - Dx / 4, Ystart, ':'                    , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 5                  , Ystart, value[pTime->Sec / 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 6                  , Ystart, value[pTime->Sec % 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 7                  , Ystart, value[pTime->Day / 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 8                  , Ystart, value[pTime->Day % 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 9                  , Ystart, value[pTime->Month / 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 10                  , Ystart, value[pTime->Month % 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 11                  , Ystart, value[pTime->Year / 10] , Font, Color_Background, Color_Foreground);
+//     // Paint_DrawChar(Xstart + Dx * 12                  , Ystart, value[pTime->Year % 10] , Font, Color_Background, Color_Foreground);
     
-}
+// }
 
-/******************************************************************************
-function:	Display GPS
-parameter:
-    Xstart           ：X coordinate
-    Ystart           : Y coordinate
-    pGps            : Gps-related structures
-    Font             ：A structure pointer that displays a character size
-    Color_Foreground : Select the foreground color
-    Color_Background : Select the background color
-******************************************************************************/
-void Paint_DrawGps(uint32_t Xstart, uint32_t Ystart, PAINT_GPS *pGps, sFONT* Font,
-                    uint32_t Color_Foreground, uint32_t Color_Background)
-{
-    char buf[24];
+// /******************************************************************************
+// function:	Display GPS
+// parameter:
+//     Xstart           ：X coordinate
+//     Ystart           : Y coordinate
+//     pGps            : Gps-related structures
+//     Font             ：A structure pointer that displays a character size
+//     Color_Foreground : Select the foreground color
+//     Color_Background : Select the background color
+// ******************************************************************************/
+// void Paint_DrawGps(uint32_t Xstart, uint32_t Ystart, const PAINT_GPS *pGps, const sFONT* Font,
+//                     uint32_t Color_Foreground, uint32_t Color_Background)
+// {
+//     char buf[24];
 
-    //Write data into the cache
-    sprintf(buf, "LT:%d.%d LN:%d.%d", (int) (pGps->lat / 1000), (int)(pGps->lat % 1000), \
-                 (int)(pGps->lon / 1000), (int)(pGps->lon % 1000));
-    Paint_DrawString_EN(Xstart, Ystart, buf, Font, Color_Background, Color_Foreground);    
+//     //Write data into the cache
+//     sprintf(buf, "LT:%d.%d LN:%d.%d", (int) (pGps->lat / 100000), (int)(pGps->lat % 100000), \
+//                  (int)(pGps->lon / 100000), (int)(pGps->lon % 100000));
+//     Paint_DrawString_EN(Xstart, Ystart, buf, Font, Color_Background, Color_Foreground);    
     
-    sprintf(buf, "AT:%d F:%d", pGps->alt, pGps->fix);
-    Paint_DrawString_EN(Xstart, Ystart + 10, buf, Font, Color_Background, Color_Foreground);    
-}
+//     sprintf(buf, "AT:%d F:%d", pGps->alt, pGps->fix);
+//     Paint_DrawString_EN(Xstart, Ystart + 10, buf, Font, Color_Background, Color_Foreground);    
+// }
 
-/******************************************************************************
-function:	Display LoRa
-parameter:
-    Xstart           ：X coordinate
-    Ystart           : Y coordinate
-    pLoRa            : LoRa-related structures
-    Font             ：A structure pointer that displays a character size
-    Color_Foreground : Select the foreground color
-    Color_Background : Select the background color
-******************************************************************************/
-void Paint_DrawLoRa(uint32_t Xstart, uint32_t Ystart, PAINT_LoRa *pLoRa, sFONT* Font,
-                    uint32_t Color_Foreground, uint32_t Color_Background)
-{
-    char buf[24];
+// /******************************************************************************
+// function:	Display LoRa
+// parameter:
+//     Xstart           ：X coordinate
+//     Ystart           : Y coordinate
+//     pLoRa            : LoRa-related structures
+//     Font             ：A structure pointer that displays a character size
+//     Color_Foreground : Select the foreground color
+//     Color_Background : Select the background color
+// ******************************************************************************/
+// void Paint_DrawLoRa(uint32_t Xstart, uint32_t Ystart, const PAINT_LoRa *pLoRa, const sFONT* Font,
+//                     uint32_t Color_Foreground, uint32_t Color_Background)
+// {
+//     char buf[24];
 
-    int dy = Font->Height;
+//     int dy = Font->Height;
     
-    //Write data into the cache
+//     //Write data into the cache
 
-    sprintf(buf, "UL->PW:%d CL:%c | DR:%d", pLoRa->pwr, pLoRa->class, pLoRa->dr);
-    Paint_DrawString_EN(Xstart, Ystart, buf, Font, Color_Background, Color_Foreground);    
-    sprintf(buf, "DL->RS:%d LS:%d | PR:%d", pLoRa->rssi, pLoRa->lsnr, sPaint_lora.port);
-    Paint_DrawString_EN(Xstart, Ystart + dy, buf, Font, Color_Background, Color_Foreground);    
-    sprintf(buf, "UC:%8lu DC:%8lu", pLoRa->ulFcnt, pLoRa->dlFcnt);
-    Paint_DrawString_EN(Xstart, Ystart + dy * 2, buf, Font, Color_Background, Color_Foreground);    
-    if (pLoRa->status != NULL) {
-        sprintf(buf, "S:%s", pLoRa->status);
-        Paint_DrawString_EN(Xstart, Ystart + dy * 3, buf, Font, Color_Background, Color_Foreground);
-    }
-}
+//     sprintf(buf, "UL->PW:%d CL:%c | DR:%d", (16 - pLoRa->pwr), pLoRa->class, pLoRa->dr);
+//     Paint_DrawString_EN(Xstart, Ystart, buf, Font, Color_Background, Color_Foreground);    
+//     sprintf(buf, "DL->RS:%d LS:%d | PT:%d", pLoRa->rssi, pLoRa->lsnr, sPaint_lora.port);
+//     Paint_DrawString_EN(Xstart, Ystart + dy, buf, Font, Color_Background, Color_Foreground);    
+//     sprintf(buf, "UC:%8lu DC:%8lu", pLoRa->ulFcnt, pLoRa->dlFcnt);
+//     Paint_DrawString_EN(Xstart, Ystart + dy * 2, buf, Font, Color_Background, Color_Foreground);    
+//     if (pLoRa->status != NULL) {
+//         sprintf(buf, "S:%s", pLoRa->status);
+//         Paint_DrawString_EN(Xstart, Ystart + dy * 3, buf, Font, Color_Background, Color_Foreground);
+//     }
+// }
 
 void Paint_DrawImage(const unsigned char *image, uint32_t xStart, uint32_t yStart, uint32_t W_Image, uint32_t H_Image) 
 {

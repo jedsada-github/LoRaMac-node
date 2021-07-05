@@ -318,6 +318,7 @@ int main( void )
 #if ( USE_OLED == 1)
     DisplayProcess();
 #endif
+
     while( 1 )
     {
 #if ( USE_GPS == 0)        
@@ -482,20 +483,23 @@ static void PrepareTxFrame( void )
 
     CayenneLppReset( );
 
-    uint8_t potiPercentage = 0;
-    uint16_t vdd = 0;
+    // uint8_t potiPercentage = 0;
+    // uint16_t vdd = 0;
+    float lt, ln, m;
 
     // Read the current potentiometer setting in percent
-    potiPercentage = BoardGetPotiLevel( );
+    // potiPercentage = BoardGetPotiLevel( );
 
     // Read the current voltage level
     BoardGetBatteryLevel( ); // Updates the value returned by BoardGetBatteryVoltage( ) function.
-    vdd = BoardGetBatteryVoltage( );
-
+    // vdd = BoardGetBatteryVoltage( );
+    GpsGetLatestGpsPositionDouble((double*) &lt, (double*) &ln);
+    m = (float) GpsGetLatestGpsAltitude();
     CayenneLppAddDigitalInput( channel++, AppLedStateOn );
     CayenneLppAddAnalogInput( channel++, BoardGetBatteryLevel( ) * 100 / 254 );
-    CayenneLppAddAnalogInput( channel++, potiPercentage );
-    CayenneLppAddAnalogInput( channel++, vdd );
+    // CayenneLppAddAnalogInput( channel++, potiPercentage );
+    // CayenneLppAddAnalogInput( channel++, vdd );
+    CayenneLppAddGps( channel++, lt, ln, m);
 
     CayenneLppCopy( AppData.Buffer );
     AppData.BufferSize = CayenneLppGetSize( );

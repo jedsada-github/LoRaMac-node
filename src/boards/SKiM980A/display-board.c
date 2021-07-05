@@ -38,7 +38,7 @@ uint8_t m_column = 0;
 uint8_t m_page = 0;
 uint8_t m_seg_offset = 0;
 #define Imagesize  1024 //(((OLED_WIDTH%8==0)? (OLED_WIDTH/8): (OLED_WIDTH/8+1)) * OLED_HEIGHT)
-uint8_t BlackImage[Imagesize];
+volatile uint8_t BlackImage[Imagesize];
 extern PAINT Paint;
 static bool wkup = 0;
 /********************************************************************************

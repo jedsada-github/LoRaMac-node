@@ -122,7 +122,7 @@ extern PAINT_TIME sPaint_time;
 typedef struct {
     int32_t lat;  //decimal degree
     int32_t lon; //decimal degree
-    uint16_t alt;   //m
+    int16_t alt;   //m
     bool fix;  //0: not fix, 1: fixed
 } PAINT_GPS;
 extern PAINT_GPS sPaint_gps;
@@ -163,15 +163,15 @@ void Paint_DrawRectangle(uint32_t Xstart, uint32_t Ystart, uint32_t Xend, uint32
 void Paint_DrawCircle(uint32_t X_Center, uint32_t Y_Center, uint32_t Radius, uint32_t Color, DOT_PIXEL Line_width, DRAW_FILL Draw_Fill);
 
 //Display string
-void Paint_DrawChar(uint32_t Xstart, uint32_t Ystart, const char Acsii_Char, sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
-void Paint_DrawString_EN(uint32_t Xstart, uint32_t Ystart, const char * pString, sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
-void Paint_DrawString_CN(uint32_t Xstart, uint32_t Ystart, const char * pString, cFONT* font, uint32_t Color_Foreground, uint32_t Color_Background);
+void Paint_DrawChar(uint32_t Xstart, uint32_t Ystart, const char Acsii_Char,const sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
+void Paint_DrawString_EN(uint32_t Xstart, uint32_t Ystart, const char * pString, const sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
+void Paint_DrawString_CN(uint32_t Xstart, uint32_t Ystart, const char * pString, const cFONT* font, uint32_t Color_Foreground, uint32_t Color_Background);
 void Paint_DrawNum(uint32_t Xpoint, uint32_t Ypoint, double Nummber, sFONT* Font, uint32_t Digit,uint32_t Color_Foreground, uint32_t Color_Background);
-void Paint_DrawTime(uint32_t Xstart, uint32_t Ystart, PAINT_TIME *pTime, sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
-void Paint_DrawGps(uint32_t Xstart, uint32_t Ystart, PAINT_GPS *pGps, sFONT* Font,
-                    uint32_t Color_Foreground, uint32_t Color_Background);
-void Paint_DrawLoRa(uint32_t Xstart, uint32_t Ystart, PAINT_LoRa *pLora, sFONT* Font,
-                    uint32_t Color_Foreground, uint32_t Color_Background);
+// void Paint_DrawTime(uint32_t Xstart, uint32_t Ystart, const PAINT_TIME *pTime, const sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
+// void Paint_DrawGps(uint32_t Xstart, uint32_t Ystart, const PAINT_GPS *pGps, const sFONT* Font,
+//                     uint32_t Color_Foreground, uint32_t Color_Background);
+// void Paint_DrawLoRa(uint32_t Xstart, uint32_t Ystart, const PAINT_LoRa *pLora, const sFONT* Font,
+//                     uint32_t Color_Foreground, uint32_t Color_Background);
 //pic
 void Paint_DrawBitMap(const unsigned char* image_buffer);
 void Paint_DrawBitMap_Block(const unsigned char* image_buffer, uint8_t Region);

@@ -40,6 +40,7 @@
 #endif
 #if ( USE_OLED == 1 )
 #include <stdlib.h>
+#include <string.h>
 #include "systime.h"
 #include "display-board.h"
 PAINT_TIME sPaint_time = { 
@@ -165,11 +166,6 @@ void BoardCriticalSectionEnd( uint32_t *mask )
 void BoardInitPeriph( void )
 {
 
-#if ( USE_GPS == 1 )
-    // Init GPS
-    GpsInit( );
-#endif
-
 #if ( USE_OLED == 1 )
 
     DisplayInit();
@@ -214,7 +210,6 @@ void BoardInitMcu( void )
         // Configure your terminal for 8 Bits data (7 data bit + 1 parity bit), no parity and no flow ctrl
         UartInit( &Uart1, UART_1, UART_TX, UART_RX );
         UartConfig( &Uart1, RX_TX, 921600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
-
 #endif
 
         RtcInit( );
@@ -227,6 +222,9 @@ void BoardInitMcu( void )
         GpioWrite( &Led2, 0 );
         GpioWrite( &Led3, 0 );
         GpioWrite( &Led4, 0 );
+#else
+         // Init GPS
+        GpsInit( );
 #endif
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
@@ -272,9 +270,9 @@ void BoardResetMcu( void )
 void BoardDeInitMcu( void )
 {
     Gpio_t ioPin;
-#if ( USE_GPS == 0 )
+
     AdcDeInit( &Adc );
-#endif
+
     SpiDeInit( &SX1272.Spi );
     SX1272IoDeInit( );
 
@@ -305,27 +303,81 @@ void BoardGetUniqueId( uint8_t *id )
 #if ( USE_OLED == 1 )
 void BoardDisplayShow( void )
 {    
-    DisplayClear();
+    CRITICAL_SECTION_BEGIN( );
+    // DisplayInitReg();
+    // DisplayOn();
+
+    Paint_Clear(BLACK);
+    DisplayUpdate();
+    
     //paint LoRa information
+    char buf[24];
+    double lt, ln;
+    struct tm localtime; 
+    SysTime_t curTime = { .Seconds = 0, .SubSeconds = 0 };
+    curTime = SysTimeGet( );
     sPaint_gps.alt = GpsGetLatestGpsAltitude();
     sPaint_gps.fix = GpsHasFix();
-    GpsGetLatestGpsPositionBinary(&sPaint_gps.lat, &sPaint_gps.lon);
+
+    if(sPaint_gps.fix){
+        
+        strncpy(buf, NmeaGpsData.NmeaUtcTime, 2);
+        localtime.tm_hour = sPaint_time.Hour = atoi(buf);
+        strncpy(buf,NmeaGpsData.NmeaUtcTime + 2,  2);
+        localtime.tm_min = sPaint_time.Min = atoi(buf);
+        strncpy(buf,NmeaGpsData.NmeaUtcTime + 4,  2);
+        localtime.tm_sec = sPaint_time.Sec = atoi(buf);
+        
+        strncpy(buf, NmeaGpsData.NmeaDate, 2);
+        localtime.tm_mday = sPaint_time.Day = atoi(buf);
+        strncpy(buf,NmeaGpsData.NmeaDate + 2,  2);
+        localtime.tm_mon = sPaint_time.Month = atoi(buf);
+        strncpy(buf,NmeaGpsData.NmeaDate + 4,  2);
+        sPaint_time.Year = atoi(buf);
+        localtime.tm_year = (2000 + sPaint_time.Year) - 1900;
+        curTime.Seconds = SysTimeMkTime(&localtime);
+        SysTimeSet(curTime);
+    } 
+    else
+    {
+        SysTimeLocalTime(curTime.Seconds, &localtime );
+        sPaint_time.Hour = localtime.tm_hour;
+        sPaint_time.Min = localtime.tm_min;
+        sPaint_time.Sec = localtime.tm_sec;
+        sPaint_time.Day = localtime.tm_mday;
+        sPaint_time.Month = localtime.tm_mon;
+        sPaint_time.Year = (localtime.tm_year + 1900) % 100;
+    }
     
-    Paint_DrawGps(5, 1, &sPaint_gps, &Font8, WHITE, BLACK);
+    GpsGetLatestGpsPositionDouble(&lt, &ln);
+    sPaint_gps.lat = (int32_t)(lt * 100000); 
+    sPaint_gps.lon = (int32_t)(ln * 100000);
     
     //gps infomation
-    Paint_DrawLoRa(5, 20, &sPaint_lora, &Font8, WHITE, BLACK);
-
+    sprintf(buf, "LT:%d.%d LN:%d.%d", (int) (sPaint_gps.lat / 100000), (int)(sPaint_gps.lat % 100000), \
+                 (int)(sPaint_gps.lon / 100000), (int)(sPaint_gps.lon % 100000));
+    Paint_DrawString_EN(5, 1, buf, &Font8, BLACK, WHITE);    
+    sprintf(buf, "AT:%d F:%d", sPaint_gps.alt, sPaint_gps.fix);
+    Paint_DrawString_EN(5, 1 + Font8.Height, buf, &Font8, BLACK, WHITE);    
+    
+    sprintf(buf, "UL->PW:%d CL:%c | DR:%d", (16 - sPaint_lora.pwr), sPaint_lora.class, sPaint_lora.dr);
+    Paint_DrawString_EN(5, 20, buf, &Font8, BLACK, WHITE);    
+    sprintf(buf, "DL->RS:%d LS:%d | PT:%d", sPaint_lora.rssi, sPaint_lora.lsnr, sPaint_lora.port);
+    Paint_DrawString_EN(5, 20 + Font8.Height, buf, &Font8, BLACK, WHITE);    
+    sprintf(buf, "UC:%8lu DC:%8lu", sPaint_lora.ulFcnt, sPaint_lora.dlFcnt);
+    Paint_DrawString_EN(5, 20 + Font8.Height * 2, buf, &Font8, BLACK, WHITE);    
+    if (sPaint_lora.status != NULL) {
+        sprintf(buf, "S:%s", sPaint_lora.status);
+        Paint_DrawString_EN(5, 20 + Font8.Height * 3, buf, &Font8, BLACK, WHITE);
+    }
     // local time utc
-    uint32_t calendarvalue = RtcGetCalendarTime(NULL);
-    struct tm localtime; 
-    SysTimeLocalTime(calendarvalue, &localtime );
-    sPaint_time.Hour = localtime.tm_hour;
-    sPaint_time.Min = localtime.tm_min;
-    sPaint_time.Sec = localtime.tm_sec; 
-    Paint_DrawTime(52, 52, &sPaint_time, &Font16, BLACK, WHITE);
+    sprintf(buf,"%02d:%02d:%02dUTC-%02d/%02d/%02d", sPaint_time.Hour, sPaint_time.Min, sPaint_time.Sec, \
+                                                    sPaint_time.Day, sPaint_time.Month, (int) sPaint_time.Year);
+    Paint_DrawString_EN(20 , 52, buf, &Font8, BLACK, WHITE);
 
     DisplayUpdate();
+
+    CRITICAL_SECTION_END( );
 }
 #endif
 

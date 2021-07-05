@@ -117,6 +117,8 @@ void GpsMcuStart( void )
     // {
         GpioWrite( &GpsPowerEn, 1 );    // power up the GPS
     // }
+    UartInit( &Uart1, UART_1, GPS_UART_TX, GPS_UART_RX );
+    UartConfig( &Uart1, RX_ONLY, 9600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
 }
 
 void GpsMcuStop( void )
@@ -155,9 +157,9 @@ void GpsMcuIrqNotify( UartNotifyId_t id )
             {
                 NmeaString[NmeaStringSize++] = '\0';
                 GpsParseGpsData( ( int8_t* )NmeaString, NmeaStringSize );
-                UartDeInit( &Uart1 );
-                // Enables lowest power modes
-                LpmSetStopMode( LPM_GPS_ID , LPM_ENABLE );
+                // UartDeInit( &Uart1 );
+                // // Enables lowest power modes
+                // LpmSetStopMode( LPM_GPS_ID , LPM_ENABLE );
             }
         }
     }
