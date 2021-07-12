@@ -41,6 +41,7 @@ uint8_t m_seg_offset = 0;
 volatile uint8_t BlackImage[Imagesize];
 extern PAINT Paint;
 static bool wkup = 0;
+extern TimerEvent_t DisplayTimer;
 /********************************************************************************
 function:   
             reverse a byte data
@@ -57,21 +58,23 @@ void DisplayMcuOnKey1Signal( void* context )
 {
     // Wake up
     if(wkup == 0) {
-        LpmSetStopMode( LPM_DISPLAY_ID , LPM_ENABLE );
+        LpmSetOffMode( LPM_DISPLAY_ID , LPM_ENABLE );
         DisplayOff();
         wkup = 1;
+        TimerStop(&DisplayTimer);
         /*Suspend Tick increment to prevent wakeup by Systick interrupt. 
         Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base)*/
         // HAL_SuspendTick();
 
         // LpmEnterStopMode();
     } else {
-        LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
+        LpmSetOffMode( LPM_DISPLAY_ID , LPM_DISABLE );
         wkup = 0;
         /* Resume Tick interrupt if disabled prior to SLEEP mode entry */
         // HAL_ResumeTick();
         DisplayInitReg();
         DisplayOn();
+        TimerStart(&DisplayTimer);
     }
 }
 

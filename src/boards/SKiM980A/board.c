@@ -625,7 +625,7 @@ void SysTick_Handler( void )
 
 uint8_t GetBoardPowerSource( void )
 {
-    return USB_POWER;
+    return BATTERY_POWER;
 }
 
 /**

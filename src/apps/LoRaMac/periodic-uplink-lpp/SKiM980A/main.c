@@ -151,7 +151,7 @@ static TimerEvent_t LedBeaconTimer;
 /*!
  * Timer to handle the state of Display indicator
  */
-static TimerEvent_t DisplayTimer;
+TimerEvent_t DisplayTimer;
 
 static void OnMacProcessNotify( void );
 static void OnNvmDataChange( LmHandlerNvmContextStates_t state, uint16_t size );
