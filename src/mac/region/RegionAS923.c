@@ -152,6 +152,8 @@
 #undef AS923_DEFAULT_MAX_EIRP
 #define AS923_DEFAULT_MAX_EIRP            20.0f
 
+#undef AS923_DEFAULT_ANTENNA_GAIN
+#define AS923_DEFAULT_ANTENNA_GAIN            0.0f
 #endif
 
 /*
@@ -964,9 +966,7 @@ LoRaMacStatus_t RegionAS923NextChannel( NextChanParams_t* nextChanParams, uint8_
 
     if( status == LORAMAC_STATUS_OK )
     {
-#if ( REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_1_JP || \
-        REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_1_TH || \
-        REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_2_TH)
+#if ( REGION_AS923_DEFAULT_CHANNEL_PLAN == CHANNEL_PLAN_GROUP_AS923_1_JP )
         // Executes the LBT algorithm when operating in Japan or Thailand
         uint8_t channelNext = 0;
 

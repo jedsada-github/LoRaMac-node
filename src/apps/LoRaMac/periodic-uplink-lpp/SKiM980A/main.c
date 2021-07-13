@@ -97,7 +97,7 @@
  * LoRaWAN application port
  * @remark The allowed port range is from 1 up to 223. Other values are reserved.
  */
-#define LORAWAN_APP_PORT                            3
+#define LORAWAN_APP_PORT                            2
 
 /*!
  *
@@ -406,6 +406,12 @@ static void OnRxData( LmHandlerAppData_t* appData, LmHandlerRxParams_t* params )
 #endif
         }
         break;
+    case 3:
+        OnTxPeriodicityChanged(APP_TX_DUTYCYCLE * appData->Buffer[0] & 0xFF);
+        break;
+    case 99:
+        BoardResetMcu();
+        break;
     default:
         break;
     }
@@ -495,7 +501,7 @@ static void PrepareTxFrame( void )
     // vdd = BoardGetBatteryVoltage( );
     GpsGetLatestGpsPositionDouble((double*) &lt, (double*) &ln);
     m = (float) GpsGetLatestGpsAltitude();
-    CayenneLppAddDigitalInput( channel++, AppLedStateOn );
+    // CayenneLppAddDigitalInput( channel++, AppLedStateOn );
     CayenneLppAddAnalogInput( channel++, BoardGetBatteryLevel( ) * 100 / 254 );
     // CayenneLppAddAnalogInput( channel++, potiPercentage );
     // CayenneLppAddAnalogInput( channel++, vdd );

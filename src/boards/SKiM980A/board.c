@@ -223,14 +223,18 @@ void BoardInitMcu( void )
         GpioWrite( &Led3, 0 );
         GpioWrite( &Led4, 0 );
 #else
-         // Init GPS
+        // Init GPS
         GpsInit( );
 #endif
         BoardUnusedIoInit( );
         if( GetBoardPowerSource( ) == BATTERY_POWER )
         {
+#if ( USE_GPS == 0)
             // Disables OFF mode - Enables lowest power mode (STOP)
             LpmSetOffMode( LPM_APPLI_ID, LPM_DISABLE );
+#else
+            LpmSetStopMode( LPM_APPLI_ID, LPM_DISABLE );
+#endif
         }
     }
     else
@@ -241,6 +245,8 @@ void BoardInitMcu( void )
 #if ( USE_GPS == 0 )
     AdcInit( &Adc, POTI );
 #else
+        // Init GPS
+        GpsStart( );
         AdcInit( &Adc, NC ); // VREF
 #endif
 
@@ -271,6 +277,12 @@ void BoardDeInitMcu( void )
 {
     Gpio_t ioPin;
 
+#if ( USE_GPS == 0 )
+    
+#else
+    // DeInit GPS
+    GpsStop( );
+#endif
     AdcDeInit( &Adc );
 
     SpiDeInit( &SX1272.Spi );
@@ -357,7 +369,7 @@ void BoardDisplayShow( void )
     sprintf(buf, "LT:%d.%d LN:%d.%d", (int) (sPaint_gps.lat / 100000), (int)(sPaint_gps.lat % 100000), \
                  (int)(sPaint_gps.lon / 100000), (int)(sPaint_gps.lon % 100000));
     Paint_DrawString_EN(5, 1, buf, &Font8, BLACK, WHITE);    
-    sprintf(buf, "AT:%d F:%d", sPaint_gps.alt, sPaint_gps.fix);
+    sprintf(buf, "AT:%d FX:%d BT:%3d%%", sPaint_gps.alt, sPaint_gps.fix, BoardGetBatteryLevel( ) * 100 / 254);
     Paint_DrawString_EN(5, 1 + Font8.Height, buf, &Font8, BLACK, WHITE);    
     
     sprintf(buf, "UL->PW:%d CL:%c | DR:%d", (16 - sPaint_lora.pwr), sPaint_lora.class, sPaint_lora.dr);

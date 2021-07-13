@@ -20,6 +20,7 @@
 #include "rtc-board.h"
 #include "display-board.h"
 #include "string.h"
+#include "gps.h"
 
 static Gpio_t OledNrst;
 static Gpio_t OledKey1;
@@ -58,20 +59,26 @@ void DisplayMcuOnKey1Signal( void* context )
 {
     // Wake up
     if(wkup == 0) {
-        LpmSetOffMode( LPM_DISPLAY_ID , LPM_ENABLE );
-        DisplayOff();
-        wkup = 1;
         TimerStop(&DisplayTimer);
+        
+        DisplayOff();
+        GpsStop();
+        
+        LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
+        wkup = 1;
         /*Suspend Tick increment to prevent wakeup by Systick interrupt. 
         Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base)*/
         // HAL_SuspendTick();
 
         // LpmEnterStopMode();
     } else {
-        LpmSetOffMode( LPM_DISPLAY_ID , LPM_DISABLE );
-        wkup = 0;
         /* Resume Tick interrupt if disabled prior to SLEEP mode entry */
         // HAL_ResumeTick();
+        wkup = 0;
+        LpmSetStopMode( LPM_DISPLAY_ID , LPM_ENABLE );
+
+        GpsStart();
+        
         DisplayInitReg();
         DisplayOn();
         TimerStart(&DisplayTimer);

@@ -108,6 +108,7 @@ void GpsMcuInit( void )
 
 void GpsMcuStart( void )
 {
+    if(!GpsPowerEnInverted) {
     // if( GpsPowerEnInverted == true )
     // {
         GpioWrite( &GpsPowerEn, 0 );    // power up the GPS
@@ -117,21 +118,27 @@ void GpsMcuStart( void )
     // {
         GpioWrite( &GpsPowerEn, 1 );    // power up the GPS
     // }
+        
+    }
+
     UartInit( &Uart1, UART_1, GPS_UART_TX, GPS_UART_RX );
     UartConfig( &Uart1, RX_ONLY, 9600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
+    GpsPowerEnInverted = true;
 }
 
 void GpsMcuStop( void )
 {
     // if( GpsPowerEnInverted == true )
     // {
-        GpioWrite( &GpsPowerEn, 1 );    // power down the GPS
+        // GpioWrite( &GpsPowerEn, 1 );    // power down the GPS
         RtcDelayMs(100);
     // }
     // else
     // {
-        GpioWrite( &GpsPowerEn, 0 );    // power down the GPS
+        // GpioWrite( &GpsPowerEn, 0 );    // power down the GPS
+
     // }
+    UartDeInit( &Uart1 );
 }
 
 void GpsMcuProcess( void )
