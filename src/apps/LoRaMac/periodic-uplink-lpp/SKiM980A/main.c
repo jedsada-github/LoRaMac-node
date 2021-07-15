@@ -316,7 +316,7 @@ int main( void )
     StartTxProcess( LORAMAC_HANDLER_TX_ON_TIMER );
 
 #if ( USE_OLED == 1)
-    DisplayProcess();
+    TimerStart(&DisplayTimer);
 #endif
 
     while( 1 )

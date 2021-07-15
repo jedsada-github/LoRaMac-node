@@ -179,10 +179,10 @@ void BoardInitPeriph( void )
         Paint_DrawString_EN(10, 1, "EmOne", &Font20, BLACK, WHITE);
         Paint_DrawString_EN(10, 22, "LoRaWAN Survey", &Font12, BLACK, WHITE);
         Paint_DrawString_EN(10, 38, "Field test purpose", &Font8, BLACK, WHITE);
-        Paint_DrawString_EN(10, 48, "Ver 0.1.0", &Font12, BLACK, WHITE);
+        Paint_DrawString_EN(10, 48, "Ver 0.1.1a", &Font12, BLACK, WHITE);
         Paint_DrawLine(1,62, X, 62, WHITE, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
         DisplayUpdate();
-        HAL_Delay(500);
+        RtcDelayMs(500);
     }
     
 #endif
@@ -728,6 +728,8 @@ int _read( int fd, const void *buf, size_t count )
     while( UartPutBuffer( &Uart1, ( uint8_t* )buf, ( uint16_t )bytesRead ) != 0 ){ };
     return bytesRead;
 }
+#else
+int _write(int c) { return -1; }
 #endif /* USE_GPS */
 #else
 

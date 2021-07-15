@@ -103,7 +103,10 @@ void DisplayMcuOnKey2Signal( void* context )
 void DisplayMcuOnDisplayShowTimeout( void* context )
 {
         TimerStop( &DisplayShowTimer );
-        //TimerStop( &TxTimer );
+        DisplayClear();
+        Paint_DrawString_EN(5, 5, "Save mode!!!", &Font20, BLACK, WHITE);
+        DisplayUpdate();
+        RtcDelayMs(1000);
         sleepDisplay = 0;
         DisplayMcuOnKey1Signal( context );
 }
