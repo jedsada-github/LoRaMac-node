@@ -232,6 +232,7 @@ void DisplayMacMlmeRequestUpdate( LoRaMacStatus_t status, MlmeReq_t *mlmeReq, Ti
     {
         printf( "Next Tx in  : %lu [ms]\n", nextTxIn );
     }
+    sPaint_lora.status = MacStatusStrings[status];
 }
 
 void DisplayJoinRequestUpdate( LmHandlerJoinParams_t *params )
