@@ -248,13 +248,13 @@ LmHandlerErrorStatus_t LmHandlerInit( LmHandlerCallbacks_t *handlerCallbacks,
     IsClassBSwitchPending = false;
     IsUplinkTxPending = false;
 
-    // Restore data if required
-    nbNvmData = NvmDataMgmtRestore( );
-
     if( LoRaMacInitialization( &LoRaMacPrimitives, &LoRaMacCallbacks, LmHandlerParams->Region ) != LORAMAC_STATUS_OK )
     {
         return LORAMAC_HANDLER_ERROR;
     }
+
+    // Restore data if required
+    nbNvmData = NvmDataMgmtRestore( );
 
     // Try to restore from NVM and query the mac if possible.
     if( nbNvmData > 0 )

@@ -118,7 +118,7 @@ static const uint8_t DaysInMonthLeapYear[] = { 31, 29, 31, 30, 31, 30, 31, 31, 3
 /*!
  * \brief RTC Handle
  */
-static RTC_HandleTypeDef RtcHandle = 
+static volatile RTC_HandleTypeDef RtcHandle = 
 {
     .Instance = NULL,
     .Init = 

@@ -156,6 +156,7 @@ void GpsMcuIrqNotify( UartNotifyId_t id )
             if( ( data == '$' ) || ( NmeaStringSize >= 127 ) )
             {
                 NmeaStringSize = 0;
+                memset1(NmeaString, 0x0, sizeof(NmeaString));
             }
 
             NmeaString[NmeaStringSize++] = ( int8_t )data;
@@ -166,7 +167,7 @@ void GpsMcuIrqNotify( UartNotifyId_t id )
                 GpsParseGpsData( ( int8_t* )NmeaString, NmeaStringSize );
                 // UartDeInit( &Uart1 );
                 // // Enables lowest power modes
-                // LpmSetStopMode( LPM_GPS_ID , LPM_ENABLE );
+                //LpmSetStopMode( LPM_GPS_ID , LPM_ENABLE );
             }
         }
     }

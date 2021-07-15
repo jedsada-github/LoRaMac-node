@@ -43,6 +43,8 @@ volatile uint8_t BlackImage[Imagesize];
 extern PAINT Paint;
 static bool wkup = 0;
 extern TimerEvent_t DisplayTimer;
+static TimerEvent_t DisplayShowTimer;
+static void DisplayInitReg( void );
 /********************************************************************************
 function:   
             reverse a byte data
@@ -82,6 +84,7 @@ void DisplayMcuOnKey1Signal( void* context )
         DisplayInitReg();
         DisplayOn();
         TimerStart(&DisplayTimer);
+        TimerStart(&DisplayShowTimer);
     }
 }
 
@@ -91,6 +94,14 @@ void DisplayMcuOnKey2Signal( void* context )
     LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
     NvmDataMgmtFactoryReset( );
     BoardResetMcu();
+}
+
+
+void DisplayMcuOnDisplayShowTimeout( void* context )
+{
+        TimerStop(&DisplayShowTimer);
+        wkup = 0;
+        DisplayMcuOnKey1Signal( context );
 }
 
 void DisplaySendData_8Bit(uint8_t val)
@@ -177,6 +188,10 @@ void DisplayInit( void )
     
     // //1.Select Image
     Paint_SelectImage(BlackImage);
+
+    TimerInit(&DisplayShowTimer, DisplayMcuOnDisplayShowTimeout);
+    TimerSetValue(&DisplayShowTimer, 60000);
+    TimerStart(&DisplayShowTimer);
 }
 
 /*!

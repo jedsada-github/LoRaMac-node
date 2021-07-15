@@ -315,7 +315,7 @@ void BoardGetUniqueId( uint8_t *id )
 #if ( USE_OLED == 1 )
 void BoardDisplayShow( void )
 {    
-    CRITICAL_SECTION_BEGIN( );
+    //CRITICAL_SECTION_BEGIN( );
     // DisplayInitReg();
     // DisplayOn();
 
@@ -332,7 +332,6 @@ void BoardDisplayShow( void )
     sPaint_gps.fix = GpsHasFix();
 
     if(sPaint_gps.fix){
-        
         strncpy(buf, NmeaGpsData.NmeaUtcTime, 2);
         localtime.tm_hour = sPaint_time.Hour = atoi(buf);
         strncpy(buf,NmeaGpsData.NmeaUtcTime + 2,  2);
@@ -389,7 +388,7 @@ void BoardDisplayShow( void )
 
     DisplayUpdate();
 
-    CRITICAL_SECTION_END( );
+    //CRITICAL_SECTION_END( );
 }
 #endif
 
