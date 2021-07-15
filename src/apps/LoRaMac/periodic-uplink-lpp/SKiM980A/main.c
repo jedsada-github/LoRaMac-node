@@ -127,11 +127,11 @@ static LmHandlerAppData_t AppData =
  * Specifies the state of the application LED
  */
 static bool AppLedStateOn = false;
-
+extern bool sleepDisplay;
 /*!
  * Timer to handle the application data transmission duty cycle
  */
-static TimerEvent_t TxTimer;
+TimerEvent_t TxTimer;
 
 /*!
  * Timer to handle the state of LED4
@@ -591,7 +591,8 @@ static void OnTxTimerEvent( void* context )
 {
     TimerStop( &TxTimer );
 
-    IsTxFramePending = 1;
+  
+    IsTxFramePending = (sleepDisplay) ? 0 : 1;
 
     // Schedule next transmission
     TimerSetValue( &TxTimer, TxPeriodicity );

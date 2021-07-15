@@ -41,7 +41,7 @@ uint8_t m_seg_offset = 0;
 #define Imagesize  1024 //(((OLED_WIDTH%8==0)? (OLED_WIDTH/8): (OLED_WIDTH/8+1)) * OLED_HEIGHT)
 volatile uint8_t BlackImage[Imagesize];
 extern PAINT Paint;
-static bool wkup = 0;
+bool sleepDisplay = 0;
 extern TimerEvent_t DisplayTimer;
 static TimerEvent_t DisplayShowTimer;
 static void DisplayInitReg( void );
@@ -60,14 +60,14 @@ static uint8_t reverse(uint8_t temp)
 void DisplayMcuOnKey1Signal( void* context )
 {
     // Wake up
-    if(wkup == 0) {
+    if(sleepDisplay == 0) {
         TimerStop(&DisplayTimer);
         
         DisplayOff();
         GpsStop();
         
         LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
-        wkup = 1;
+        sleepDisplay = 1;
         /*Suspend Tick increment to prevent wakeup by Systick interrupt. 
         Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base)*/
         // HAL_SuspendTick();
@@ -76,15 +76,18 @@ void DisplayMcuOnKey1Signal( void* context )
     } else {
         /* Resume Tick interrupt if disabled prior to SLEEP mode entry */
         // HAL_ResumeTick();
-        wkup = 0;
+        sleepDisplay = 0;
         LpmSetStopMode( LPM_DISPLAY_ID , LPM_ENABLE );
 
         GpsStart();
         
         DisplayInitReg();
         DisplayOn();
+        DisplayClear();
+
         TimerStart(&DisplayTimer);
         TimerStart(&DisplayShowTimer);
+        //TimerStart( &TxTimer );
     }
 }
 
@@ -99,8 +102,9 @@ void DisplayMcuOnKey2Signal( void* context )
 
 void DisplayMcuOnDisplayShowTimeout( void* context )
 {
-        TimerStop(&DisplayShowTimer);
-        wkup = 0;
+        TimerStop( &DisplayShowTimer );
+        //TimerStop( &TxTimer );
+        sleepDisplay = 0;
         DisplayMcuOnKey1Signal( context );
 }
 
@@ -190,7 +194,7 @@ void DisplayInit( void )
     Paint_SelectImage(BlackImage);
 
     TimerInit(&DisplayShowTimer, DisplayMcuOnDisplayShowTimeout);
-    TimerSetValue(&DisplayShowTimer, 60000);
+    TimerSetValue(&DisplayShowTimer, 60000 * 3);
     TimerStart(&DisplayShowTimer);
 }
 
