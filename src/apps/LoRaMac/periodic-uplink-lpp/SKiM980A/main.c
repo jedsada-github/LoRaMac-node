@@ -489,6 +489,7 @@ static void PrepareTxFrame( void )
 
     CayenneLppReset( );
 
+
     // uint8_t potiPercentage = 0;
     // uint16_t vdd = 0;
     float lt, ln, m;
