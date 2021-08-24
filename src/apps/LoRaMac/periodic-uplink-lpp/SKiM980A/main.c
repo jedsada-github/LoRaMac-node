@@ -341,11 +341,23 @@ int main( void )
     }
 }
 
-static void OnMacProcessNotify( void ) { IsMacProcessPending = 1; }
+static void OnMacProcessNotify( void )
+{
+    /* Set MaC process pending */
+    IsMacProcessPending = 1;
+}
 
-static void OnNvmDataChange( LmHandlerNvmContextStates_t state, uint16_t size ) { DisplayNvmDataChange( state, size ); }
+static void OnNvmDataChange( LmHandlerNvmContextStates_t state, uint16_t size )
+{
+    /* Dispay nvm data change */
+    DisplayNvmDataChange( state, size );
+}
 
-static void OnNetworkParametersChange( CommissioningParams_t* params ) { DisplayNetworkParametersUpdate( params ); }
+static void OnNetworkParametersChange( CommissioningParams_t* params )
+{
+    /* Display Network parameter update */
+    DisplayNetworkParametersUpdate( params );
+}
 
 static void OnMacMcpsRequest( LoRaMacStatus_t status, McpsReq_t* mcpsReq, TimerTime_t nextTxIn )
 {
@@ -558,7 +570,11 @@ static void OnTxPeriodicityChanged( uint32_t periodicity )
     }
 }
 
-static void OnTxFrameCtrlChanged( LmHandlerMsgTypes_t isTxConfirmed ) { LmHandlerParams.IsTxConfirmed = isTxConfirmed; }
+static void OnTxFrameCtrlChanged( LmHandlerMsgTypes_t isTxConfirmed )
+{
+    /* Frame control chagne */
+    LmHandlerParams.IsTxConfirmed = isTxConfirmed;
+}
 
 static void OnPingSlotPeriodicityChanged( uint8_t pingSlotPeriodicity )
 {

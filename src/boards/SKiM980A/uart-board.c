@@ -32,7 +32,7 @@
  */
 #define TX_BUFFER_RETRY_COUNT                       10
 
-static volatile UART_HandleTypeDef UartHandle;
+UART_HandleTypeDef UartHandle;
 uint8_t RxData = 0;
 uint8_t TxData = 0;
 

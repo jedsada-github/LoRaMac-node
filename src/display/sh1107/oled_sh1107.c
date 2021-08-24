@@ -12,4 +12,11 @@
  * \author    Anol P. ( EmOne ) <anol.p@emone.co.th>
  */
 
+#include "oled_sh1107.h"
+
+void init_oled_sh1107(void)
+{
+    /* Do nothing */
+}
+
 

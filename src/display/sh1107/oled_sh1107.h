@@ -11,6 +11,8 @@
  *
  * \author    Anol P. ( EmOne ) <anol.p@emone.co.th>
  */
+
+/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __OLED_SH1107_H__
 #define __OLED_SH1107_H__
 
@@ -21,11 +23,11 @@ extern "C"
 
 #include <stdint.h>
 
-#define OLED_WIDTH  128//OLED width
-#define OLED_HEIGHT 64 //OLED height
+#define OLED_WIDTH     128 /* OLED width */
+#define OLED_HEIGHT    64  /* OLED height */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // __OLED_SH1107_H__
+#endif /* __OLED_SH1107_H__ */

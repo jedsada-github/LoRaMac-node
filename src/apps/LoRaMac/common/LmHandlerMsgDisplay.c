@@ -232,7 +232,8 @@ void DisplayMacMlmeRequestUpdate( LoRaMacStatus_t status, MlmeReq_t *mlmeReq, Ti
     {
         printf( "Next Tx in  : %lu [ms]\n", nextTxIn );
     }
-    sPaint_lora.status = MacStatusStrings[status];
+
+    sPaint_lora.status = (char *)MacStatusStrings[status];
 }
 
 void DisplayJoinRequestUpdate( LmHandlerJoinParams_t *params )
@@ -349,7 +350,7 @@ void DisplayTxUpdate( LmHandlerTxParams_t *params )
     sPaint_lora.dr = params->Datarate;
     sPaint_lora.len = params->AppData.BufferSize;
     sPaint_lora.port = params->AppData.Port;
-    sPaint_lora.status = EventInfoStatusStrings[params->Status];
+    sPaint_lora.status = (char *)EventInfoStatusStrings[params->Status];
 }
 
 void DisplayRxUpdate( LmHandlerAppData_t *appData, LmHandlerRxParams_t *params )
@@ -391,7 +392,7 @@ void DisplayRxUpdate( LmHandlerAppData_t *appData, LmHandlerRxParams_t *params )
     sPaint_lora.dr = params->Datarate;
     sPaint_lora.len = appData->BufferSize;
     sPaint_lora.port = appData->Port;
-    sPaint_lora.status = EventInfoStatusStrings[params->Status];
+    sPaint_lora.status = (char *)EventInfoStatusStrings[params->Status];
 }
 
 void DisplayBeaconUpdate( LoRaMacHandlerBeaconParams_t *params )

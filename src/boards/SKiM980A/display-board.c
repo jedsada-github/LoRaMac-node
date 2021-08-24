@@ -21,6 +21,7 @@
 #include "display-board.h"
 #include "string.h"
 #include "gps.h"
+#include "../../apps/LoRaMac/common/NvmDataMgmt.h"
 
 static Gpio_t OledNrst;
 static Gpio_t OledKey1;
@@ -46,14 +47,14 @@ extern TimerEvent_t DisplayTimer;
 static TimerEvent_t DisplayShowTimer;
 static void DisplayInitReg( void );
 /********************************************************************************
-function:   
+function:
             reverse a byte data
 ********************************************************************************/
 static uint8_t reverse(uint8_t temp)
 {
     temp = ((temp & 0x55) << 1) | ((temp & 0xaa) >> 1);
     temp = ((temp & 0x33) << 2) | ((temp & 0xcc) >> 2);
-    temp = ((temp & 0x0f) << 4) | ((temp & 0xf0) >> 4);  
+    temp = ((temp & 0x0f) << 4) | ((temp & 0xf0) >> 4);
     return temp;
 }
 
@@ -62,13 +63,13 @@ void DisplayMcuOnKey1Signal( void* context )
     // Wake up
     if(sleepDisplay == 0) {
         TimerStop(&DisplayTimer);
-        
+
         DisplayOff();
         GpsStop();
-        
+
         LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
         sleepDisplay = 1;
-        /*Suspend Tick increment to prevent wakeup by Systick interrupt. 
+        /*Suspend Tick increment to prevent wakeup by Systick interrupt.
         Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base)*/
         // HAL_SuspendTick();
 
@@ -80,7 +81,7 @@ void DisplayMcuOnKey1Signal( void* context )
         LpmSetStopMode( LPM_DISPLAY_ID , LPM_ENABLE );
 
         GpsStart();
-        
+
         DisplayInitReg();
         DisplayOn();
         DisplayClear();
@@ -130,40 +131,40 @@ void DisplayInitReg( void )
     DisplaySendCommand(0x10);   //Set Higher Column Address
 
     DisplaySendCommand(0xB0);  	//--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F, SSD1305_CMD)
-    
-    DisplaySendCommand(0xDC);   //#et display start line 
-    DisplaySendCommand(0x00); 
 
-    DisplaySendCommand(0x81);   //contrast control 
+    DisplaySendCommand(0xDC);   //#et display start line
+    DisplaySendCommand(0x00);
+
+    DisplaySendCommand(0x81);   //contrast control
     DisplaySendCommand(0x80);   //128
-    
+
     DisplaySendCommand(0x21);   // Set Memory addressing mode (0x20/0x21); //
 
     DisplaySendCommand(0xA0);    //set segment remap (0xA0 down/ 0xA1 up) rotates
 
     DisplaySendCommand(0xC0);    //COM0 to COM[N-1] scan direction
-    
-    DisplaySendCommand(0xA4);   //Set Entire Display On (0xA4 normal/0xA5 entire); 
-    
+
+    DisplaySendCommand(0xA4);   //Set Entire Display On (0xA4 normal/0xA5 entire);
+
     DisplaySendCommand(0xA6);    //0xA6 normal / 0xA7 reverse // Set SEG Output Current Brightness ��
-   
-    DisplaySendCommand(0xA8);    //multiplex ratio  //--Set SEG/Column Mapping	
+
+    DisplaySendCommand(0xA8);    //multiplex ratio  //--Set SEG/Column Mapping
     DisplaySendCommand(0x3F);    //duty = 1/64
-	
-    DisplaySendCommand(0xD3);	//--set multiplex ratio(1 to 64) #set display offset 
+
+    DisplaySendCommand(0xD3);	//--set multiplex ratio(1 to 64) #set display offset
     DisplaySendCommand(0x60);	//--1/64 duty
-    
-    DisplaySendCommand(0xD5);	//-set display offset	Shift Mapping RAM Counter (0x00~0x3F) 
+
+    DisplaySendCommand(0xD5);	//-set display offset	Shift Mapping RAM Counter (0x00~0x3F)
     DisplaySendCommand(0x41);  	//-not offset
-    
+
     DisplaySendCommand(0xD9);	//--set pre-charge period
     DisplaySendCommand(0x22);	//Set Pre-Charge as 15 Clocks & Discharge as 1 Clock
 
     DisplaySendCommand(0xDB); 	 /*set vcomh*/
     DisplaySendCommand(0x35);  	//Set VCOM Deselect Level
 
-	DisplaySendCommand(0xAD);    //set charge pump enable 
-    DisplaySendCommand(0x8A);    //Set DC-DC enable (a=0:disable; 
+	DisplaySendCommand(0xAD);    //set charge pump enable
+    DisplaySendCommand(0x8A);    //Set DC-DC enable (a=0:disable;
 }
 
 /*!
@@ -173,7 +174,7 @@ void DisplayInit( void )
 {
     GpioInit(&OledNrst, OLED_NRST, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1);
     GpioInit(&OledDC, OLED_DC, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0);
-    
+
     GpioInit(&OledKey1, OLED_KEY1, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1);
     GpioSetInterrupt( &OledKey1, IRQ_FALLING_EDGE, IRQ_VERY_LOW_PRIORITY, &DisplayMcuOnKey1Signal );
     GpioInit(&OledKey2, OLED_KEY2, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1);
@@ -190,11 +191,11 @@ void DisplayInit( void )
     RtcDelayMs(200);
 
     DisplayOn();
-    
-    Paint_NewImage(BlackImage, OLED_WIDTH, OLED_HEIGHT, 0, BLACK);	
-    
-    // //1.Select Image
-    Paint_SelectImage(BlackImage);
+
+    Paint_NewImage((uint8_t *)BlackImage, OLED_WIDTH, OLED_HEIGHT, 0, BLACK);
+
+    /* 1.Select Image */
+    Paint_SelectImage((uint8_t *)BlackImage);
 
     TimerInit(&DisplayShowTimer, DisplayMcuOnDisplayShowTimeout);
     TimerSetValue(&DisplayShowTimer, 60000 * 3);
@@ -210,8 +211,8 @@ void DisplayReset( void )
     RtcDelayMs(100);
     GpioWrite( &OledNrst, 0 );    // power up the Display
     RtcDelayMs(100);
-    GpioWrite( &OledCS, 1 );    
-    GpioWrite( &OledDC, 0 );    
+    GpioWrite( &OledCS, 1 );
+    GpioWrite( &OledDC, 0 );
     GpioWrite( &OledNrst, 1 );    // power up the Display
     RtcDelayMs(100);
 }
@@ -249,7 +250,7 @@ void DisplaySendData( uint8_t *buffer, uint16_t size )
 /*!
  * \brief Enables the display
  */
-void DisplayOn( void ) 
+void DisplayOn( void )
 {
 	//Turn on the OLED display
     DisplaySendCommand(0xAF);
@@ -290,7 +291,7 @@ void DisplayUpdate( void )
 {
     uint32_t Width, Height, column, temp;
     Width = (OLED_WIDTH % 8 == 0)? (OLED_WIDTH / 8 ): (OLED_WIDTH / 8 + 1);
-    Height = OLED_HEIGHT;   
+    Height = OLED_HEIGHT;
     DisplaySendCommand(0xb0); 	//Set the row  start address
     for (uint32_t j = 0; j < Height; j++) {
         column = 63 - j;
@@ -302,7 +303,7 @@ void DisplayUpdate( void )
             temp = reverse(temp);	//reverse the buffer
             DisplaySendData_8Bit(temp);
          }
-    }  
+    }
 }
 
 /*!
@@ -398,7 +399,7 @@ void DisplaySetRotation( uint8_t x )
     if(x)
     {
         memoryAccessReg = 0x70;
-    } 
+    }
     DisplaySendCommand(0x36); //MX, MY, RGB mode
     DisplaySendData(&memoryAccessReg, 1);   //RGB
 
@@ -522,7 +523,7 @@ void DisplayDrawTriangle( int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_
  * \param y2    Y2 coordinate
  * \param color Fill color
  */
-void DisplayFillTriangle( int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, DisplayColor_t color ) 
+void DisplayFillTriangle( int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, DisplayColor_t color )
 {
 
 }
@@ -599,5 +600,5 @@ void DisplayDrawBitmap( int16_t x, int16_t y, uint8_t*pBmp, int16_t w, int16_t h
             }
         }
     }
-    DisplayUpdate();  
+    DisplayUpdate();
 }
