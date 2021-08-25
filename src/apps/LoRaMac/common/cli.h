@@ -16,11 +16,12 @@
  *
  * \endcode
  */
+
 #ifndef CLI_H
 #define CLI_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 #include "uart.h"
@@ -38,4 +39,4 @@ void CliProcess( Uart_t* uart );
 }
 #endif
 
-#endif // CLI_H
+#endif /* CLI_H */

@@ -16,6 +16,7 @@
  *
  * \endcode
  */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -27,17 +28,21 @@ void CliProcess( Uart_t* uart )
     uint8_t data = 0;
     if( UartGetChar( uart, &data ) == 0 )
     {
+        /* Escape character has been received */
         if( data == '\x1B' )
-        { // Escape character has been received
+        {
             printf( "ESC + " );
             while( UartGetChar( uart, &data ) != 0 )
             {
             }
             printf( "%c\n", data );
+
+            /* N character has been received */
             if( data == 'N' )
-            { // N character has been received
+            {
                 data = 0;
-                // Reset NVM
+
+                /* Reset NVM */
                 if( NvmDataMgmtFactoryReset( ) == true )
                 {
                     printf( "\n\nNVM factory reset succeed\n" );
@@ -46,7 +51,7 @@ void CliProcess( Uart_t* uart )
                 {
                     printf( "\n\nNVM factory reset failed\n" );
                 }
-                
+
                 printf( "\n\nPLEASE RESET THE END-DEVICE\n\n" );
                 while( 1 );
             }

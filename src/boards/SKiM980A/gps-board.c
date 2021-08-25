@@ -20,6 +20,7 @@
  *
  * \author    Gregory Cristian ( Semtech )
  */
+
 #include "board-config.h"
 #include "board.h"
 #include "gpio.h"
@@ -29,13 +30,14 @@
 #include "rtc-board.h"
 #include "gps-board.h"
 
+#if( USE_GPS == 1 )
 /*!
  * FIFO buffers size
  */
 //#define FIFO_TX_SIZE                                128
-#define FIFO_RX_SIZE                                128
+#define FIFO_RX_SIZE 128
 
-//uint8_t TxBuffer[FIFO_TX_SIZE];
+// uint8_t TxBuffer[FIFO_TX_SIZE];
 static uint8_t RxBuffer[FIFO_RX_SIZE];
 
 /*!
@@ -65,18 +67,20 @@ void GpsMcuOnPpsSignal( void* context )
     if( parseData == true )
     {
         // Disables lowest power modes
-        LpmSetStopMode( LPM_GPS_ID , LPM_DISABLE );
+        LpmSetStopMode( LPM_GPS_ID, LPM_DISABLE );
 
         UartInit( &Uart1, UART_1, GPS_UART_TX, GPS_UART_RX );
         UartConfig( &Uart1, RX_ONLY, 9600, UART_8_BIT, UART_1_STOP_BIT, NO_PARITY, NO_FLOW_CTRL );
     }
 }
+#endif
 
 void GpsMcuInvertPpsTrigger( void )
 {
-
+    /* Do nothing */
 }
 
+#if( USE_GPS == 1 )
 void GpsMcuInit( void )
 {
     NmeaStringSize = 0;
@@ -108,17 +112,17 @@ void GpsMcuInit( void )
 
 void GpsMcuStart( void )
 {
-    if(!GpsPowerEnInverted) {
-    // if( GpsPowerEnInverted == true )
-    // {
-        GpioWrite( &GpsPowerEn, 0 );    // power up the GPS
-        RtcDelayMs(100);
-    // }
-    // else
-    // {
-        GpioWrite( &GpsPowerEn, 1 );    // power up the GPS
-    // }
-        
+    if( !GpsPowerEnInverted )
+    {
+        // if( GpsPowerEnInverted == true )
+        // {
+        GpioWrite( &GpsPowerEn, 0 );  // power up the GPS
+        RtcDelayMs( 100 );
+        // }
+        // else
+        // {
+        GpioWrite( &GpsPowerEn, 1 );  // power up the GPS
+        // }
     }
 
     UartInit( &Uart1, UART_1, GPS_UART_TX, GPS_UART_RX );
@@ -130,12 +134,12 @@ void GpsMcuStop( void )
 {
     // if( GpsPowerEnInverted == true )
     // {
-        // GpioWrite( &GpsPowerEn, 1 );    // power down the GPS
-        RtcDelayMs(100);
+    // GpioWrite( &GpsPowerEn, 1 );    // power down the GPS
+    RtcDelayMs( 100 );
     // }
     // else
     // {
-        // GpioWrite( &GpsPowerEn, 0 );    // power down the GPS
+    // GpioWrite( &GpsPowerEn, 0 );    // power down the GPS
 
     // }
     UartDeInit( &Uart1 );
@@ -143,7 +147,6 @@ void GpsMcuStop( void )
 
 void GpsMcuProcess( void )
 {
-
 }
 
 void GpsMcuIrqNotify( UartNotifyId_t id )
@@ -156,19 +159,20 @@ void GpsMcuIrqNotify( UartNotifyId_t id )
             if( ( data == '$' ) || ( NmeaStringSize >= 127 ) )
             {
                 NmeaStringSize = 0;
-                memset1(NmeaString, 0x0, sizeof(NmeaString));
+                memset1( NmeaString, 0x0, sizeof( NmeaString ) );
             }
 
-            NmeaString[NmeaStringSize++] = ( int8_t )data;
+            NmeaString[NmeaStringSize++] = ( int8_t ) data;
 
             if( data == '\n' )
             {
                 NmeaString[NmeaStringSize++] = '\0';
-                GpsParseGpsData( ( int8_t* )NmeaString, NmeaStringSize );
+                GpsParseGpsData( ( int8_t* ) NmeaString, NmeaStringSize );
                 // UartDeInit( &Uart1 );
                 // // Enables lowest power modes
-                //LpmSetStopMode( LPM_GPS_ID , LPM_ENABLE );
+                // LpmSetStopMode( LPM_GPS_ID , LPM_ENABLE );
             }
         }
     }
 }
+#endif

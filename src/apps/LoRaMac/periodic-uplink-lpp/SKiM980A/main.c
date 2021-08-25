@@ -343,19 +343,16 @@ int main( void )
 
 static void OnMacProcessNotify( void )
 {
-    /* Set MaC process pending */
     IsMacProcessPending = 1;
 }
 
 static void OnNvmDataChange( LmHandlerNvmContextStates_t state, uint16_t size )
 {
-    /* Dispay nvm data change */
     DisplayNvmDataChange( state, size );
 }
 
 static void OnNetworkParametersChange( CommissioningParams_t* params )
 {
-    /* Display Network parameter update */
     DisplayNetworkParametersUpdate( params );
 }
 
@@ -382,7 +379,10 @@ static void OnJoinRequest( LmHandlerJoinParams_t* params )
     }
 }
 
-static void OnTxData( LmHandlerTxParams_t* params ) { DisplayTxUpdate( params ); }
+static void OnTxData( LmHandlerTxParams_t* params )
+{
+    DisplayTxUpdate( params );
+}
 
 static void OnRxData( LmHandlerAppData_t* appData, LmHandlerRxParams_t* params )
 {
@@ -390,7 +390,7 @@ static void OnRxData( LmHandlerAppData_t* appData, LmHandlerRxParams_t* params )
 
     switch( appData->Port )
     {
-    case 1:  // The application LED can be controlled on port 1 or 2
+    case 1: /* The application LED can be controlled on port 1 or 2 */
     case LORAWAN_APP_PORT:
     {
         AppLedStateOn = appData->Buffer[0] & 0x01;
@@ -456,9 +456,13 @@ static void OnBeaconStatusChange( LoRaMacHandlerBeaconParams_t* params )
 }
 
 #if( LMH_SYS_TIME_UPDATE_NEW_API == 1 )
-static void OnSysTimeUpdate( bool isSynchronized, int32_t timeCorrection ) {}
+static void OnSysTimeUpdate( bool isSynchronized, int32_t timeCorrection )
+{
+}
 #else
-static void OnSysTimeUpdate( void ) {}
+static void OnSysTimeUpdate( void )
+{
+}
 #endif
 
 /*!

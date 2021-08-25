@@ -200,22 +200,23 @@ void BoardCriticalSectionEnd( uint32_t* mask )
 
 void BoardInitPeriph( void )
 {
+#if( USE_OLED == 1 )
     uint32_t x = 0;
 
-#if( USE_OLED == 1 )
     DisplayInit( );
     DisplayClear( );
     RtcDelayMs( 20U );
 
+    Paint_DrawString_EN( 10, 1, "EmOne", &Font20, BLACK, WHITE );
+    Paint_DrawString_EN( 10, 22, "LoRaWAN Survey", &Font12, BLACK, WHITE );
+    Paint_DrawString_EN( 10, 38, "Field test purpose", &Font8, BLACK, WHITE );
+    Paint_DrawString_EN( 10, 48, "Ver 0.1.1a", &Font12, BLACK, WHITE );
+
     for( x = 1; x <= OLED_WIDTH; x += 16U )
     {
-        Paint_DrawString_EN( 10, 1, "EmOne", &Font20, BLACK, WHITE );
-        Paint_DrawString_EN( 10, 22, "LoRaWAN Survey", &Font12, BLACK, WHITE );
-        Paint_DrawString_EN( 10, 38, "Field test purpose", &Font8, BLACK, WHITE );
-        Paint_DrawString_EN( 10, 48, "Ver 0.1.1a", &Font12, BLACK, WHITE );
         Paint_DrawLine( 1, 62, x, 62, WHITE, DOT_PIXEL_1X1, LINE_STYLE_SOLID );
-        DisplayUpdate( );
         RtcDelayMs( 500 );
+        DisplayUpdate( );
     }
 #endif
 }
@@ -277,14 +278,14 @@ void BoardInitMcu( void )
         SystemClockReConfig( );
     }
 
-#if( USE_GPS == 0 )
-    AdcInit( &Adc, POTI );
-#else
+#if( USE_GPS == 1 )
     /* Init GPS */
     GpsStart( );
 
     /* VREF */
     AdcInit( &Adc, NC );
+#elif( USE_POTENTIOMETER == 1 )
+    AdcInit( &Adc, POTI );
 #endif
 
     SpiInit( &SX1272.Spi, SPI_1, RADIO_MOSI, RADIO_MISO, RADIO_SCLK, NC );
@@ -314,9 +315,7 @@ void BoardDeInitMcu( void )
 {
     Gpio_t ioPin;
 
-#if( USE_GPS == 0 )
-
-#else
+#if( USE_GPS == 1 )
     /* DeInit GPS */
     GpsStop( );
 #endif
@@ -352,20 +351,22 @@ void BoardGetUniqueId( uint8_t* id )
 #if( USE_OLED == 1 )
 void BoardDisplayShow( void )
 {
-    char      buf[24];
+    // CRITICAL_SECTION_BEGIN( );
+    // DisplayInitReg();
+    // DisplayOn();
+    //
+    Paint_Clear( BLACK );
+    DisplayUpdate( );
+
+    char buf[24];
+
+#if( USE_GPS == 1 )
     double    lt, ln;
     struct tm localtime;
     SysTime_t curTime = { .Seconds = 0, .SubSeconds = 0 };
     curTime           = SysTimeGet( );
     sPaint_gps.alt    = GpsGetLatestGpsAltitude( );
     sPaint_gps.fix    = GpsHasFix( );
-
-    // CRITICAL_SECTION_BEGIN( );
-    // DisplayInitReg();
-    // DisplayOn();
-
-    Paint_Clear( BLACK );
-    DisplayUpdate( );
 
     /* Paint LoRa information */
     if( sPaint_gps.fix )
@@ -408,6 +409,7 @@ void BoardDisplayShow( void )
     Paint_DrawString_EN( 5, 1, buf, &Font8, BLACK, WHITE );
     sprintf( buf, "AT:%d FX:%d BT:%3d%%", sPaint_gps.alt, sPaint_gps.fix, BoardGetBatteryLevel( ) * 100 / 254 );
     Paint_DrawString_EN( 5, 1 + Font8.Height, buf, &Font8, BLACK, WHITE );
+#endif
 
     sprintf( buf, "UL->PW:%d CL:%c | DR:%d", ( 16 - sPaint_lora.pwr ), sPaint_lora.class, sPaint_lora.dr );
     Paint_DrawString_EN( 5, 20, buf, &Font8, BLACK, WHITE );
@@ -755,7 +757,10 @@ int _read( int fd, const void* buf, size_t count )
     return bytesRead;
 }
 #else
-int _write( int c ) { return -1; }
+int _write( int c )
+{
+    return -1;
+}
 #endif /* USE_GPS */
 #else
 #include <stdio.h>

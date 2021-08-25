@@ -18,6 +18,7 @@
  *
  * \author    Miguel Luis ( Semtech )
  */
+
 #ifndef __LMHP_COMPLIANCE__
 #define __LMHP_COMPLIANCE__
 
@@ -27,10 +28,10 @@
 
 /*!
  * Compliance package identifier.
- * 
+ *
  * \remark This value must be unique amongst the packages
  */
-#define PACKAGE_ID_COMPLIANCE                       0
+#define PACKAGE_ID_COMPLIANCE    0
 
 /*!
  * Compliance test protocol handler parameters
@@ -53,8 +54,8 @@ typedef struct LmhpComplianceParams_s
      *
      */
     void ( *OnPingSlotPeriodicityChanged )( uint8_t pingSlotPeriodicity );
-}LmhpComplianceParams_t;
+} LmhpComplianceParams_t;
 
-LmhPackage_t *LmphCompliancePackageFactory( void );
+LmhPackage_t* LmphCompliancePackageFactory( void );
 
-#endif // __LMHP_COMPLIANCE__
+#endif  /* __LMHP_COMPLIANCE__ */

@@ -1,7 +1,7 @@
 /*!
  * \file      LmHandler.h
  *
- * \brief     Implements the LoRaMac layer handling. 
+ * \brief     Implements the LoRaMac layer handling.
  *            Provides the possibility to register applicative packages.
  *
  * \remark    Inspired by the examples provided on the en.i-cube_lrwan fork.
@@ -22,6 +22,7 @@
  *
  * \author    Miguel Luis ( Semtech )
  */
+
 #ifndef __LORAMAC_HANDLER_H__
 #define __LORAMAC_HANDLER_H__
 
@@ -34,43 +35,43 @@ extern "C"
 
 typedef struct LmHandlerJoinParams_s
 {
-    CommissioningParams_t *CommissioningParams;
-    int8_t Datarate;
+    CommissioningParams_t* CommissioningParams;
+    int8_t                 Datarate;
     LmHandlerErrorStatus_t Status;
-}LmHandlerJoinParams_t;
+} LmHandlerJoinParams_t;
 
 typedef struct LmHandlerTxParams_s
 {
-    uint8_t IsMcpsConfirm;
+    uint8_t                  IsMcpsConfirm;
     LoRaMacEventInfoStatus_t Status;
-    CommissioningParams_t *CommissioningParams;
-    LmHandlerMsgTypes_t MsgType;
-    uint8_t AckReceived;
-    int8_t Datarate;
-    uint32_t UplinkCounter;
-    LmHandlerAppData_t AppData;
-    int8_t TxPower;
-    uint8_t Channel;
-}LmHandlerTxParams_t;
+    CommissioningParams_t*   CommissioningParams;
+    LmHandlerMsgTypes_t      MsgType;
+    uint8_t                  AckReceived;
+    int8_t                   Datarate;
+    uint32_t                 UplinkCounter;
+    LmHandlerAppData_t       AppData;
+    int8_t                   TxPower;
+    uint8_t                  Channel;
+} LmHandlerTxParams_t;
 
 typedef struct LmHandlerRxParams_s
 {
-    uint8_t IsMcpsIndication;
+    uint8_t                  IsMcpsIndication;
     LoRaMacEventInfoStatus_t Status;
-    CommissioningParams_t *CommissioningParams;
-    int8_t Datarate;
-    int8_t Rssi;
-    int8_t Snr;
-    uint32_t DownlinkCounter;
-    int8_t RxSlot;
-}LmHandlerRxParams_t;
+    CommissioningParams_t*   CommissioningParams;
+    int8_t                   Datarate;
+    int8_t                   Rssi;
+    int8_t                   Snr;
+    uint32_t                 DownlinkCounter;
+    int8_t                   RxSlot;
+} LmHandlerRxParams_t;
 
 typedef struct LoRaMacHandlerBeaconParams_s
 {
     LoRaMacEventInfoStatus_t Status;
-    LmHandlerBeaconState_t State;
-    BeaconInfo_t Info;
-}LoRaMacHandlerBeaconParams_t;
+    LmHandlerBeaconState_t   State;
+    BeaconInfo_t             Info;
+} LoRaMacHandlerBeaconParams_t;
 
 typedef struct LmHandlerParams_s
 {
@@ -107,12 +108,12 @@ typedef struct LmHandlerParams_s
     /*!
      * Application data buffer pointer
      */
-    uint8_t *DataBuffer;
+    uint8_t* DataBuffer;
     /*!
      * Class B ping-slot periodicity.
      */
     bool PingSlotPeriodicity;
-}LmHandlerParams_t;
+} LmHandlerParams_t;
 
 typedef struct LmHandlerCallbacks_s
 {
@@ -155,7 +156,7 @@ typedef struct LmHandlerCallbacks_s
      *
      * \param [IN] params notification parameters
      */
-    void ( *OnNetworkParametersChange )( CommissioningParams_t *params );
+    void ( *OnNetworkParametersChange )( CommissioningParams_t* params );
     /*!
      * Notifies the upper layer that a MCPS request has been made to the MAC layer
      *
@@ -163,7 +164,7 @@ typedef struct LmHandlerCallbacks_s
      * \param   [IN] mcpsRequest - Performed MCPS-Request. Refer to \ref McpsReq_t.
      * \param   [IN] nextTxDelay - Time to wait until another TX is possible.
      */
-    void ( *OnMacMcpsRequest )( LoRaMacStatus_t status, McpsReq_t *mcpsReq, TimerTime_t nextTxDelay );
+    void ( *OnMacMcpsRequest )( LoRaMacStatus_t status, McpsReq_t* mcpsReq, TimerTime_t nextTxDelay );
     /*!
      * Notifies the upper layer that a MLME request has been made to the MAC layer
      *
@@ -171,26 +172,26 @@ typedef struct LmHandlerCallbacks_s
      * \param   [IN] mlmeRequest - Performed MLME-Request. Refer to \ref MlmeReq_t.
      * \param   [IN] nextTxDelay - Time to wait until another TX is possible.
      */
-    void ( *OnMacMlmeRequest )( LoRaMacStatus_t status, MlmeReq_t *mlmeReq, TimerTime_t nextTxDelay );
+    void ( *OnMacMlmeRequest )( LoRaMacStatus_t status, MlmeReq_t* mlmeReq, TimerTime_t nextTxDelay );
     /*!
      * Notifies the upper layer that a network has been joined
      *
      * \param [IN] params notification parameters
      */
-    void ( *OnJoinRequest )( LmHandlerJoinParams_t *params );
+    void ( *OnJoinRequest )( LmHandlerJoinParams_t* params );
     /*!
      * Notifies upper layer that a frame has been transmitted
      *
      * \param [IN] params notification parameters
      */
-    void ( *OnTxData )( LmHandlerTxParams_t *params );
+    void ( *OnTxData )( LmHandlerTxParams_t* params );
     /*!
      * Notifies the upper layer that an applicative frame has been received
      *
      * \param [IN] appData Received applicative data
      * \param [IN] params notification parameters
      */
-    void ( *OnRxData )( LmHandlerAppData_t *appData, LmHandlerRxParams_t *params );
+    void ( *OnRxData )( LmHandlerAppData_t* appData, LmHandlerRxParams_t* params );
     /*!
      * Confirms the LoRaWAN device class change
      *
@@ -202,7 +203,7 @@ typedef struct LmHandlerCallbacks_s
      *
      * \param [IN] params notification parameters
      */
-    void ( *OnBeaconStatusChange )( LoRaMacHandlerBeaconParams_t *params );
+    void ( *OnBeaconStatusChange )( LoRaMacHandlerBeaconParams_t* params );
 #if( LMH_SYS_TIME_UPDATE_NEW_API == 1 )
     /*!
      * Notifies the upper layer that the system time has been updated.
@@ -217,7 +218,7 @@ typedef struct LmHandlerCallbacks_s
      */
     void ( *OnSysTimeUpdate )( void );
 #endif
-}LmHandlerCallbacks_t;
+} LmHandlerCallbacks_t;
 
 /*!
  * LoRaMac handler initialisation
@@ -227,18 +228,17 @@ typedef struct LmHandlerCallbacks_s
  *
  * \retval none
  */
-LmHandlerErrorStatus_t LmHandlerInit( LmHandlerCallbacks_t *callbacks,
-                                      LmHandlerParams_t *handlerParams );
+LmHandlerErrorStatus_t LmHandlerInit( LmHandlerCallbacks_t* callbacks, LmHandlerParams_t* handlerParams );
 
 /*!
  * Indicates if the LoRaMacHandler is busy
- * 
+ *
  * \retval status [true] Busy, [false] free
  */
 bool LmHandlerIsBusy( void );
 
 /*!
- * Processes the LoRaMac and Radio events. 
+ * Processes the LoRaMac and Radio events.
  * When no pendig operation asks to go in low power mode.
  *
  * \remark This function must be called in the main loop.
@@ -261,7 +261,7 @@ TimerTime_t LmHandlerGetDutyCycleWaitTime( void );
  * \retval status Returns \ref LORAMAC_HANDLER_SUCCESS if request has been
  *                processed else \ref LORAMAC_HANDLER_ERROR
  */
-LmHandlerErrorStatus_t LmHandlerSend( LmHandlerAppData_t *appData, LmHandlerMsgTypes_t isTxConfirmed );
+LmHandlerErrorStatus_t LmHandlerSend( LmHandlerAppData_t* appData, LmHandlerMsgTypes_t isTxConfirmed );
 
 /*!
  * Join a LoRa Network in classA
@@ -339,11 +339,11 @@ LmHandlerErrorStatus_t LmHandlerSetSystemMaxRxError( uint32_t maxErrorInMs );
  * PACKAGES HANDLING
  *=============================================================================
  */
-LmHandlerErrorStatus_t LmHandlerPackageRegister( uint8_t id, void *params );
-bool LmHandlerPackageIsInitialized( uint8_t id );
+LmHandlerErrorStatus_t LmHandlerPackageRegister( uint8_t id, void* params );
+bool                   LmHandlerPackageIsInitialized( uint8_t id );
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // __LORAMAC_HANDLER_H__
+#endif  /* __LORAMAC_HANDLER_H__ */

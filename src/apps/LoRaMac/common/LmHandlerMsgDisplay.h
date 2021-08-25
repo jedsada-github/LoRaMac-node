@@ -19,6 +19,7 @@
  *
  * \author    Miguel Luis ( Semtech )
  */
+
 #ifndef __LMHANDLER_MSG_DISPLAY_H__
 #define __LMHANDLER_MSG_DISPLAY_H__
 
@@ -49,7 +50,7 @@ void DisplayNetworkParametersUpdate( CommissioningParams_t* commissioningParams 
  * \param [IN] mcpsReq McpsRequest command executed
  * \param [IN] nextTxIn Time to wait for the next uplink transmission
  */
-void DisplayMacMcpsRequestUpdate( LoRaMacStatus_t status, McpsReq_t *mcpsReq, TimerTime_t nextTxIn );
+void DisplayMacMcpsRequestUpdate( LoRaMacStatus_t status, McpsReq_t* mcpsReq, TimerTime_t nextTxIn );
 
 /*!
  * \brief Displays updated MlmeRequest
@@ -58,7 +59,7 @@ void DisplayMacMcpsRequestUpdate( LoRaMacStatus_t status, McpsReq_t *mcpsReq, Ti
  * \param [IN] mlmeReq MlmeRequest command executed
  * \param [IN] nextTxIn Time to wait for the next uplink transmission
  */
-void DisplayMacMlmeRequestUpdate( LoRaMacStatus_t status, MlmeReq_t *mlmeReq, TimerTime_t nextTxIn );
+void DisplayMacMlmeRequestUpdate( LoRaMacStatus_t status, MlmeReq_t* mlmeReq, TimerTime_t nextTxIn );
 
 /*!
  * \brief Displays updated JoinRequest
@@ -101,4 +102,4 @@ void DisplayClassUpdate( DeviceClass_t deviceClass );
  */
 void DisplayAppInfo( const char* appName, const Version_t* appVersion, const Version_t* gitHubVersion );
 
-#endif // __LMHANDLER_MSG_DISPLAY_H__
+#endif  /* __LMHANDLER_MSG_DISPLAY_H__ */

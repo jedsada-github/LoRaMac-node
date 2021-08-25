@@ -53,7 +53,7 @@ extern "C"
  *         On SKiM980A X5 is the 20 pin header close to the DIP SW and Buttons
  */
 #define USE_POTENTIOMETER                           0
-#define USE_GPS                                     1
+#define USE_GPS                                     0
 #define USE_OLED                                    1
 
 /*!
@@ -98,7 +98,6 @@ extern "C"
 #define I2C_SDA                                     PB_9
 
 #if ( USE_GPS == 1 )
-
 #define GPS_UART_TX                                 PA_9
 #define GPS_UART_RX                                 PA_10
 #else

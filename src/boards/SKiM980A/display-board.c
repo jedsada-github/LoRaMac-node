@@ -65,7 +65,10 @@ void DisplayMcuOnKey1Signal( void* context )
         TimerStop(&DisplayTimer);
 
         DisplayOff();
+
+#if ( USE_GPS == 1 )
         GpsStop();
+#endif
 
         LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
         sleepDisplay = 1;

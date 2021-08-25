@@ -34,6 +34,7 @@
  *            This module implements the NVM context handling
  * \{
  */
+
 #ifndef __NVMDATAMGMT_H__
 #define __NVMDATAMGMT_H__
 
@@ -57,7 +58,7 @@ uint16_t NvmDataMgmtStore( void );
  *
  * \retval Number of bytes which were restored.
  */
-uint16_t NvmDataMgmtRestore(void );
+uint16_t NvmDataMgmtRestore( void );
 
 /*!
  * \brief Resets the NVM data.
@@ -68,4 +69,4 @@ bool NvmDataMgmtFactoryReset( void );
 
 /* \} */
 
-#endif // __NVMDATAMGMT_H__
+#endif  /* __NVMDATAMGMT_H__ */

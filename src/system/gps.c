@@ -20,6 +20,7 @@
  *
  * \author    Gregory Cristian ( Semtech )
  */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
@@ -31,7 +32,7 @@
 #include "gps-board.h"
 #include "gps.h"
 
-#define TRIGGER_GPS_CNT                             10
+#define TRIGGER_GPS_CNT 10
 
 /* Various type of NMEA data we can receive with the Gps */
 const char NmeaDataTypeGPGGA[] = "GPGGA";
@@ -40,27 +41,27 @@ const char NmeaDataTypeGPGSV[] = "GPGSV";
 const char NmeaDataTypeGPRMC[] = "GPRMC";
 
 /* Value used for the conversion of the position from DMS to decimal */
-const int32_t MaxNorthPosition = 8388607;       // 2^23 - 1
-const int32_t MaxSouthPosition = 8388608;       // -2^23
-const int32_t MaxEastPosition = 8388607;        // 2^23 - 1
-const int32_t MaxWestPosition = 8388608;        // -2^23
+const int32_t MaxNorthPosition = 8388607;  // 2^23 - 1
+const int32_t MaxSouthPosition = 8388608;  // -2^23
+const int32_t MaxEastPosition  = 8388607;  // 2^23 - 1
+const int32_t MaxWestPosition  = 8388608;  // -2^23
 
 NmeaGpsData_t NmeaGpsData;
 
-static double HasFix = false;
-static double Latitude = 0;
+static double HasFix    = false;
+static double Latitude  = 0;
 static double Longitude = 0;
 
-static int32_t LatitudeBinary = 0;
+static int32_t LatitudeBinary  = 0;
 static int32_t LongitudeBinary = 0;
 
-static int16_t Altitude = ( int16_t )0xFFFF;
+static int16_t Altitude = ( int16_t ) 0xFFFF;
 
 static uint32_t PpsCnt = 0;
 
 bool PpsDetected = false;
 
-void GpsPpsHandler( bool *parseData )
+void GpsPpsHandler( bool* parseData )
 {
     PpsDetected = true;
     PpsCnt++;
@@ -68,7 +69,7 @@ void GpsPpsHandler( bool *parseData )
 
     if( PpsCnt >= TRIGGER_GPS_CNT )
     {
-        PpsCnt = 0;
+        PpsCnt     = 0;
         *parseData = true;
     }
 }
@@ -81,12 +82,16 @@ void GpsInit( void )
 
 void GpsStart( void )
 {
+#if( USE_GPS == 1 )
     GpsMcuStart( );
+#endif
 }
 
 void GpsStop( void )
 {
+#if( USE_GPS == 1 )
     GpsMcuStop( );
+#endif
 }
 
 void GpsProcess( void )
@@ -99,7 +104,7 @@ bool GpsGetPpsDetectedState( void )
     bool state = false;
 
     CRITICAL_SECTION_BEGIN( );
-    state = PpsDetected;
+    state       = PpsDetected;
     PpsDetected = false;
     CRITICAL_SECTION_END( );
     return state;
@@ -114,25 +119,25 @@ void GpsConvertPositionIntoBinary( void )
 {
     long double temp;
 
-    if( Latitude >= 0 ) // North
+    if( Latitude >= 0 )  // North
     {
-        temp = Latitude * MaxNorthPosition;
+        temp           = Latitude * MaxNorthPosition;
         LatitudeBinary = temp / 90;
     }
-    else                // South
+    else  // South
     {
-        temp = Latitude * MaxSouthPosition;
+        temp           = Latitude * MaxSouthPosition;
         LatitudeBinary = temp / 90;
     }
 
-    if( Longitude >= 0 ) // East
+    if( Longitude >= 0 )  // East
     {
-        temp = Longitude * MaxEastPosition;
+        temp            = Longitude * MaxEastPosition;
         LongitudeBinary = temp / 180;
     }
-    else                // West
+    else  // West
     {
-        temp = Longitude * MaxWestPosition;
+        temp            = Longitude * MaxWestPosition;
         LongitudeBinary = temp / 180;
     }
 }
@@ -147,15 +152,15 @@ void GpsConvertPositionFromStringToNumerical( void )
     double valueTmp4;
 
     // Convert the latitude from ASCII to uint8_t values
-    for( i = 0 ; i < 10 ; i++ )
+    for( i = 0; i < 10; i++ )
     {
         NmeaGpsData.NmeaLatitude[i] = NmeaGpsData.NmeaLatitude[i] & 0xF;
     }
     // Convert latitude from degree/minute/second (DMS) format into decimal
-    valueTmp1 = ( double )NmeaGpsData.NmeaLatitude[0] * 10.0 + ( double )NmeaGpsData.NmeaLatitude[1];
-    valueTmp2 = ( double )NmeaGpsData.NmeaLatitude[2] * 10.0 + ( double )NmeaGpsData.NmeaLatitude[3];
-    valueTmp3 = ( double )NmeaGpsData.NmeaLatitude[5] * 1000.0 + ( double )NmeaGpsData.NmeaLatitude[6] * 100.0 +
-                ( double )NmeaGpsData.NmeaLatitude[7] * 10.0 + ( double )NmeaGpsData.NmeaLatitude[8];
+    valueTmp1 = ( double ) NmeaGpsData.NmeaLatitude[0] * 10.0 + ( double ) NmeaGpsData.NmeaLatitude[1];
+    valueTmp2 = ( double ) NmeaGpsData.NmeaLatitude[2] * 10.0 + ( double ) NmeaGpsData.NmeaLatitude[3];
+    valueTmp3 = ( double ) NmeaGpsData.NmeaLatitude[5] * 1000.0 + ( double ) NmeaGpsData.NmeaLatitude[6] * 100.0 +
+                ( double ) NmeaGpsData.NmeaLatitude[7] * 10.0 + ( double ) NmeaGpsData.NmeaLatitude[8];
 
     Latitude = valueTmp1 + ( ( valueTmp2 + ( valueTmp3 * 0.0001 ) ) / 60.0 );
 
@@ -165,15 +170,16 @@ void GpsConvertPositionFromStringToNumerical( void )
     }
 
     // Convert the longitude from ASCII to uint8_t values
-    for( i = 0 ; i < 10 ; i++ )
+    for( i = 0; i < 10; i++ )
     {
         NmeaGpsData.NmeaLongitude[i] = NmeaGpsData.NmeaLongitude[i] & 0xF;
     }
     // Convert longitude from degree/minute/second (DMS) format into decimal
-    valueTmp1 = ( double )NmeaGpsData.NmeaLongitude[0] * 100.0 + ( double )NmeaGpsData.NmeaLongitude[1] * 10.0 + ( double )NmeaGpsData.NmeaLongitude[2];
-    valueTmp2 = ( double )NmeaGpsData.NmeaLongitude[3] * 10.0 + ( double )NmeaGpsData.NmeaLongitude[4];
-    valueTmp3 = ( double )NmeaGpsData.NmeaLongitude[6] * 1000.0 + ( double )NmeaGpsData.NmeaLongitude[7] * 100;
-    valueTmp4 = ( double )NmeaGpsData.NmeaLongitude[8] * 10.0 + ( double )NmeaGpsData.NmeaLongitude[9];
+    valueTmp1 = ( double ) NmeaGpsData.NmeaLongitude[0] * 100.0 + ( double ) NmeaGpsData.NmeaLongitude[1] * 10.0 +
+                ( double ) NmeaGpsData.NmeaLongitude[2];
+    valueTmp2 = ( double ) NmeaGpsData.NmeaLongitude[3] * 10.0 + ( double ) NmeaGpsData.NmeaLongitude[4];
+    valueTmp3 = ( double ) NmeaGpsData.NmeaLongitude[6] * 1000.0 + ( double ) NmeaGpsData.NmeaLongitude[7] * 100;
+    valueTmp4 = ( double ) NmeaGpsData.NmeaLongitude[8] * 10.0 + ( double ) NmeaGpsData.NmeaLongitude[9];
 
     Longitude = valueTmp1 + ( valueTmp2 / 60.0 ) + ( ( ( valueTmp3 + valueTmp4 ) * 0.0001 ) / 60.0 );
 
@@ -183,8 +189,7 @@ void GpsConvertPositionFromStringToNumerical( void )
     }
 }
 
-
-uint8_t GpsGetLatestGpsPositionDouble( double *lati, double *longi )
+uint8_t GpsGetLatestGpsPositionDouble( double* lati, double* longi )
 {
     uint8_t status = FAIL;
     if( HasFix == true )
@@ -195,12 +200,12 @@ uint8_t GpsGetLatestGpsPositionDouble( double *lati, double *longi )
     {
         GpsResetPosition( );
     }
-    *lati = Latitude;
+    *lati  = Latitude;
     *longi = Longitude;
     return status;
 }
 
-uint8_t GpsGetLatestGpsPositionBinary( int32_t *latiBin, int32_t *longiBin )
+uint8_t GpsGetLatestGpsPositionBinary( int32_t* latiBin, int32_t* longiBin )
 {
     uint8_t status = FAIL;
 
@@ -213,7 +218,7 @@ uint8_t GpsGetLatestGpsPositionBinary( int32_t *latiBin, int32_t *longiBin )
     {
         GpsResetPosition( );
     }
-    *latiBin = LatitudeBinary;
+    *latiBin  = LatitudeBinary;
     *longiBin = LongitudeBinary;
     CRITICAL_SECTION_END( );
     return status;
@@ -228,7 +233,7 @@ int16_t GpsGetLatestGpsAltitude( void )
     }
     else
     {
-        Altitude = ( int16_t )0xFFFF;
+        Altitude = ( int16_t ) 0xFFFF;
     }
     CRITICAL_SECTION_END( );
 
@@ -243,9 +248,9 @@ int16_t GpsGetLatestGpsAltitude( void )
  *
  * \retval chkPosIdx Position of the checksum in the sentence
  */
-int32_t GpsNmeaChecksum( int8_t *nmeaStr, int32_t nmeaStrSize, int8_t * checksum )
+int32_t GpsNmeaChecksum( int8_t* nmeaStr, int32_t nmeaStrSize, int8_t* checksum )
 {
-    int i = 0;
+    int     i        = 0;
     uint8_t checkNum = 0;
 
     // Check input parameters
@@ -272,8 +277,8 @@ int32_t GpsNmeaChecksum( int8_t *nmeaStr, int32_t nmeaStrSize, int8_t * checksum
     }
 
     // Convert checksum value to 2 hexadecimal characters
-    checksum[0] = Nibble2HexChar( checkNum / 16 ); // upper nibble
-    checksum[1] = Nibble2HexChar( checkNum % 16 ); // lower nibble
+    checksum[0] = Nibble2HexChar( checkNum / 16 );  // upper nibble
+    checksum[1] = Nibble2HexChar( checkNum % 16 );  // lower nibble
 
     return i + 1;
 }
@@ -283,10 +288,10 @@ int32_t GpsNmeaChecksum( int8_t *nmeaStr, int32_t nmeaStrSize, int8_t * checksum
  * present at the end of it.
  * Return true if it matches
  */
-static bool GpsNmeaValidateChecksum( int8_t *serialBuff, int32_t buffSize )
+static bool GpsNmeaValidateChecksum( int8_t* serialBuff, int32_t buffSize )
 {
     int32_t checksumIndex;
-    int8_t checksum[2]; // 2 characters to calculate NMEA checksum
+    int8_t  checksum[2];  // 2 characters to calculate NMEA checksum
 
     checksumIndex = GpsNmeaChecksum( serialBuff, buffSize, checksum );
 
@@ -313,10 +318,10 @@ static bool GpsNmeaValidateChecksum( int8_t *serialBuff, int32_t buffSize )
     }
 }
 
-uint8_t GpsParseGpsData( int8_t *rxBuffer, int32_t rxBufferSize )
+uint8_t GpsParseGpsData( int8_t* rxBuffer, int32_t rxBufferSize )
 {
-    uint8_t i = 1;
-    uint8_t j = 0;
+    uint8_t i         = 1;
+    uint8_t j         = 0;
     uint8_t fieldSize = 0;
 
     if( rxBuffer[0] != '$' )
@@ -343,7 +348,7 @@ uint8_t GpsParseGpsData( int8_t *rxBuffer, int32_t rxBufferSize )
         NmeaGpsData.NmeaDataType[j] = rxBuffer[i];
     }
     // Parse the GPGGA data
-    if( strncmp( ( const char* )NmeaGpsData.NmeaDataType, ( const char* )NmeaDataTypeGPGGA, 5 ) == 0 )
+    if( strncmp( ( const char* ) NmeaGpsData.NmeaDataType, ( const char* ) NmeaDataTypeGPGGA, 5 ) == 0 )
     {
         // NmeaUtcTime
         fieldSize = 0;
@@ -505,7 +510,7 @@ uint8_t GpsParseGpsData( int8_t *rxBuffer, int32_t rxBufferSize )
         GpsFormatGpsData( );
         return SUCCESS;
     }
-    else if ( strncmp( ( const char* )NmeaGpsData.NmeaDataType, ( const char* )NmeaDataTypeGPRMC, 5 ) == 0 )
+    else if( strncmp( ( const char* ) NmeaGpsData.NmeaDataType, ( const char* ) NmeaDataTypeGPRMC, 5 ) == 0 )
     {
         // NmeaUtcTime
         fieldSize = 0;
@@ -636,11 +641,11 @@ uint8_t GpsParseGpsData( int8_t *rxBuffer, int32_t rxBufferSize )
 
 void GpsFormatGpsData( void )
 {
-    if( strncmp( ( const char* )NmeaGpsData.NmeaDataType, ( const char* )NmeaDataTypeGPGGA, 5 ) == 0 )
+    if( strncmp( ( const char* ) NmeaGpsData.NmeaDataType, ( const char* ) NmeaDataTypeGPGGA, 5 ) == 0 )
     {
         HasFix = ( NmeaGpsData.NmeaFixQuality[0] > 0x30 ) ? true : false;
     }
-    else if ( strncmp( ( const char* )NmeaGpsData.NmeaDataType, ( const char* )NmeaDataTypeGPRMC, 5 ) == 0 )
+    else if( strncmp( ( const char* ) NmeaGpsData.NmeaDataType, ( const char* ) NmeaDataTypeGPRMC, 5 ) == 0 )
     {
         HasFix = ( NmeaGpsData.NmeaDataStatus[0] == 0x41 ) ? true : false;
     }
@@ -650,9 +655,9 @@ void GpsFormatGpsData( void )
 
 void GpsResetPosition( void )
 {
-    Altitude = ( int16_t )0xFFFF;
-    Latitude = 0;
-    Longitude = 0;
-    LatitudeBinary = 0;
+    Altitude        = ( int16_t ) 0xFFFF;
+    Latitude        = 0;
+    Longitude       = 0;
+    LatitudeBinary  = 0;
     LongitudeBinary = 0;
 }

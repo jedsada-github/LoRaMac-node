@@ -24,10 +24,10 @@
 extern "C" {
 #endif
 
-#define GITHUB_VERSION                              0x05000000 // 5.0.0.0
+#define GITHUB_VERSION    0x05000000 /* 5.0.0.0 */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // __GITHUB_VERSION_H__
+#endif /* __GITHUB_VERSION_H__ */
