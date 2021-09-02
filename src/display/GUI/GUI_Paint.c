@@ -52,7 +52,10 @@ function: Select Image
 parameter:
     image : Pointer to the image cache
 ******************************************************************************/
-void Paint_SelectImage( uint8_t* image ) { Paint.Image = image; }
+void Paint_SelectImage( uint8_t* image )
+{
+    Paint.Image = image;
+}
 
 /******************************************************************************
 function: Select Image Rotate
@@ -520,10 +523,13 @@ parameter:
     Color_Foreground : Select the foreground color
     Color_Background : Select the background color
 ******************************************************************************/
-void Paint_DrawChar( uint32_t Xpoint, uint32_t Ypoint, const char Acsii_Char, const sFONT* Font,
+void Paint_DrawChar( uint32_t Xpoint, uint32_t Ypoint, const uint32_t Acsii_Char, const sFONT* Font,
                      uint32_t Color_Foreground, uint32_t Color_Background )
 {
-    uint32_t Page, Column;
+    uint32_t             Page        = 0U;
+    uint32_t             Column      = 0U;
+    uint32_t             Char_Offset = 0U;
+    const unsigned char* ptr         = NULL;
 
     if( Xpoint > Paint.Width || Ypoint > Paint.Height )
     {
@@ -531,8 +537,8 @@ void Paint_DrawChar( uint32_t Xpoint, uint32_t Ypoint, const char Acsii_Char, co
         return;
     }
 
-    uint32_t Char_Offset     = ( Acsii_Char - ' ' ) * Font->Height * ( Font->Width / 8 + ( Font->Width % 8 ? 1 : 0 ) );
-    const unsigned char* ptr = &Font->table[Char_Offset];
+    Char_Offset = ( Acsii_Char - ' ' ) * Font->Height * ( Font->Width / 8 + ( Font->Width % 8 ? 1 : 0 ) );
+    ptr         = &Font->table[Char_Offset];
 
     for( Page = 0; Page < Font->Height; Page++ )
     {
@@ -563,6 +569,109 @@ void Paint_DrawChar( uint32_t Xpoint, uint32_t Ypoint, const char Acsii_Char, co
         }  // Write a line
         if( Font->Width % 8 != 0 ) ptr++;
     }  // Write all
+}
+
+/******************************************************************************
+function:	Display the string
+parameter:
+    Xstart           ：X coordinate
+    Ystart           ：Y coordinate
+    pString          ：The first address of the English string to be displayed
+    Font             ：A structure pointer that displays a character size
+    Color_Foreground : Select the foreground color
+    Color_Background : Select the background color
+******************************************************************************/
+void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString, const sFONT* Font,
+                          uint32_t Color_Foreground, uint32_t Color_Background )
+{
+    uint32_t Char_Offset = 0U;
+    uint32_t Page        = 0U;
+    uint32_t Column      = 0U;
+	uint32_t Acsii_Char  = 0U;
+    const unsigned char* ptr = NULL;
+	
+    if( Xstart > Paint.Width || Ystart > Paint.Height )
+    {
+        // Debug("Paint_DrawString_EN Input exceeds the normal display range\r\n");
+        return;
+    }
+
+    while( *pString != '\0' )
+    {	
+		if( *pString == (const char)0xE0 )
+		{
+			Acsii_Char = 0U;
+			Acsii_Char = (Acsii_Char | *pString++ ) << 8;
+			Acsii_Char = (Acsii_Char | *pString++ ) << 8;
+			Acsii_Char = (Acsii_Char | *pString++ );
+
+			if (Acsii_Char > 0xE0B8BE)
+			{
+                switch (Acsii_Char)
+                {
+                case 0xE0B8BF:
+                    Char_Offset = ( ( Acsii_Char - 0xE0B880 ) + 90U ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+                    break;
+                default:
+                    Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+                    break;
+                }
+			}
+			else
+			{ 
+                switch (Acsii_Char)
+                {
+                case 0xe0b8b8: // 'ุ'
+                    Xstart -= 9U;
+                    break;
+                default:
+                    break;
+                }
+				Char_Offset = ( ( Acsii_Char - 0xE0B880 ) + 94U ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+			}
+		}
+		else
+		{	
+			Char_Offset = ( *pString - ' ' ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+			pString++;
+		}
+		
+		ptr = &Font->table[Char_Offset];
+
+        for( Page = 0U; Page < Font->Height; Page++ )
+        {
+            for( Column = 0; Column < Font->Width; Column++ )
+            {
+                // To determine whether the font background color and screen background color is consistent
+                if( FONT_BACKGROUND == Color_Background )
+                {  // this process is to speed up the scan
+                    if( *ptr & ( 0x80 >> ( Column % 8U ) ) )
+                        Paint_SetPixel( Xstart + Column, Ystart + Page, Color_Foreground );
+                     //Paint_DrawPoint(Xstart + Column, Ystart + Page, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                }
+                else
+                {
+                    if( *ptr & ( 0x80 >> ( Column % 8U ) ) )
+                    {
+                        Paint_SetPixel( Xstart + Column, Ystart + Page, Color_Foreground );
+                        // Paint_DrawPoint(Xstart + Column, Ystart + Page, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                    }
+                    else
+                    {
+                        Paint_SetPixel( Xstart + Column, Ystart + Page, Color_Background );
+                        // Paint_DrawPoint(Xstart + Column, Ystart + Page, Color_Background, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                    }
+                }
+				  			
+                // One pixel is 8 bits
+                if( Column % 8U == 7U ) ptr++;
+            }  // Write a line
+            if( Font->Width % 8U != 0U ) ptr++;
+        }  // Write all
+		
+        // The next word of the abscissa increases the font of the broadband
+        Xstart += Font->Width - 4;
+    } 
 }
 
 /******************************************************************************
@@ -650,7 +759,7 @@ void Paint_DrawString_CN( uint32_t Xstart, uint32_t Ystart, const char* pString,
                                 if( *ptr & ( 0x80 >> ( i % 8 ) ) )
                                 {
                                     Paint_SetPixel( x + i, y + j, Color_Foreground );
-                                    // Paint_DrawPoint(x + i, y + j, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                                    //Paint_DrawPoint(x + i, y + j, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                                 }
                             }
                             else
@@ -658,12 +767,12 @@ void Paint_DrawString_CN( uint32_t Xstart, uint32_t Ystart, const char* pString,
                                 if( *ptr & ( 0x80 >> ( i % 8 ) ) )
                                 {
                                     Paint_SetPixel( x + i, y + j, Color_Foreground );
-                                    // Paint_DrawPoint(x + i, y + j, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                                    //Paint_DrawPoint(x + i, y + j, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                                 }
                                 else
                                 {
                                     Paint_SetPixel( x + i, y + j, Color_Background );
-                                    // Paint_DrawPoint(x + i, y + j, Color_Background, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                                    //Paint_DrawPoint(x + i, y + j, Color_Background, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                                 }
                             }
                             if( i % 8 == 7 )
@@ -701,7 +810,7 @@ void Paint_DrawString_CN( uint32_t Xstart, uint32_t Ystart, const char* pString,
                                 if( *ptr & ( 0x80 >> ( i % 8 ) ) )
                                 {
                                     Paint_SetPixel( x + i, y + j, Color_Foreground );
-                                    // Paint_DrawPoint(x + i, y + j, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                                    //Paint_DrawPoint(x + i, y + j, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                                 }
                             }
                             else
@@ -709,12 +818,12 @@ void Paint_DrawString_CN( uint32_t Xstart, uint32_t Ystart, const char* pString,
                                 if( *ptr & ( 0x80 >> ( i % 8 ) ) )
                                 {
                                     Paint_SetPixel( x + i, y + j, Color_Foreground );
-                                    // Paint_DrawPoint(x + i, y + j, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                                    //Paint_DrawPoint(x + i, y + j, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                                 }
                                 else
                                 {
                                     Paint_SetPixel( x + i, y + j, Color_Background );
-                                    // Paint_DrawPoint(x + i, y + j, Color_Background, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                                    //Paint_DrawPoint(x + i, y + j, Color_Background, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                                 }
                             }
                             if( i % 8 == 7 )

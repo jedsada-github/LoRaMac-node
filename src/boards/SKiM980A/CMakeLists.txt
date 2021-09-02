@@ -64,6 +64,7 @@ list(APPEND ${PROJECT_NAME}_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font16.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font20.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font24.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/../../display/Fonts/font16TH.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../display/GUI/GUI_Paint.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../display/GUI/ImageData.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../display/sh1107/oled_sh1107.c"

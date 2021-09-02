@@ -163,7 +163,8 @@ void Paint_DrawRectangle(uint32_t Xstart, uint32_t Ystart, uint32_t Xend, uint32
 void Paint_DrawCircle(uint32_t X_Center, uint32_t Y_Center, uint32_t Radius, uint32_t Color, DOT_PIXEL Line_width, DRAW_FILL Draw_Fill);
 
 //Display string
-void Paint_DrawChar(uint32_t Xstart, uint32_t Ystart, const char Acsii_Char,const sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
+void Paint_DrawChar(uint32_t Xstart, uint32_t Ystart, const uint32_t Acsii_Char,const sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
+void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString, const sFONT* Font,uint32_t Color_Foreground, uint32_t Color_Background );
 void Paint_DrawString_EN(uint32_t Xstart, uint32_t Ystart, const char * pString, const sFONT* Font, uint32_t Color_Foreground, uint32_t Color_Background);
 void Paint_DrawString_CN(uint32_t Xstart, uint32_t Ystart, const char * pString, const cFONT* font, uint32_t Color_Foreground, uint32_t Color_Background);
 void Paint_DrawNum(uint32_t Xpoint, uint32_t Ypoint, double Nummber, sFONT* Font, uint32_t Digit,uint32_t Color_Foreground, uint32_t Color_Background);

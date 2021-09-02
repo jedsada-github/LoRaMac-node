@@ -11,6 +11,8 @@
  *
  * \author    Anol P. ( EmOne ) <anol.p@emone.co.th>
  */
+
+#include <stdio.h>
 #include "board-config.h"
 #include "board.h"
 #include "gpio.h"
@@ -31,143 +33,224 @@ static Gpio_t OledCS;
 // static Gpio_t OledSck;
 // static Gpio_t OledDi;
 
-//extern I2c_t I2c;
+// extern I2c_t I2c;
 extern Spi_t Spi;
 
 // basic lcd display support interface
-uint8_t m_startLine = 0;
-uint8_t m_column = 0;
-uint8_t m_page = 0;
+uint8_t m_startLine  = 0;
+uint8_t m_column     = 0;
+uint8_t m_page       = 0;
 uint8_t m_seg_offset = 0;
-#define Imagesize  1024 //(((OLED_WIDTH%8==0)? (OLED_WIDTH/8): (OLED_WIDTH/8+1)) * OLED_HEIGHT)
-volatile uint8_t BlackImage[Imagesize];
-extern PAINT Paint;
-bool sleepDisplay = 0;
+#define Imagesize 1024  //(((OLED_WIDTH%8==0)? (OLED_WIDTH/8): (OLED_WIDTH/8+1)) * OLED_HEIGHT)
+volatile uint8_t    BlackImage[Imagesize];
+extern PAINT        Paint;
+bool                sleepDisplay = 0;
 extern TimerEvent_t DisplayTimer;
 static TimerEvent_t DisplayShowTimer;
-static void DisplayInitReg( void );
+static void         DisplayInitReg( void );
 /********************************************************************************
 function:
             reverse a byte data
 ********************************************************************************/
-static uint8_t reverse(uint8_t temp)
+static uint8_t reverse( uint8_t temp )
 {
-    temp = ((temp & 0x55) << 1) | ((temp & 0xaa) >> 1);
-    temp = ((temp & 0x33) << 2) | ((temp & 0xcc) >> 2);
-    temp = ((temp & 0x0f) << 4) | ((temp & 0xf0) >> 4);
+    temp = ( ( temp & 0x55 ) << 1 ) | ( ( temp & 0xaa ) >> 1 );
+    temp = ( ( temp & 0x33 ) << 2 ) | ( ( temp & 0xcc ) >> 2 );
+    temp = ( ( temp & 0x0f ) << 4 ) | ( ( temp & 0xf0 ) >> 4 );
     return temp;
 }
 
 void DisplayMcuOnKey1Signal( void* context )
 {
-    // Wake up
-    if(sleepDisplay == 0) {
-        TimerStop(&DisplayTimer);
+#if 1
+    uint32_t       pin_status = 0;
+    static uint8_t key1_cnt   = 0U;
+    char str[100];
 
-        DisplayOff();
+    pin_status = GpioRead( &OledKey1 );
 
-#if ( USE_GPS == 1 )
-        GpsStop();
+    if( pin_status == 0U )
+    {
+        RtcDelayMs( 500U );
+        key1_cnt++;
+        if( key1_cnt > 100U )
+        {
+            key1_cnt = 0U;
+        }
+        sprintf(str, "%d", key1_cnt);
+        //DisplayClear( );
+        //Paint_DrawString_EN( 10, 1, "key1: ", &Font20, BLACK, WHITE );
+        Paint_DrawString_EN( 10, 6, str, &Font20, WHITE, BLACK );
+        DisplayUpdate( );
+    }
+
 #endif
 
-        LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
+#if 0
+    // Wake up
+    if( sleepDisplay == 0 )
+    {
+        TimerStop( &DisplayTimer );
+
+        DisplayOff( );
+
+#if( USE_GPS == 1 )
+        GpsStop( );
+#endif
+
+        LpmSetStopMode( LPM_DISPLAY_ID, LPM_DISABLE );
         sleepDisplay = 1;
         /*Suspend Tick increment to prevent wakeup by Systick interrupt.
         Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base)*/
         // HAL_SuspendTick();
 
         // LpmEnterStopMode();
-    } else {
+    }
+    else
+    {
         /* Resume Tick interrupt if disabled prior to SLEEP mode entry */
         // HAL_ResumeTick();
         sleepDisplay = 0;
-        LpmSetStopMode( LPM_DISPLAY_ID , LPM_ENABLE );
+        LpmSetStopMode( LPM_DISPLAY_ID, LPM_ENABLE );
 
-        GpsStart();
+        GpsStart( );
 
-        DisplayInitReg();
-        DisplayOn();
-        DisplayClear();
+        DisplayInitReg( );
+        DisplayOn( );
+        DisplayClear( );
 
-        TimerStart(&DisplayTimer);
-        TimerStart(&DisplayShowTimer);
-        //TimerStart( &TxTimer );
+        TimerStart( &DisplayTimer );
+        TimerStart( &DisplayShowTimer );
+        // TimerStart( &TxTimer );
     }
+#endif
 }
 
 void DisplayMcuOnKey2Signal( void* context )
 {
-    // Reactivation
-    LpmSetStopMode( LPM_DISPLAY_ID , LPM_DISABLE );
-    NvmDataMgmtFactoryReset( );
-    BoardResetMcu();
-}
+#if 1
+    static uint8_t key2_cnt   = 0U;
+    uint32_t       pin_status = 0U;
+    char str[100];
 
+    pin_status = GpioRead( &OledKey2 );
+
+    if( pin_status == 0U )
+    {
+        RtcDelayMs( 500U );
+        key2_cnt++;
+        if( key2_cnt > 100U )
+        {
+            key2_cnt = 0U;
+        }
+        //sprintf(str, "%d", key2_cnt);
+        //DisplayClear( );
+        //Paint_DrawString_EN( 10, 22, "key2: ", &Font20, BLACK, WHITE );
+#if 0
+        char *s = "กข";
+        uint32_t n = 0;
+        uint32_t i = 0;
+        while (i < 3)
+        {
+          i++;
+          n = (n | *s) << 8;
+          s++;
+        }
+        n = n >> 8;
+        sprintf(str, "%x", n);
+        Paint_DrawString_EN( 10, 0, str, &Font20, BLACK, WHITE );
+
+        i = 0;
+        while (i < 3)
+        {
+            i++;
+            n = (n | *s) << 8;
+            s++;
+        }
+        n = n >> 8;
+        *s = '\0';
+        sprintf(str, "%x", n);
+#endif
+
+        //Paint_DrawChar(0, 0, 'ก', &Font20, WHITE,  BLACK);
+        //Paint_DrawString_EN( 10, 22, "ก", &Font20, WHITE, BLACK );
+        //Paint_DrawString_TH( 10, 0, "กขฃค", &Font20, BLACK, WHITE );
+        //Paint_DrawString_TH( 10, 21, "กขฃค", &Font20, BLACK, WHITE );
+        //Paint_DrawString_EN( 10, 26, str, &Font20, BLACK, WHITE );
+        DisplayUpdate( );
+    }
+
+#endif
+    // Reactivation
+    // LpmSetStopMode( LPM_DISPLAY_ID, LPM_DISABLE );
+    // NvmDataMgmtFactoryReset( );
+    // BoardResetMcu( );
+}
 
 void DisplayMcuOnDisplayShowTimeout( void* context )
 {
-        TimerStop( &DisplayShowTimer );
-        DisplayClear();
-        Paint_DrawString_EN(5, 5, "Save mode!!!", &Font20, BLACK, WHITE);
-        DisplayUpdate();
-        RtcDelayMs(1000);
-        sleepDisplay = 0;
-        DisplayMcuOnKey1Signal( context );
+    // TimerStop( &DisplayShowTimer );
+    // DisplayClear( );
+    // Paint_DrawString_EN( 5, 5, "Save mode!!!", &Font20, BLACK, WHITE );
+    // DisplayUpdate( );
+    // RtcDelayMs( 1000 );
+    // sleepDisplay = 0;
+    DisplayMcuOnKey1Signal( context );
 }
 
-void DisplaySendData_8Bit(uint8_t val)
+void DisplaySendData_8Bit( uint8_t val )
 {
-    DisplaySendData(&val, 1);
+    DisplaySendData( &val, 1 );
 }
 
-void DisplaySendData_16Bit(uint16_t val)
+void DisplaySendData_16Bit( uint16_t val )
 {
-    DisplaySendData((uint8_t *) &val, 2);
+    DisplaySendData( ( uint8_t* ) &val, 2 );
 }
 
 void DisplayInitReg( void )
 {
-    DisplayOff(); /*turn off OLED display*/
+    DisplayOff( ); /*turn off OLED display*/
 
-    DisplaySendCommand(0x00);   //Set Lower Column Address
+    DisplaySendCommand( 0x00 );  // Set Lower Column Address
 
-    DisplaySendCommand(0x10);   //Set Higher Column Address
+    DisplaySendCommand( 0x10 );  // Set Higher Column Address
 
-    DisplaySendCommand(0xB0);  	//--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F, SSD1305_CMD)
+    DisplaySendCommand( 0xB0 );  //--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F, SSD1305_CMD)
 
-    DisplaySendCommand(0xDC);   //#et display start line
-    DisplaySendCommand(0x00);
+    DisplaySendCommand( 0xDC );  //#et display start line
+    DisplaySendCommand( 0x00 );
 
-    DisplaySendCommand(0x81);   //contrast control
-    DisplaySendCommand(0x80);   //128
+    DisplaySendCommand( 0x81 );  // contrast control
+    DisplaySendCommand( 0x80 );  // 128
 
-    DisplaySendCommand(0x21);   // Set Memory addressing mode (0x20/0x21); //
+    DisplaySendCommand( 0x21 );  // Set Memory addressing mode (0x20/0x21); //
 
-    DisplaySendCommand(0xA0);    //set segment remap (0xA0 down/ 0xA1 up) rotates
+    DisplaySendCommand( 0xA0 );  // set segment remap (0xA0 down/ 0xA1 up) rotates
 
-    DisplaySendCommand(0xC0);    //COM0 to COM[N-1] scan direction
+    DisplaySendCommand( 0xC0 );  // COM0 to COM[N-1] scan direction
 
-    DisplaySendCommand(0xA4);   //Set Entire Display On (0xA4 normal/0xA5 entire);
+    DisplaySendCommand( 0xA4 );  // Set Entire Display On (0xA4 normal/0xA5 entire);
 
-    DisplaySendCommand(0xA6);    //0xA6 normal / 0xA7 reverse // Set SEG Output Current Brightness ��
+    DisplaySendCommand( 0xA6 );  // 0xA6 normal / 0xA7 reverse // Set SEG Output Current Brightness ��
 
-    DisplaySendCommand(0xA8);    //multiplex ratio  //--Set SEG/Column Mapping
-    DisplaySendCommand(0x3F);    //duty = 1/64
+    DisplaySendCommand( 0xA8 );  // multiplex ratio  //--Set SEG/Column Mapping
+    DisplaySendCommand( 0x3F );  // duty = 1/64
 
-    DisplaySendCommand(0xD3);	//--set multiplex ratio(1 to 64) #set display offset
-    DisplaySendCommand(0x60);	//--1/64 duty
+    DisplaySendCommand( 0xD3 );  //--set multiplex ratio(1 to 64) #set display offset
+    DisplaySendCommand( 0x60 );  //--1/64 duty
 
-    DisplaySendCommand(0xD5);	//-set display offset	Shift Mapping RAM Counter (0x00~0x3F)
-    DisplaySendCommand(0x41);  	//-not offset
+    DisplaySendCommand( 0xD5 );  //-set display offset	Shift Mapping RAM Counter (0x00~0x3F)
+    DisplaySendCommand( 0x41 );  //-not offset
 
-    DisplaySendCommand(0xD9);	//--set pre-charge period
-    DisplaySendCommand(0x22);	//Set Pre-Charge as 15 Clocks & Discharge as 1 Clock
+    DisplaySendCommand( 0xD9 );  //--set pre-charge period
+    DisplaySendCommand( 0x22 );  // Set Pre-Charge as 15 Clocks & Discharge as 1 Clock
 
-    DisplaySendCommand(0xDB); 	 /*set vcomh*/
-    DisplaySendCommand(0x35);  	//Set VCOM Deselect Level
+    DisplaySendCommand( 0xDB );  /*set vcomh*/
+    DisplaySendCommand( 0x35 );  // Set VCOM Deselect Level
 
-	DisplaySendCommand(0xAD);    //set charge pump enable
-    DisplaySendCommand(0x8A);    //Set DC-DC enable (a=0:disable;
+    DisplaySendCommand( 0xAD );  // set charge pump enable
+    DisplaySendCommand( 0x8A );  // Set DC-DC enable (a=0:disable;
 }
 
 /*!
@@ -175,34 +258,34 @@ void DisplayInitReg( void )
  */
 void DisplayInit( void )
 {
-    GpioInit(&OledNrst, OLED_NRST, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1);
-    GpioInit(&OledDC, OLED_DC, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0);
+    GpioInit( &OledNrst, OLED_NRST, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &OledDC, OLED_DC, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 
-    GpioInit(&OledKey1, OLED_KEY1, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1);
+    GpioInit( &OledKey1, OLED_KEY1, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioSetInterrupt( &OledKey1, IRQ_FALLING_EDGE, IRQ_VERY_LOW_PRIORITY, &DisplayMcuOnKey1Signal );
-    GpioInit(&OledKey2, OLED_KEY2, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1);
+    GpioInit( &OledKey2, OLED_KEY2, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
     GpioSetInterrupt( &OledKey2, IRQ_FALLING_EDGE, IRQ_VERY_LOW_PRIORITY, &DisplayMcuOnKey2Signal );
 
-    GpioInit(&OledCS, OLED_CS, PIN_OUTPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1);
+    GpioInit( &OledCS, OLED_CS, PIN_OUTPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
     // I2cInit(&I2c, I2C_1, OLED_SCL, OLED_SDA);
-    SpiInit(&Spi, SPI_2, OLED_DI, NC, OLED_SCK, NC);
+    SpiInit( &Spi, SPI_2, OLED_DI, NC, OLED_SCK, NC );
 
-    DisplayReset();
+    DisplayReset( );
 
-    DisplayInitReg();
+    DisplayInitReg( );
 
-    RtcDelayMs(200);
+    RtcDelayMs( 200 );
 
-    DisplayOn();
+    DisplayOn( );
 
-    Paint_NewImage((uint8_t *)BlackImage, OLED_WIDTH, OLED_HEIGHT, 0, BLACK);
+    Paint_NewImage( ( uint8_t* ) BlackImage, OLED_WIDTH, OLED_HEIGHT, 0, BLACK );
 
     /* 1.Select Image */
-    Paint_SelectImage((uint8_t *)BlackImage);
+    Paint_SelectImage( ( uint8_t* ) BlackImage );
 
-    TimerInit(&DisplayShowTimer, DisplayMcuOnDisplayShowTimeout);
-    TimerSetValue(&DisplayShowTimer, 60000 * 3);
-    TimerStart(&DisplayShowTimer);
+    TimerInit( &DisplayShowTimer, DisplayMcuOnDisplayShowTimeout );
+    TimerSetValue( &DisplayShowTimer, 60000 * 3 );
+    TimerStart( &DisplayShowTimer );
 }
 
 /*!
@@ -211,13 +294,13 @@ void DisplayInit( void )
 void DisplayReset( void )
 {
     GpioWrite( &OledNrst, 1 );
-    RtcDelayMs(100);
-    GpioWrite( &OledNrst, 0 );    // power up the Display
-    RtcDelayMs(100);
+    RtcDelayMs( 100 );
+    GpioWrite( &OledNrst, 0 );  // power up the Display
+    RtcDelayMs( 100 );
     GpioWrite( &OledCS, 1 );
     GpioWrite( &OledDC, 0 );
-    GpioWrite( &OledNrst, 1 );    // power up the Display
-    RtcDelayMs(100);
+    GpioWrite( &OledNrst, 1 );  // power up the Display
+    RtcDelayMs( 100 );
 }
 
 /*!
@@ -229,7 +312,7 @@ void DisplaySendCommand( uint8_t cmd )
 {
     GpioWrite( &OledDC, 0 );
     GpioWrite( &OledCS, 0 );
-    SpiOut(&Spi, (uint16_t) cmd);
+    SpiOut( &Spi, ( uint16_t ) cmd );
     GpioWrite( &OledCS, 1 );
 }
 
@@ -239,13 +322,13 @@ void DisplaySendCommand( uint8_t cmd )
  * \param buffer Buffer to be sent
  * \param size   Buffer size to be sent
  */
-void DisplaySendData( uint8_t *buffer, uint16_t size )
+void DisplaySendData( uint8_t* buffer, uint16_t size )
 {
     GpioWrite( &OledDC, 1 );
     GpioWrite( &OledCS, 0 );
-    while (size--)
+    while( size-- )
     {
-        SpiOut(&Spi, (uint16_t) *(buffer++));
+        SpiOut( &Spi, ( uint16_t ) * ( buffer++ ) );
     }
     GpioWrite( &OledCS, 1 );
 }
@@ -255,8 +338,8 @@ void DisplaySendData( uint8_t *buffer, uint16_t size )
  */
 void DisplayOn( void )
 {
-	//Turn on the OLED display
-    DisplaySendCommand(0xAF);
+    // Turn on the OLED display
+    DisplaySendCommand( 0xAF );
 }
 
 /*!
@@ -264,8 +347,8 @@ void DisplayOn( void )
  */
 void DisplayOff( void )
 {
-	//Turn off the OLED display
-    DisplaySendCommand(0xAE);
+    // Turn off the OLED display
+    DisplaySendCommand( 0xAE );
 }
 
 /*!
@@ -273,8 +356,8 @@ void DisplayOff( void )
  */
 void DisplayClear( void )
 {
-    memset( Paint.Image, 0x0, Imagesize);
-    DisplayUpdate();
+    memset( Paint.Image, 0x0, Imagesize );
+    DisplayUpdate( );
 }
 
 /*!
@@ -284,7 +367,6 @@ void DisplayClear( void )
  */
 void DisplayInvertColors( bool invert )
 {
-
 }
 
 /*!
@@ -293,19 +375,21 @@ void DisplayInvertColors( bool invert )
 void DisplayUpdate( void )
 {
     uint32_t Width, Height, column, temp;
-    Width = (OLED_WIDTH % 8 == 0)? (OLED_WIDTH / 8 ): (OLED_WIDTH / 8 + 1);
+    Width  = ( OLED_WIDTH % 8 == 0 ) ? ( OLED_WIDTH / 8 ) : ( OLED_WIDTH / 8 + 1 );
     Height = OLED_HEIGHT;
-    DisplaySendCommand(0xb0); 	//Set the row  start address
-    for (uint32_t j = 0; j < Height; j++) {
+    DisplaySendCommand( 0xb0 );  // Set the row  start address
+    for( uint32_t j = 0; j < Height; j++ )
+    {
         column = 63 - j;
-        DisplaySendCommand(0x00 + (column & 0x0f));  //Set column low start address
-        DisplaySendCommand(0x10 + (column >> 4));  //Set column higt start address
-        for (uint32_t i = 0; i < Width; i++) {
-            temp =  Paint.Image[i + j * Width];
+        DisplaySendCommand( 0x00 + ( column & 0x0f ) );  // Set column low start address
+        DisplaySendCommand( 0x10 + ( column >> 4 ) );    // Set column higt start address
+        for( uint32_t i = 0; i < Width; i++ )
+        {
+            temp = Paint.Image[i + j * Width];
             // printf("0x%x \r\n",temp);
-            temp = reverse(temp);	//reverse the buffer
-            DisplaySendData_8Bit(temp);
-         }
+            temp = reverse( temp );  // reverse the buffer
+            DisplaySendData_8Bit( temp );
+        }
     }
 }
 
@@ -317,7 +401,6 @@ void DisplayUpdate( void )
  */
 void DisplaySetCursor( int16_t x, int16_t y )
 {
-
 }
 
 /*!
@@ -347,7 +430,6 @@ int16_t DisplayGetCursorY( void )
  */
 void DisplaySetTextSize( uint8_t s )
 {
-
 }
 
 /*!
@@ -357,7 +439,6 @@ void DisplaySetTextSize( uint8_t s )
  */
 void DisplaySetTextColor( DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -368,7 +449,6 @@ void DisplaySetTextColor( DisplayColor_t color )
  */
 void DisplaySetFgAndBg( DisplayColor_t fg, DisplayColor_t bg )
 {
-
 }
 
 /*!
@@ -378,7 +458,6 @@ void DisplaySetFgAndBg( DisplayColor_t fg, DisplayColor_t bg )
  */
 void DisplaySetTextWrap( bool w )
 {
-
 }
 
 /*!
@@ -399,13 +478,12 @@ uint8_t DisplayGetRotation( void )
 void DisplaySetRotation( uint8_t x )
 {
     uint8_t memoryAccessReg = 0x00;
-    if(x)
+    if( x )
     {
         memoryAccessReg = 0x70;
     }
-    DisplaySendCommand(0x36); //MX, MY, RGB mode
-    DisplaySendData(&memoryAccessReg, 1);   //RGB
-
+    DisplaySendCommand( 0x36 );              // MX, MY, RGB mode
+    DisplaySendData( &memoryAccessReg, 1 );  // RGB
 }
 
 /*!
@@ -417,7 +495,7 @@ void DisplaySetRotation( uint8_t x )
  */
 void DisplayDrawPixel( int16_t x, int16_t y, DisplayColor_t color )
 {
-    Paint_DrawPoint(x, y, color, DOT_PIXEL_1X1, DOT_STYLE_DFT);
+    Paint_DrawPoint( x, y, color, DOT_PIXEL_1X1, DOT_STYLE_DFT );
 }
 
 /*!
@@ -432,7 +510,6 @@ void DisplayDrawPixel( int16_t x, int16_t y, DisplayColor_t color )
  */
 void DisplayDrawLine( int16_t x0, int16_t y0, int16_t x1, int16_t y1, DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -445,7 +522,6 @@ void DisplayDrawLine( int16_t x0, int16_t y0, int16_t x1, int16_t y1, DisplayCol
  */
 void DisplayDrawVerticalLine( int16_t x, int16_t y, int16_t h, DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -458,7 +534,6 @@ void DisplayDrawVerticalLine( int16_t x, int16_t y, int16_t h, DisplayColor_t co
  */
 void DisplayDrawHorizontalLine( int16_t x, int16_t y, int16_t w, DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -472,7 +547,6 @@ void DisplayDrawHorizontalLine( int16_t x, int16_t y, int16_t w, DisplayColor_t 
  */
 void DisplayDrawRect( int16_t x, int16_t y, int16_t w, int16_t h, DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -486,7 +560,6 @@ void DisplayDrawRect( int16_t x, int16_t y, int16_t w, int16_t h, DisplayColor_t
  */
 void DisplayFillRect( int16_t x, int16_t y, int16_t w, int16_t h, DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -496,7 +569,6 @@ void DisplayFillRect( int16_t x, int16_t y, int16_t w, int16_t h, DisplayColor_t
  */
 void DisplayFillScreen( DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -512,7 +584,6 @@ void DisplayFillScreen( DisplayColor_t color )
  */
 void DisplayDrawTriangle( int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -528,7 +599,6 @@ void DisplayDrawTriangle( int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_
  */
 void DisplayFillTriangle( int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, DisplayColor_t color )
 {
-
 }
 
 /*!
@@ -543,7 +613,6 @@ void DisplayFillTriangle( int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_
  */
 void DisplayDrawChar( int16_t x, int16_t y, unsigned char c, DisplayColor_t color, DisplayColor_t bg, uint8_t size )
 {
-
 }
 
 /*!
@@ -553,7 +622,6 @@ void DisplayDrawChar( int16_t x, int16_t y, unsigned char c, DisplayColor_t colo
  */
 void DisplayPutc( uint8_t c )
 {
-
 }
 
 /*!
@@ -563,23 +631,20 @@ void DisplayPutc( uint8_t c )
  */
 void DisplaySetLine( uint8_t line )
 {
-
 }
 
 /*!
  * \brief Display print function. Prints the given string
  */
-void DisplayPrint( const char *string )
+void DisplayPrint( const char* string )
 {
-
 }
 
 /*!
  * \brief Display printf function. (Mimics standard C printf function)
  */
-void DisplayPrintf( const char *format, ... )
+void DisplayPrintf( const char* format, ... )
 {
-
 }
 
 /*!
@@ -590,18 +655,23 @@ void DisplayPrintf( const char *format, ... )
  * \param pBmp  Bitmap pointer
  * \param w     Line width
  * \param h     Line height
-  */
-void DisplayDrawBitmap( int16_t x, int16_t y, uint8_t*pBmp, int16_t w, int16_t h)
+ */
+void DisplayDrawBitmap( int16_t x, int16_t y, uint8_t* pBmp, int16_t w, int16_t h )
 {
-    uint16_t i, j, byteWidth = (w + 7)/8;
-    for(j = 0; j < h; j ++){
-        for(i = 0; i < w; i ++ ) {
-            if(*(pBmp + j * byteWidth + i / 8) & (128 >> (i & 7))) {
-                DisplayDrawPixel(x+i, y+j, 1);
-            }else {
-                DisplayDrawPixel(x+i, y+j, 0);
+    uint16_t i, j, byteWidth = ( w + 7 ) / 8;
+    for( j = 0; j < h; j++ )
+    {
+        for( i = 0; i < w; i++ )
+        {
+            if( *( pBmp + j * byteWidth + i / 8 ) & ( 128 >> ( i & 7 ) ) )
+            {
+                DisplayDrawPixel( x + i, y + j, 1 );
+            }
+            else
+            {
+                DisplayDrawPixel( x + i, y + j, 0 );
             }
         }
     }
-    DisplayUpdate();
+    DisplayUpdate( );
 }

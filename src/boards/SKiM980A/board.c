@@ -45,6 +45,7 @@
 #include <string.h>
 #include "systime.h"
 #include "display-board.h"
+#include "fonts.h"
 
 PAINT_TIME sPaint_time = {
     .Year  = 2021, /* 0000   */
@@ -201,13 +202,22 @@ void BoardCriticalSectionEnd( uint32_t* mask )
 void BoardInitPeriph( void )
 {
 #if( USE_OLED == 1 )
-    uint32_t x = 0;
+    //uint32_t x = 0;
 
     DisplayInit( );
     DisplayClear( );
     RtcDelayMs( 20U );
-
-    Paint_DrawString_EN( 10, 1, "EmOne", &Font20, BLACK, WHITE );
+	
+	//Paint_DrawString_Test(10, 2, "กขค", &Font16TH, WHITE, BLACK);
+	// !"#$%&'()*+,-./0123456789:;<=>?\x0040ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+	//กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮฯะัาำิีึืฺุู\x0e3b\x0e3c\x0e3d\x0e3e฿เแโใไๅๆ็่้๊๋์ํ๎๏๐๑๒๓๔๕๖๗๘๙๚๛
+	Paint_DrawString_TH( 0, 15, "เจษฎา อุดมเศรษฐ์", &Font16TH, WHITE, BLACK );
+    //Paint_DrawPoint(10, 2, WHITE, DOT_PIXEL_1X1, DOT_STYLE_DFT);
+    //Paint_DrawPoint(10, 4, WHITE, DOT_PIXEL_2X2, DOT_STYLE_DFT);
+	//Paint_SetPixel( 10, 2, WHITE );
+	DisplayUpdate( );
+#if 0
+    Paint_DrawString_EN( 0, 32, "EmOne", &Font20, BLACK, WHITE );
     Paint_DrawString_EN( 10, 22, "LoRaWAN Survey", &Font12, BLACK, WHITE );
     Paint_DrawString_EN( 10, 38, "Field test purpose", &Font8, BLACK, WHITE );
     Paint_DrawString_EN( 10, 48, "Ver 0.1.1a", &Font12, BLACK, WHITE );
@@ -218,6 +228,7 @@ void BoardInitPeriph( void )
         RtcDelayMs( 500 );
         DisplayUpdate( );
     }
+#endif
 #endif
 }
 
