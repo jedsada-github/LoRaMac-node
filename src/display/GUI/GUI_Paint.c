@@ -588,6 +588,8 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
     uint32_t Page        = 0U;
     uint32_t Column      = 0U;
 	uint32_t Acsii_Char  = 0U;
+    uint32_t Xpoint = Xstart;
+    uint32_t Ypoint = Ystart;
     const unsigned char* ptr = NULL;
 	
     if( Xstart > Paint.Width || Ystart > Paint.Height )
@@ -612,6 +614,10 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
                 case 0xE0B8BF:
                     Char_Offset = ( ( Acsii_Char - 0xE0B880 ) + 90U ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
                     break;
+                case 0xe0b987: // character: '็'
+                    Xpoint -= 7U;
+                    Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+                    break;
                 default:
                     Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
                     break;
@@ -620,9 +626,13 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
 			else
 			{ 
                 switch (Acsii_Char)
-                {
-                case 0xe0b8b8: // 'ุ'
-                    Xstart -= 9U;
+                {  
+                case 0xe0b8b1: // character: 'ุ'ั'
+                    Xpoint -= 7U;
+                    break;
+                case 0xe0b8b8: // character: 'ุ'
+                    Xpoint -= 7U;
+                    Ypoint += 2U;
                     break;
                 default:
                     break;
@@ -646,19 +656,19 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
                 if( FONT_BACKGROUND == Color_Background )
                 {  // this process is to speed up the scan
                     if( *ptr & ( 0x80 >> ( Column % 8U ) ) )
-                        Paint_SetPixel( Xstart + Column, Ystart + Page, Color_Foreground );
+                        Paint_SetPixel( Xpoint + Column, Ypoint + Page, Color_Foreground );
                      //Paint_DrawPoint(Xstart + Column, Ystart + Page, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                 }
                 else
                 {
                     if( *ptr & ( 0x80 >> ( Column % 8U ) ) )
                     {
-                        Paint_SetPixel( Xstart + Column, Ystart + Page, Color_Foreground );
+                        Paint_SetPixel( Xpoint + Column, Ypoint + Page, Color_Foreground );
                         // Paint_DrawPoint(Xstart + Column, Ystart + Page, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                     }
                     else
                     {
-                        Paint_SetPixel( Xstart + Column, Ystart + Page, Color_Background );
+                        Paint_SetPixel( Xpoint + Column, Ypoint + Page, Color_Background );
                         // Paint_DrawPoint(Xstart + Column, Ystart + Page, Color_Background, DOT_PIXEL_DFT, DOT_STYLE_DFT);
                     }
                 }
@@ -669,8 +679,9 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
             if( Font->Width % 8U != 0U ) ptr++;
         }  // Write all
 		
+        Ypoint = Ystart;
         // The next word of the abscissa increases the font of the broadband
-        Xstart += Font->Width - 4;
+        Xpoint += Font->Width - 6;
     } 
 }
 

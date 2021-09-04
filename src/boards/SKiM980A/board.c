@@ -202,25 +202,26 @@ void BoardCriticalSectionEnd( uint32_t* mask )
 void BoardInitPeriph( void )
 {
 #if( USE_OLED == 1 )
-    //uint32_t x = 0;
+    uint32_t x = 0U;
 
     DisplayInit( );
     DisplayClear( );
     RtcDelayMs( 20U );
 	
-	//Paint_DrawString_Test(10, 2, "กขค", &Font16TH, WHITE, BLACK);
 	// !"#$%&'()*+,-./0123456789:;<=>?\x0040ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
 	//กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮฯะัาำิีึืฺุู\x0e3b\x0e3c\x0e3d\x0e3e฿เแโใไๅๆ็่้๊๋์ํ๎๏๐๑๒๓๔๕๖๗๘๙๚๛
-	Paint_DrawString_TH( 0, 15, "เจษฎา อุดมเศรษฐ์", &Font16TH, WHITE, BLACK );
-    //Paint_DrawPoint(10, 2, WHITE, DOT_PIXEL_1X1, DOT_STYLE_DFT);
-    //Paint_DrawPoint(10, 4, WHITE, DOT_PIXEL_2X2, DOT_STYLE_DFT);
-	//Paint_SetPixel( 10, 2, WHITE );
+	//Paint_DrawString_TH( 0, 2, "เอ็มวัน", &Font16TH, WHITE, BLACK );
+    Paint_DrawString_TH( 0, 2, "เอ็มวัน(EmOne)", &Font16TH, WHITE, BLACK );
+    Paint_DrawString_TH( 2, 17, "ประเทศไทย", &Font16TH, WHITE, BLACK );
+    Paint_DrawString_EN( 5, 36, "LoRaWAN Survey", &Font12, BLACK, WHITE );
+    Paint_DrawString_EN( 60, 50, "Ver 0.1.1a", &Font8, BLACK, WHITE );
 	DisplayUpdate( );
 #if 0
     Paint_DrawString_EN( 0, 32, "EmOne", &Font20, BLACK, WHITE );
     Paint_DrawString_EN( 10, 22, "LoRaWAN Survey", &Font12, BLACK, WHITE );
     Paint_DrawString_EN( 10, 38, "Field test purpose", &Font8, BLACK, WHITE );
     Paint_DrawString_EN( 10, 48, "Ver 0.1.1a", &Font12, BLACK, WHITE );
+#endif
 
     for( x = 1; x <= OLED_WIDTH; x += 16U )
     {
@@ -228,7 +229,6 @@ void BoardInitPeriph( void )
         RtcDelayMs( 500 );
         DisplayUpdate( );
     }
-#endif
 #endif
 }
 

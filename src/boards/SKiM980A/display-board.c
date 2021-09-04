@@ -62,7 +62,27 @@ static uint8_t reverse( uint8_t temp )
 
 void DisplayMcuOnKey1Signal( void* context )
 {
-#if 1
+    DisplayClear( );
+#if 0
+    static bool lang_state = 0;
+    DisplayClear( );
+    //RtcDelayMs( 500U );
+    lang_state = !lang_state;
+
+    if (lang_state)
+    {
+        Paint_DrawString_EN( 18, 25, "EN", &Font24, BLACK, WHITE);
+        Paint_DrawString_EN( 73, 25, "TH", &Font24, WHITE, BLACK);
+        DisplayUpdate( );
+    }
+    else
+    {
+        Paint_DrawString_EN( 18, 25, "EN", &Font24, WHITE, BLACK);
+        Paint_DrawString_EN( 73, 25, "TH", &Font24, BLACK, WHITE);
+        DisplayUpdate( );
+    }
+
+
     uint32_t       pin_status = 0;
     static uint8_t key1_cnt   = 0U;
     char str[100];
@@ -128,56 +148,19 @@ void DisplayMcuOnKey1Signal( void* context )
 
 void DisplayMcuOnKey2Signal( void* context )
 {
-#if 1
-    static uint8_t key2_cnt   = 0U;
+#if 0
+    static uint32_t key2_cnt   = 0U;
     uint32_t       pin_status = 0U;
-    char str[100];
+    char str[15] = { 0 };
 
     pin_status = GpioRead( &OledKey2 );
 
-    if( pin_status == 0U )
+    sprintf(str, "%ld", key2_cnt);
+    Paint_DrawString_EN( 10, 10, str, &Font20, BLACK, WHITE );
+    DisplayUpdate( );
+    if( pin_status == 0U && key2_cnt++ > 500)
     {
-        RtcDelayMs( 500U );
-        key2_cnt++;
-        if( key2_cnt > 100U )
-        {
-            key2_cnt = 0U;
-        }
-        //sprintf(str, "%d", key2_cnt);
-        //DisplayClear( );
-        //Paint_DrawString_EN( 10, 22, "key2: ", &Font20, BLACK, WHITE );
-#if 0
-        char *s = "กข";
-        uint32_t n = 0;
-        uint32_t i = 0;
-        while (i < 3)
-        {
-          i++;
-          n = (n | *s) << 8;
-          s++;
-        }
-        n = n >> 8;
-        sprintf(str, "%x", n);
-        Paint_DrawString_EN( 10, 0, str, &Font20, BLACK, WHITE );
-
-        i = 0;
-        while (i < 3)
-        {
-            i++;
-            n = (n | *s) << 8;
-            s++;
-        }
-        n = n >> 8;
-        *s = '\0';
-        sprintf(str, "%x", n);
-#endif
-
-        //Paint_DrawChar(0, 0, 'ก', &Font20, WHITE,  BLACK);
-        //Paint_DrawString_EN( 10, 22, "ก", &Font20, WHITE, BLACK );
-        //Paint_DrawString_TH( 10, 0, "กขฃค", &Font20, BLACK, WHITE );
-        //Paint_DrawString_TH( 10, 21, "กขฃค", &Font20, BLACK, WHITE );
-        //Paint_DrawString_EN( 10, 26, str, &Font20, BLACK, WHITE );
-        DisplayUpdate( );
+        RtcDelayMs( 200U );
     }
 
 #endif

@@ -313,7 +313,6 @@ int main( void )
 #if( USE_OLED == 1 )
     //TimerStart( &DisplayTimer );
 #endif
-
     while( 1 )
     {
 #if 0
