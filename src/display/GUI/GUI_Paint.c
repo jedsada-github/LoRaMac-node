@@ -616,6 +616,7 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
                     break;
                 case 0xe0b987: // character: '็'
                     Xpoint -= 7U;
+                    Ypoint -= 1U;
                     Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
                     break;
                 default:
@@ -632,7 +633,7 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
                     break;
                 case 0xe0b8b8: // character: 'ุ'
                     Xpoint -= 7U;
-                    Ypoint += 2U;
+                    Ypoint -= 1U;
                     break;
                 default:
                     break;
