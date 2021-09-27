@@ -46,6 +46,7 @@
 #include "systime.h"
 #include "display-board.h"
 #include "fonts.h"
+#include "../../apps/LoRaMac/common/NvmDataMgmt.h"
 
 PAINT_TIME sPaint_time = {
     .Year  = 2021, /* 0000   */
@@ -81,6 +82,7 @@ PAINT_LoRa sPaint_lora = {
 #define ID2    ( 0x1FF80054 )
 #define ID3    ( 0x1FF80064 )
 
+static Gpio_t OledKey2;
 // clang-format on
 /*!
  * LED GPIO pins objects
@@ -101,6 +103,9 @@ Adc_t  Adc;
 I2c_t  I2c;
 Spi_t  Spi;
 Uart_t Uart1;
+
+TimerEvent_t DisplayTimer;
+TimerEvent_t DisplayShowTimer;
 
 /*!
  * Initializes the unused GPIO to a know status
@@ -207,21 +212,11 @@ void BoardInitPeriph( void )
     DisplayInit( );
     DisplayClear( );
     RtcDelayMs( 20U );
-	
-	// !"#$%&'()*+,-./0123456789:;<=>?\x0040ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
-	//กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮฯะัาำิีึืฺุู\x0e3b\x0e3c\x0e3d\x0e3e฿เแโใไๅๆ็่้๊๋์ํ๎๏๐๑๒๓๔๕๖๗๘๙๚๛
-	//Paint_DrawString_TH( 0, 2, "เอ็มวัน", &Font16TH, WHITE, BLACK );
-    Paint_DrawString_TH( 0, 2, "เอ็มวัน(EmOne)", &Font16TH, WHITE, BLACK );
-    Paint_DrawString_TH( 2, 17, "ประเทศไทย", &Font16TH, WHITE, BLACK );
-    Paint_DrawString_EN( 5, 36, "LoRaWAN Survey", &Font12, BLACK, WHITE );
-    Paint_DrawString_EN( 60, 50, "Ver 0.1.1a", &Font8, BLACK, WHITE );
-	DisplayUpdate( );
-#if 0
-    Paint_DrawString_EN( 0, 32, "EmOne", &Font20, BLACK, WHITE );
+    
+    Paint_DrawString_EN( 10, 2, "EmOne", &Font20, BLACK, WHITE );
     Paint_DrawString_EN( 10, 22, "LoRaWAN Survey", &Font12, BLACK, WHITE );
     Paint_DrawString_EN( 10, 38, "Field test purpose", &Font8, BLACK, WHITE );
     Paint_DrawString_EN( 10, 48, "Ver 0.1.1a", &Font12, BLACK, WHITE );
-#endif
 
     for( x = 1; x <= OLED_WIDTH; x += 16U )
     {
@@ -229,6 +224,7 @@ void BoardInitPeriph( void )
         RtcDelayMs( 500 );
         DisplayUpdate( );
     }
+    GpioInit( &OledKey2, OLED_KEY2, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 #endif
 }
 
@@ -362,10 +358,6 @@ void BoardGetUniqueId( uint8_t* id )
 #if( USE_OLED == 1 )
 void BoardDisplayShow( void )
 {
-    // CRITICAL_SECTION_BEGIN( );
-    // DisplayInitReg();
-    // DisplayOn();
-    //
     Paint_Clear( BLACK );
     DisplayUpdate( );
 
@@ -422,26 +414,67 @@ void BoardDisplayShow( void )
     Paint_DrawString_EN( 5, 1 + Font8.Height, buf, &Font8, BLACK, WHITE );
 #endif
 
-    sprintf( buf, "UL->PW:%d CL:%c | DR:%d", ( 16 - sPaint_lora.pwr ), sPaint_lora.class, sPaint_lora.dr );
-    Paint_DrawString_EN( 5, 20, buf, &Font8, BLACK, WHITE );
-    sprintf( buf, "DL->RS:%d LS:%d | PT:%d", sPaint_lora.rssi, sPaint_lora.lsnr, sPaint_lora.port );
-    Paint_DrawString_EN( 5, 20 + Font8.Height, buf, &Font8, BLACK, WHITE );
-    sprintf( buf, "UC:%8lu DC:%8lu", sPaint_lora.ulFcnt, sPaint_lora.dlFcnt );
-    Paint_DrawString_EN( 5, 20 + Font8.Height * 2, buf, &Font8, BLACK, WHITE );
-    if( sPaint_lora.status != NULL )
+    switch (key1_cnt)
     {
-        sprintf( buf, "S:%s", sPaint_lora.status );
-        Paint_DrawString_EN( 5, 20 + Font8.Height * 3, buf, &Font8, BLACK, WHITE );
+        case 0U:
+        sprintf( buf, "UL->PW:%d CL:%c", ( 16 - sPaint_lora.pwr ), sPaint_lora.class);
+        Paint_DrawString_EN( 2, 2, buf, &Font12, BLACK, WHITE );
+        sprintf( buf, "DR:%d", sPaint_lora.dr );
+        Paint_DrawString_EN( 2, 2 + Font12.Height, buf, &Font12, BLACK, WHITE );
+        
+        sprintf( buf, "DL->RS:%d LS:%d", sPaint_lora.rssi, sPaint_lora.lsnr );
+        Paint_DrawString_EN( 2, 2 + Font12.Height * 2, buf, &Font12, BLACK, WHITE );
+        sprintf( buf, "PT:%d", sPaint_lora.port );
+        Paint_DrawString_EN( 2, 2 + Font12.Height * 3, buf, &Font12, BLACK, WHITE );
+        break;
+        case 1U:
+        sprintf( buf, "UC:%8lu", sPaint_lora.ulFcnt );
+        Paint_DrawString_EN( 2, 2, buf, &Font12, BLACK, WHITE );
+        sprintf( buf, "DC:%8lu", sPaint_lora.dlFcnt );
+        Paint_DrawString_EN( 2, 2 + Font12.Height, buf, &Font12, BLACK, WHITE );
+        if( sPaint_lora.status != NULL )
+        {
+            sprintf( buf, "S:%s", sPaint_lora.status );
+            Paint_DrawString_EN( 2, 2 + Font12.Height * 2, buf, &Font12, BLACK, WHITE );
+        }
+        break;
+        case 2U:
+        /* local time utc */
+        Paint_DrawString_EN( 2, 2, "UTC-Time/Date", &Font12, BLACK, WHITE );
+        sprintf( buf, "%02d:%02d:%02d   %02d/%02d/%02d", sPaint_time.Hour, sPaint_time.Min, sPaint_time.Sec,
+                sPaint_time.Day, sPaint_time.Month, ( int ) sPaint_time.Year );
+        Paint_DrawString_EN( 2, 5 + Font12.Height, buf, &Font16, BLACK, WHITE );
+        break;
+        default:
+        Paint_DrawString_EN( 10, 25, "Sleep ...", &Font16, BLACK, WHITE );
+        DisplayUpdate( );
+        RtcDelayMs( 2000U );
+        TimerStop( &DisplayTimer );
+        DisplayOff( );
+#if( USE_GPS == 1 )
+        GpsStop( );
+#endif
+        LpmSetStopMode( LPM_DISPLAY_ID, LPM_DISABLE );
+        DisplayClear( );
+        break;
     }
 
-    /* local time utc */
-    sprintf( buf, "%02d:%02d:%02dUTC-%02d/%02d/%02d", sPaint_time.Hour, sPaint_time.Min, sPaint_time.Sec,
-             sPaint_time.Day, sPaint_time.Month, ( int ) sPaint_time.Year );
-    Paint_DrawString_EN( 20, 52, buf, &Font8, BLACK, WHITE );
+    if( key2_cnt == 1U )
+    {
+        key2_cnt = 0U;
+            
+        DisplayClear( );
+        Paint_DrawString_EN( 10, 25, "Reset ...", &Font16, BLACK, WHITE );
+        DisplayUpdate( );
+        RtcDelayMs( 3000U );
+
+        // Reactivation
+        LpmSetStopMode( LPM_DISPLAY_ID, LPM_DISABLE );
+        NvmDataMgmtFactoryReset( );
+        BoardResetMcu( );
+    }
 
     DisplayUpdate( );
-
-    // CRITICAL_SECTION_END( );
 }
 #endif
 

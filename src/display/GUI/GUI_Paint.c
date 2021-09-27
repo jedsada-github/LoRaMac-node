@@ -612,15 +612,65 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
                 switch (Acsii_Char)
                 {
                 case 0xE0B8BF:
-                    Char_Offset = ( ( Acsii_Char - 0xE0B880 ) + 90U ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+					Char_Offset = ( Acsii_Char - 0xE0B884 ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+					/* Thai - English it should be enable macro EN_FONT in font12TH.c */
+                    //Char_Offset = ( ( Acsii_Char - 0xE0B880 ) + 90U ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
                     break;
-                case 0xe0b987: // character: '็'
-                    Xpoint -= 7U;
+				case 0xe0b988: // character: '่' 
+					Xpoint -= 5U;
                     Ypoint -= 1U;
-                    Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+					Char_Offset = ( Acsii_Char - 0xE0B944 ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+					/* Thai - English it should be enable macro EN_FONT in font12TH.c */
+                    //Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+                    break;
+				case 0xe0b989: // character: '้'
+/* 					switch (Acsii_Char_Temp)
+					{
+						case 0xe0b8b1:
+						case 0xe0b8b2:
+						case 0xe0b8b3:
+						case 0xe0b8b4:
+						case 0xe0b8b5:
+						case 0xe0b8b6:
+						case 0xe0b8b7:
+						case 0xe0b8b8:
+						Ypoint -= 7U;
+						break;
+						default:
+						Ypoint -= 3U;
+						break;
+					} */
+					if ((Acsii_Char > 0xe0b8b0) && (Acsii_Char < 0xe0b8b8))
+					{
+						Ypoint -= 7U;
+					}
+					else
+					{
+						Ypoint -= 3U;
+					}
+
+					Xpoint -= 6U;
+					
+					Char_Offset = ( Acsii_Char - 0xE0B944 ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+					/* Thai - English it should be enable macro EN_FONT in font12TH.c */
+                    //Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+                    break;
+				case 0xe0b987: // character: '็'
+				case 0xe0b98a: // character: '๊'
+				case 0xe0b98b: // character: '๋'
+				case 0xe0b98c: // character: '์'
+				case 0xe0b98d: // character: 'ํ'
+				case 0xe0b98e: // character: '๎'
+				    Xpoint -= 7U;
+					Ypoint -= 2U;
+					Char_Offset = ( Acsii_Char - 0xE0B944 ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+					/* Thai - English it should be enable macro EN_FONT in font12TH.c */
+                    //Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
                     break;
                 default:
-                    Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+					Char_Offset = ( Acsii_Char - 0xE0B944 ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+					/* Thai - English it should be enable macro EN_FONT in font12TH.c */
+                    //Char_Offset = ( ( Acsii_Char - 0xE0B880 ) - 102U  ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
                     break;
                 }
 			}
@@ -629,16 +679,31 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
                 switch (Acsii_Char)
                 {  
                 case 0xe0b8b1: // character: 'ุ'ั'
+				    Xpoint -= 7U;
+					Ypoint -= 2U;
+                    break;
+				case 0xe0b8b3: // character: 'ำ'
+					Xpoint -= 4U;
+					break;
+				case 0xe0b8b4: // character: 'ิ' 
+				case 0xe0b8b5: // character: 'ี'
+				case 0xe0b8b6: // character: 'ึ'
+				case 0xe0b8b7: // character: 'ื'
                     Xpoint -= 7U;
+					Ypoint -= 1U;
                     break;
                 case 0xe0b8b8: // character: 'ุ'
-                    Xpoint -= 7U;
-                    Ypoint -= 1U;
+				case 0xe0b8b9: // character: 'ู'
+                    Xpoint -= 4U;
+                    Ypoint += 5U;
                     break;
                 default:
                     break;
                 }
-				Char_Offset = ( ( Acsii_Char - 0xE0B880 ) + 94U ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+				
+				Char_Offset = ( Acsii_Char - 0xE0B880 ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
+				/* Thai - English it should be enable macro EN_FONT in font12TH.c */
+				//Char_Offset = ( ( Acsii_Char - 0xE0B880 ) + 94U ) * Font->Height * ( Font->Width / 8U + ( Font->Width % 8U ? 1U : 0U ) );
 			}
 		}
 		else
@@ -682,7 +747,7 @@ void Paint_DrawString_TH( uint32_t Xstart, uint32_t Ystart, const char* pString,
 		
         Ypoint = Ystart;
         // The next word of the abscissa increases the font of the broadband
-        Xpoint += Font->Width - 6;
+        Xpoint += Font->Width - 4U;
     } 
 }
 

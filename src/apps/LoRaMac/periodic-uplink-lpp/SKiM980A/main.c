@@ -306,16 +306,16 @@ int main( void )
      */
     LmHandlerPackageRegister( PACKAGE_ID_COMPLIANCE, &LmhpComplianceParams );
 
-    //LmHandlerJoin( );
+    LmHandlerJoin( );
 
-    //StartTxProcess( LORAMAC_HANDLER_TX_ON_TIMER );
+    StartTxProcess( LORAMAC_HANDLER_TX_ON_TIMER );
 
 #if( USE_OLED == 1 )
-    //TimerStart( &DisplayTimer );
+    TimerStart( &DisplayTimer );
 #endif
     while( 1 )
     {
-#if 0
+
 #if( USE_GPS == 0 )
         /* Process characters sent over the command line interface */
         CliProcess( &Uart1 );
@@ -338,7 +338,6 @@ int main( void )
             BoardLowPowerHandler( );
         }
         CRITICAL_SECTION_END( );
-#endif
     }
 }
 
@@ -608,7 +607,7 @@ static void OnLed4TimerEvent( void* context )
     TimerStop( &Led4Timer );
 #if( USE_OLED == 1 )
     /* Display */
-    // DisplayProcess();
+     //DisplayProcess();
 #else
     /* Switch LED 4 OFF */
     GpioWrite( &Led4, 0 );
@@ -624,7 +623,7 @@ static void OnLed2TimerEvent( void* context )
 
 #if( USE_OLED == 1 )
     /* Display */
-    // DisplayProcess();
+     //DisplayProcess();
 #else
     /* Switch LED 2 OFF */
     GpioWrite( &Led2, 0 );
@@ -638,7 +637,7 @@ static void OnLedBeaconTimerEvent( void* context )
 {
 #if( USE_OLED == 1 )
     /* Display */
-    // DisplayProcess();
+     //DisplayProcess();
 #else
     GpioWrite( &Led2, 1 );
 #endif
@@ -654,6 +653,6 @@ static void OnDisplayEvent( void* context )
 {
 #if( USE_OLED == 1 )
     /* Display */
-    //DisplayProcess( );
+    DisplayProcess( );
 #endif
 }

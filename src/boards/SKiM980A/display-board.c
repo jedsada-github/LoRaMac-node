@@ -25,6 +25,8 @@
 #include "gps.h"
 #include "../../apps/LoRaMac/common/NvmDataMgmt.h"
 
+volatile uint8_t key1_cnt   = 0U;
+volatile uint8_t key2_cnt   = 0U;
 static Gpio_t OledNrst;
 static Gpio_t OledKey1;
 static Gpio_t OledKey2;
@@ -46,8 +48,8 @@ volatile uint8_t    BlackImage[Imagesize];
 extern PAINT        Paint;
 bool                sleepDisplay = 0;
 extern TimerEvent_t DisplayTimer;
-static TimerEvent_t DisplayShowTimer;
-static void         DisplayInitReg( void );
+extern TimerEvent_t DisplayShowTimer;
+void         DisplayInitReg( void );
 /********************************************************************************
 function:
             reverse a byte data
@@ -62,112 +64,30 @@ static uint8_t reverse( uint8_t temp )
 
 void DisplayMcuOnKey1Signal( void* context )
 {
-    DisplayClear( );
-#if 0
-    static bool lang_state = 0;
-    DisplayClear( );
-    //RtcDelayMs( 500U );
-    lang_state = !lang_state;
+    key1_cnt++;
 
-    if (lang_state)
+    if ( key1_cnt > 3U )
     {
-        Paint_DrawString_EN( 18, 25, "EN", &Font24, BLACK, WHITE);
-        Paint_DrawString_EN( 73, 25, "TH", &Font24, WHITE, BLACK);
-        DisplayUpdate( );
-    }
-    else
-    {
-        Paint_DrawString_EN( 18, 25, "EN", &Font24, WHITE, BLACK);
-        Paint_DrawString_EN( 73, 25, "TH", &Font24, BLACK, WHITE);
-        DisplayUpdate( );
-    }
-
-
-    uint32_t       pin_status = 0;
-    static uint8_t key1_cnt   = 0U;
-    char str[100];
-
-    pin_status = GpioRead( &OledKey1 );
-
-    if( pin_status == 0U )
-    {
-        RtcDelayMs( 500U );
-        key1_cnt++;
-        if( key1_cnt > 100U )
-        {
-            key1_cnt = 0U;
-        }
-        sprintf(str, "%d", key1_cnt);
-        //DisplayClear( );
-        //Paint_DrawString_EN( 10, 1, "key1: ", &Font20, BLACK, WHITE );
-        Paint_DrawString_EN( 10, 6, str, &Font20, WHITE, BLACK );
-        DisplayUpdate( );
-    }
-
-#endif
-
-#if 0
-    // Wake up
-    if( sleepDisplay == 0 )
-    {
-        TimerStop( &DisplayTimer );
-
-        DisplayOff( );
-
-#if( USE_GPS == 1 )
-        GpsStop( );
-#endif
-
-        LpmSetStopMode( LPM_DISPLAY_ID, LPM_DISABLE );
-        sleepDisplay = 1;
-        /*Suspend Tick increment to prevent wakeup by Systick interrupt.
-        Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base)*/
-        // HAL_SuspendTick();
-
-        // LpmEnterStopMode();
-    }
-    else
-    {
+        key1_cnt = 0U;
         /* Resume Tick interrupt if disabled prior to SLEEP mode entry */
         // HAL_ResumeTick();
-        sleepDisplay = 0;
         LpmSetStopMode( LPM_DISPLAY_ID, LPM_ENABLE );
-
+#if( USE_GPS == 1 )
         GpsStart( );
-
+#endif
         DisplayInitReg( );
         DisplayOn( );
         DisplayClear( );
-
         TimerStart( &DisplayTimer );
         TimerStart( &DisplayShowTimer );
         // TimerStart( &TxTimer );
     }
-#endif
+
 }
 
 void DisplayMcuOnKey2Signal( void* context )
 {
-#if 0
-    static uint32_t key2_cnt   = 0U;
-    uint32_t       pin_status = 0U;
-    char str[15] = { 0 };
-
-    pin_status = GpioRead( &OledKey2 );
-
-    sprintf(str, "%ld", key2_cnt);
-    Paint_DrawString_EN( 10, 10, str, &Font20, BLACK, WHITE );
-    DisplayUpdate( );
-    if( pin_status == 0U && key2_cnt++ > 500)
-    {
-        RtcDelayMs( 200U );
-    }
-
-#endif
-    // Reactivation
-    // LpmSetStopMode( LPM_DISPLAY_ID, LPM_DISABLE );
-    // NvmDataMgmtFactoryReset( );
-    // BoardResetMcu( );
+    key2_cnt = 1U;
 }
 
 void DisplayMcuOnDisplayShowTimeout( void* context )

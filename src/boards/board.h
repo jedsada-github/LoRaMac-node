@@ -127,6 +127,9 @@ Version_t BoardGetVersion( void );
  */
 void BoardDisplayShow( void );
 
+extern volatile uint8_t key1_cnt;
+extern volatile uint8_t key2_cnt;
+
 #ifdef __cplusplus
 }
 #endif
